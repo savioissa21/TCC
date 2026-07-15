@@ -1,0 +1,76 @@
+package com.tcc.dashboard.service;
+
+import com.tcc.dashboard.dto.EstablishmentSummaryDTO;
+import com.tcc.dashboard.model.Establishment;
+import com.tcc.dashboard.model.Review;
+import com.tcc.dashboard.model.User;
+import com.tcc.dashboard.repository.EstablishmentRepository;
+import com.tcc.dashboard.repository.ReviewRepository;
+import com.tcc.dashboard.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class EstablishmentService {
+
+    @Autowired
+    private EstablishmentRepository establishmentRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ReviewRepository reviewRepository;
+
+    public Establishment createEstablishment(String name, String url, String userEmail) {
+        User owner = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + userEmail));
+
+        Establishment establishment = new Establishment();
+        establishment.setName(name);
+        establishment.setMapsUrl(url);
+        establishment.setOwner(owner);
+
+        return establishmentRepository.save(establishment);
+    }
+
+    public List<EstablishmentSummaryDTO> getSummaryByUser(String userEmail) {
+        List<Establishment> establishments = establishmentRepository.findByOwnerEmail(userEmail);
+
+        return establishments.stream().map(est -> {
+            List<Review> reviews = reviewRepository.findByEstablishmentId(est.getId());
+
+            long totalReviews = reviews.size();
+            double avgRating = reviews.stream()
+                    .mapToDouble(r -> r.getRating() != null ? r.getRating() : 0.0)
+                    .average().orElse(0.0);
+            long positiveCount = reviews.stream()
+                    .filter(r -> "Positivo".equals(r.getOverallSentiment())).count();
+            double satisfactionScore = totalReviews > 0
+                    ? Math.round((double) positiveCount / totalReviews * 1000.0) / 10.0
+                    : 0.0;
+
+            return new EstablishmentSummaryDTO(
+                    est.getId(),
+                    est.getName(),
+                    est.getMapsUrl(),
+                    totalReviews,
+                    Math.round(avgRating * 10.0) / 10.0,
+                    satisfactionScore
+            );
+        }).toList();
+    }
+
+    public void deleteEstablishment(Long id, String userEmail) {
+        Establishment est = establishmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Estabelecimento não encontrado."));
+
+        if (!est.getOwner().getEmail().equals(userEmail)) {
+            throw new RuntimeException("Acesso negado: você não é o dono deste estabelecimento.");
+        }
+
+        establishmentRepository.delete(est);
+    }
+}

@@ -1,0 +1,44 @@
+# Ignorar artefatos de build e cache locais
+# para o contexto de build da API (raiz do projeto)
+
+# Git
+**/.git
+**/.gitignore
+**/.gitattributes
+
+# IDE / editors
+**/.vscode
+**/.idea
+**/*.iml
+
+# Frontend — não precisa no build da API
+dashboard-front/node_modules
+dashboard-front/dist
+dashboard-front/.next
+
+# API — excluir classes mas manter o JAR (necessário para o build Docker)
+dashboard-api/target/classes
+dashboard-api/target/generated-sources
+dashboard-api/target/maven-archiver
+dashboard-api/target/maven-status
+dashboard-api/target/surefire-reports
+dashboard-api/target/test-classes
+dashboard-api/target/*.original
+
+# Python cache
+**/__pycache__
+**/*.pyc
+**/*.pyo
+minerador-py/*.json
+
+# Logs e temporários
+**/*.log
+**/logs
+
+# Docker próprio
+**/docker-compose*.yml
+**/.dockerignore
+
+# OS
+**/.DS_Store
+**/Thumbs.db

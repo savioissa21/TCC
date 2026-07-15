@@ -1,0 +1,48 @@
+# ─── Java / Maven ───────────────────────────────────────
+dashboard-api/target/
+dashboard-api/.mvn/wrapper/maven-wrapper.jar
+dashboard-api/*.jar
+
+# ─── Spring Boot ────────────────────────────────────────
+dashboard-api/dados_temp.json
+
+# ─── Node / Frontend ────────────────────────────────────
+dashboard-front/node_modules/
+dashboard-front/dist/
+dashboard-front/.vite/
+
+# ─── Python / Minerador ─────────────────────────────────
+minerador-py/__pycache__/
+minerador-py/*.pyc
+minerador-py/*.pyo
+minerador-py/dados_temp.json
+minerador-py/reviews.json
+minerador-py/reviews_processados.json
+**/__pycache__/
+**/*.pyc
+
+# ─── IDE / Editor ───────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.iml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ─── OS ─────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Logs ───────────────────────────────────────────────
+*.log
+logs/
+
+# ─── Env / Secrets ──────────────────────────────────────
+.env
+.env.local
+.env.production
+
+# ─── Docker volumes ─────────────────────────────────────
+# (volumes são gerenciados pelo Docker, não precisa trackear)
