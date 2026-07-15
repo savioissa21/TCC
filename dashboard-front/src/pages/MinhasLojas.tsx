@@ -196,7 +196,10 @@ export function MinhasLojas() {
         jobId={miningJobId}
         establishmentName={miningEstName}
         onComplete={handleMiningComplete}
-        onError={() => { setMiningJobId(null); toast.error("Falha na mineração."); }}
+        onError={(message) => {
+          setMiningJobId(null);
+          toast.error(message || "Falha na mineração.");
+        }}
       />
     </>
   );

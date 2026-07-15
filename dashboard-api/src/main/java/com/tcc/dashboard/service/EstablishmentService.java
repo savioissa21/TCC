@@ -10,7 +10,9 @@ import com.tcc.dashboard.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class EstablishmentService {
@@ -25,6 +27,8 @@ public class EstablishmentService {
     private ReviewRepository reviewRepository;
 
     public Establishment createEstablishment(String name, String url, String userEmail) {
+        validateMapsUrl(url);
+
         User owner = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + userEmail));
 
@@ -34,6 +38,27 @@ public class EstablishmentService {
         establishment.setOwner(owner);
 
         return establishmentRepository.save(establishment);
+    }
+
+    private void validateMapsUrl(String url) {
+        if (url == null || url.isBlank()) {
+            throw new RuntimeException("Informe o link de um estabelecimento específico no Google Maps.");
+        }
+
+        final URI uri;
+        try {
+            uri = URI.create(url.trim());
+        } catch (IllegalArgumentException ex) {
+            throw new RuntimeException("O link informado não é uma URL válida do Google Maps.");
+        }
+
+        String path = uri.getPath();
+        String normalizedPath = path == null ? "" : path.toLowerCase(Locale.ROOT);
+        if (normalizedPath.equals("/maps/search") || normalizedPath.contains("/maps/search/")) {
+            throw new RuntimeException(
+                    "Links de pesquisa do Google Maps não são aceitos. Selecione um estabelecimento específico e copie o link da página da empresa."
+            );
+        }
     }
 
     public List<EstablishmentSummaryDTO> getSummaryByUser(String userEmail) {

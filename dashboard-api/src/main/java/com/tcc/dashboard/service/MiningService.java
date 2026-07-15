@@ -67,6 +67,8 @@ public class MiningService {
             ObjectMapper mapper = new ObjectMapper();
             List<Review> reviews = mapper.readValue(jsonFile, new TypeReference<List<Review>>() {});
 
+            ensureReviewsFound(reviews);
+
             for (Review review : reviews) {
                 review.setEstablishment(establishment);
                 if (review.getAspects() != null) {
@@ -87,6 +89,14 @@ public class MiningService {
             System.err.println("Erro no MiningService: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("Falha na mineração: " + e.getMessage(), e);
+        }
+    }
+
+    static void ensureReviewsFound(List<Review> reviews) {
+        if (reviews.isEmpty()) {
+            throw new RuntimeException(
+                    "Nenhuma avaliação foi encontrada. Selecione um estabelecimento específico no Google Maps e use o link da página da empresa, não um link /maps/search/."
+            );
         }
     }
 }

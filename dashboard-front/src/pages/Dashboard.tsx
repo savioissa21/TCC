@@ -69,9 +69,9 @@ export function Dashboard() {
     loadData();
   }
 
-  function handleMiningError() {
+  function handleMiningError(message?: string) {
     setMiningJobId(null);
-    toast.error("A mineração falhou. Verifique os logs do servidor.");
+    toast.error(message || "A mineração falhou. Verifique os logs do servidor.");
   }
 
   return (

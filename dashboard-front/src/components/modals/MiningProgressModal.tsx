@@ -7,7 +7,7 @@ interface Props {
   jobId: string | null;
   establishmentName: string;
   onComplete: () => void;
-  onError: () => void;
+  onError: (message?: string) => void;
 }
 
 const STEPS = [
@@ -45,7 +45,7 @@ export function MiningProgressModal({ jobId, establishmentName, onComplete, onEr
           setTimeout(onComplete, 1200);
         } else if (s.state === "FAILED") {
           clearInterval(poll);
-          setTimeout(onError, 1200);
+          setTimeout(() => onError(s.message), 1200);
         }
       } catch {
         // ignora erros de rede temporários
