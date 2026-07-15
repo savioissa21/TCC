@@ -45,17 +45,25 @@ public class MiningService {
             ProcessBuilder pb = new ProcessBuilder(pythonExec, script.getAbsolutePath(), url);
             pb.directory(script.getParentFile());
             pb.redirectErrorStream(true);
+            pb.environment().put("PYTHONUNBUFFERED", "1");
 
             Process process = pb.start();
+            String miningError = null;
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     System.out.println("[PYTHON]: " + line);
+                    if (line.startsWith("[MINING_ERROR] ")) {
+                        miningError = line.substring("[MINING_ERROR] ".length());
+                    }
                 }
             }
 
             int exitCode = process.waitFor();
             if (exitCode != 0) {
+                if (miningError != null) {
+                    throw new RuntimeException(miningError);
+                }
                 throw new RuntimeException("Script Python falhou com código de saída: " + exitCode);
             }
 

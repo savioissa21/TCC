@@ -52,11 +52,26 @@ public class EstablishmentService {
             throw new RuntimeException("O link informado não é uma URL válida do Google Maps.");
         }
 
+        String host = uri.getHost();
+        String normalizedHost = host == null ? "" : host.toLowerCase(Locale.ROOT);
+        boolean isGoogleHost = normalizedHost.matches("(^|.*\\.)google\\.[a-z]{2,3}(\\.[a-z]{2})?");
+        if (!isGoogleHost) {
+            throw new RuntimeException(
+                    "Informe o link completo da página de um estabelecimento no Google Maps. Links genéricos ou encurtados não são aceitos."
+            );
+        }
+
         String path = uri.getPath();
         String normalizedPath = path == null ? "" : path.toLowerCase(Locale.ROOT);
         if (normalizedPath.equals("/maps/search") || normalizedPath.contains("/maps/search/")) {
             throw new RuntimeException(
                     "Links de pesquisa do Google Maps não são aceitos. Selecione um estabelecimento específico e copie o link da página da empresa."
+            );
+        }
+
+        if (!normalizedPath.contains("/maps/place/")) {
+            throw new RuntimeException(
+                    "Esse link não identifica um estabelecimento específico. Abra a página da empresa no Google Maps e copie a URL completa, que deve conter /maps/place/."
             );
         }
     }

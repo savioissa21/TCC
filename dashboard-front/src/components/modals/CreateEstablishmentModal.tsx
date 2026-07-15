@@ -2,13 +2,25 @@ import { useState, type FormEvent } from "react";
 import { X, Store, Link } from "lucide-react";
 
 const SEARCH_URL_ERROR = "Links de pesquisa não são aceitos. Selecione um estabelecimento específico no Google Maps e copie o link da página da empresa.";
+const SPECIFIC_PLACE_URL_ERROR = "Esse link não identifica um estabelecimento específico. Abra a página da empresa no Google Maps e copie a URL completa, que deve conter /maps/place/.";
+const GOOGLE_MAPS_URL_ERROR = "Informe o link completo da página de um estabelecimento no Google Maps. Links genéricos ou encurtados não são aceitos.";
 
-function isGoogleMapsSearchUrl(value: string) {
+function getMapsUrlError(value: string) {
+  if (!value) return "";
+
   try {
-    const path = new URL(value).pathname.toLowerCase();
-    return path === "/maps/search" || path.includes("/maps/search/");
+    const parsedUrl = new URL(value);
+    const host = parsedUrl.hostname.toLowerCase();
+    const path = parsedUrl.pathname.toLowerCase();
+    const isGoogleHost = /(^|.*\.)google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(host);
+
+    if (!isGoogleHost) return GOOGLE_MAPS_URL_ERROR;
+    if (path === "/maps/search" || path.includes("/maps/search/")) return SEARCH_URL_ERROR;
+    if (!path.includes("/maps/place/")) return SPECIFIC_PLACE_URL_ERROR;
+
+    return "";
   } catch {
-    return false;
+    return GOOGLE_MAPS_URL_ERROR;
   }
 }
 
@@ -30,8 +42,9 @@ export function CreateEstablishmentModal({ isOpen, onClose, onSubmit, isLoading 
     e.preventDefault();
     if (!name.trim() || !url.trim()) return;
 
-    if (isGoogleMapsSearchUrl(url.trim())) {
-      setUrlError(SEARCH_URL_ERROR);
+    const validationError = getMapsUrlError(url.trim());
+    if (validationError) {
+      setUrlError(validationError);
       return;
     }
 
@@ -40,7 +53,7 @@ export function CreateEstablishmentModal({ isOpen, onClose, onSubmit, isLoading 
 
   function handleUrlChange(value: string) {
     setUrl(value);
-    setUrlError(isGoogleMapsSearchUrl(value.trim()) ? SEARCH_URL_ERROR : "");
+    setUrlError(getMapsUrlError(value.trim()));
   }
 
   return (
