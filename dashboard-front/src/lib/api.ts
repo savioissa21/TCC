@@ -1,7 +1,7 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { STORAGE_KEYS } from "./storage";
 
-const baseURL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+const baseURL = import.meta.env.VITE_API_URL || "http://localhost:8085";
 
 export const api = axios.create({
   baseURL,
@@ -22,12 +22,14 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
+  (error: AxiosError<{ error?: string; detail?: string }>) => {
     if (error.response?.status === 401) {
       localStorage.removeItem(STORAGE_KEYS.TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER);
       window.location.href = "/login";
     }
-    return Promise.reject(error);
+
+    const message = error.response?.data?.error || error.response?.data?.detail || error.message || "Ocorreu um erro inesperado.";
+    return Promise.reject(new Error(message));
   }
 );

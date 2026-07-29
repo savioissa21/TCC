@@ -3,6 +3,9 @@ package com.tcc.dashboard.controller;
 import com.tcc.dashboard.dto.LoginRequestDTO;
 import com.tcc.dashboard.dto.RegisterRequestDTO;
 import com.tcc.dashboard.dto.ResponseDTO;
+import com.tcc.dashboard.exception.BadRequestException;
+import com.tcc.dashboard.exception.NotFoundException;
+import com.tcc.dashboard.exception.UnauthorizedException;
 import com.tcc.dashboard.model.User;
 import com.tcc.dashboard.repository.UserRepository;
 import com.tcc.dashboard.security.TokenService;
@@ -32,31 +35,38 @@ public class AuthController {
     private TokenService tokenService;
 
     @PostMapping("/login")
-    public ResponseEntity login(@RequestBody LoginRequestDTO body) {
-        User user = userRepository.findByEmail(body.email()).orElseThrow(() -> new RuntimeException("User not found"));
-        
-        if (passwordEncoder.matches(body.password(), user.getPassword())) {
-            String token = tokenService.generateToken(user);
-            return ResponseEntity.ok(new ResponseDTO(user.getName(), token));
+    public ResponseEntity<ResponseDTO> login(@RequestBody LoginRequestDTO body) {
+        User user = userRepository.findByEmail(body.email())
+                .orElseThrow(() -> new NotFoundException("Usuário não encontrado."));
+
+        if (!passwordEncoder.matches(body.password(), user.getPassword())) {
+            throw new UnauthorizedException("Email ou senha incorretos.");
         }
-        return ResponseEntity.badRequest().build();
+
+        String token = tokenService.generateToken(user);
+        return ResponseEntity.ok(new ResponseDTO(user.getName(), token));
     }
 
     @PostMapping("/register")
-    public ResponseEntity register(@RequestBody RegisterRequestDTO body) {
+    public ResponseEntity<ResponseDTO> register(@RequestBody RegisterRequestDTO body) {
         Optional<User> user = userRepository.findByEmail(body.email());
 
-        if (user.isEmpty()) {
-            User newUser = new User();
-            newUser.setPassword(passwordEncoder.encode(body.password())); // Salva criptografado
-            newUser.setEmail(body.email());
-            newUser.setName(body.name());
-            
-            userRepository.save(newUser);
-            
-            String token = tokenService.generateToken(newUser);
-            return ResponseEntity.ok(new ResponseDTO(newUser.getName(), token));
+        if (user.isPresent()) {
+            throw new BadRequestException("Email já cadastrado.");
         }
-        return ResponseEntity.badRequest().body("Email já cadastrado");
+
+        if (body.password() == null || body.password().isBlank()) {
+            throw new BadRequestException("A senha é obrigatória.");
+        }
+
+        User newUser = new User();
+        newUser.setPassword(passwordEncoder.encode(body.password()));
+        newUser.setEmail(body.email());
+        newUser.setName(body.name());
+
+        userRepository.save(newUser);
+
+        String token = tokenService.generateToken(newUser);
+        return ResponseEntity.ok(new ResponseDTO(newUser.getName(), token));
     }
 }

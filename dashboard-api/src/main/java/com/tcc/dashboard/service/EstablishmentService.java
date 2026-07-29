@@ -1,6 +1,9 @@
 package com.tcc.dashboard.service;
 
 import com.tcc.dashboard.dto.EstablishmentSummaryDTO;
+import com.tcc.dashboard.exception.BadRequestException;
+import com.tcc.dashboard.exception.NotFoundException;
+import com.tcc.dashboard.exception.UnauthorizedException;
 import com.tcc.dashboard.model.Establishment;
 import com.tcc.dashboard.model.Review;
 import com.tcc.dashboard.model.User;
@@ -30,7 +33,7 @@ public class EstablishmentService {
         validateMapsUrl(url);
 
         User owner = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + userEmail));
+                .orElseThrow(() -> new NotFoundException("Usuário não encontrado: " + userEmail));
 
         Establishment establishment = new Establishment();
         establishment.setName(name);
@@ -42,21 +45,28 @@ public class EstablishmentService {
 
     private void validateMapsUrl(String url) {
         if (url == null || url.isBlank()) {
-            throw new RuntimeException("Informe o link de um estabelecimento específico no Google Maps.");
+            throw new BadRequestException("Informe o link de um estabelecimento específico no Google Maps.");
         }
 
         final URI uri;
         try {
             uri = URI.create(url.trim());
         } catch (IllegalArgumentException ex) {
-            throw new RuntimeException("O link informado não é uma URL válida do Google Maps.");
+            throw new BadRequestException("O link informado não é uma URL válida do Google Maps.");
         }
 
         String host = uri.getHost();
         String normalizedHost = host == null ? "" : host.toLowerCase(Locale.ROOT);
-        boolean isGoogleHost = normalizedHost.matches("(^|.*\\.)google\\.[a-z]{2,3}(\\.[a-z]{2})?");
+        boolean isGoogleHost = normalizedHost.matches("(^|.*\\.)google\\.[a-z]{2,3}(\\.[a-z]{2})?")
+                || normalizedHost.contains("google")
+                || normalizedHost.contains("maps.app.goo.gl");
+
+        if (normalizedHost.contains("maps.app.goo.gl") || normalizedHost.contains("goo.gl")) {
+            throw new BadRequestException("Links encurtados do Google Maps não são aceitos. Use o link completo da página do estabelecimento.");
+        }
+
         if (!isGoogleHost) {
-            throw new RuntimeException(
+            throw new BadRequestException(
                     "Informe o link completo da página de um estabelecimento no Google Maps. Links genéricos ou encurtados não são aceitos."
             );
         }
@@ -64,14 +74,26 @@ public class EstablishmentService {
         String path = uri.getPath();
         String normalizedPath = path == null ? "" : path.toLowerCase(Locale.ROOT);
         if (normalizedPath.equals("/maps/search") || normalizedPath.contains("/maps/search/")) {
-            throw new RuntimeException(
+            throw new BadRequestException(
                     "Links de pesquisa do Google Maps não são aceitos. Selecione um estabelecimento específico e copie o link da página da empresa."
             );
         }
 
         if (!normalizedPath.contains("/maps/place/")) {
-            throw new RuntimeException(
+            throw new BadRequestException(
                     "Esse link não identifica um estabelecimento específico. Abra a página da empresa no Google Maps e copie a URL completa, que deve conter /maps/place/."
+            );
+        }
+
+        if (normalizedPath.equals("/maps/place/") || normalizedPath.equals("/maps/place")) {
+            throw new BadRequestException(
+                    "Esse link não identifica um estabelecimento específico. Abra a página da empresa no Google Maps e copie a URL completa, que deve conter /maps/place/."
+            );
+        }
+
+        if (uri.getQuery() != null && !uri.getQuery().isBlank()) {
+            throw new BadRequestException(
+                    "Esse link não é um link direto de estabelecimento do Google Maps. Use a URL da página do estabelecimento sem parâmetros de compartilhamento."
             );
         }
     }
@@ -105,10 +127,10 @@ public class EstablishmentService {
 
     public void deleteEstablishment(Long id, String userEmail) {
         Establishment est = establishmentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Estabelecimento não encontrado."));
+                .orElseThrow(() -> new NotFoundException("Estabelecimento não encontrado."));
 
         if (!est.getOwner().getEmail().equals(userEmail)) {
-            throw new RuntimeException("Acesso negado: você não é o dono deste estabelecimento.");
+            throw new UnauthorizedException("Acesso negado: você não é o dono deste estabelecimento.");
         }
 
         establishmentRepository.delete(est);

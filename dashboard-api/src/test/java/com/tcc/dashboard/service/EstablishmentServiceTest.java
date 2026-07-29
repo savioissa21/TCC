@@ -79,7 +79,24 @@ class EstablishmentServiceTest {
         );
 
         assertEquals(
-                "Informe o link completo da página de um estabelecimento no Google Maps. Links genéricos ou encurtados não são aceitos.",
+                "Links encurtados do Google Maps não são aceitos. Use o link completo da página do estabelecimento.",
+                exception.getMessage()
+        );
+        verifyNoInteractions(userRepository, establishmentRepository, reviewRepository);
+    }
+
+    @Test
+    void rejectsGoogleMapsShareLinkWithTrackingParamsBeforeSaving() {
+        RuntimeException exception = assertThrows(RuntimeException.class, () ->
+                establishmentService.createEstablishment(
+                        "Pizzaria",
+                        "https://www.google.com/maps/place/Pz.%C3%81ria+-+Forneria+Criativa/@-16.675498,-49.3085628,14z/data=!3m1!5s0x935ef3e248a0911d:0xc32db09235713f62!4m11!1m2!2m1!1spizzaria+goiania!3m7!1s0x935ef3b7de96a087:0xb1e889a4e108886d!8m2!3d-16.6754977!4d-49.2704541!9m1!1b1!16s%2Fg%2F11j6wc7kvq?entry=ttu&g_ep=EgoyMDI2MDcyNi4wIKXMDSoASAFQAw%3D%3D",
+                        "user@example.com"
+                )
+        );
+
+        assertEquals(
+                "Esse link não é um link direto de estabelecimento do Google Maps. Use a URL da página do estabelecimento sem parâmetros de compartilhamento.",
                 exception.getMessage()
         );
         verifyNoInteractions(userRepository, establishmentRepository, reviewRepository);

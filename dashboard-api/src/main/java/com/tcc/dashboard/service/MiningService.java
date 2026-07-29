@@ -2,6 +2,8 @@ package com.tcc.dashboard.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tcc.dashboard.exception.BadRequestException;
+import com.tcc.dashboard.exception.NotFoundException;
 import com.tcc.dashboard.model.Aspect;
 import com.tcc.dashboard.model.Establishment;
 import com.tcc.dashboard.model.Review;
@@ -36,7 +38,7 @@ public class MiningService {
 
     public int startMining(String url, Long establishmentId) {
         Establishment establishment = establishmentRepository.findById(establishmentId)
-                .orElseThrow(() -> new RuntimeException("Estabelecimento com ID " + establishmentId + " não encontrado."));
+                .orElseThrow(() -> new NotFoundException("Estabelecimento com ID " + establishmentId + " não encontrado."));
 
         try {
             System.out.println("Iniciando mineração para: " + establishment.getName());
@@ -62,14 +64,14 @@ public class MiningService {
             int exitCode = process.waitFor();
             if (exitCode != 0) {
                 if (miningError != null) {
-                    throw new RuntimeException(miningError);
+                    throw new BadRequestException(miningError);
                 }
-                throw new RuntimeException("Script Python falhou com código de saída: " + exitCode);
+                throw new BadRequestException("Script Python falhou com código de saída: " + exitCode);
             }
 
             File jsonFile = new File(script.getParentFile(), outputFile);
             if (!jsonFile.exists()) {
-                throw new RuntimeException("Arquivo '" + outputFile + "' não foi gerado pelo Python.");
+                throw new BadRequestException("Arquivo '" + outputFile + "' não foi gerado pelo Python.");
             }
 
             ObjectMapper mapper = new ObjectMapper();
@@ -102,7 +104,7 @@ public class MiningService {
 
     static void ensureReviewsFound(List<Review> reviews) {
         if (reviews.isEmpty()) {
-            throw new RuntimeException(
+            throw new BadRequestException(
                     "Nenhuma avaliação foi encontrada. Selecione um estabelecimento específico no Google Maps e use o link da página da empresa, não um link /maps/search/."
             );
         }

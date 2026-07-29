@@ -32,9 +32,9 @@ export function Register() {
       // 3. Redireciona
       navigate("/dashboard");
       
-    } catch (err: any) {
-      const msg = err.response?.data || "Erro ao criar conta. Tente novamente.";
-      setError(msg);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao criar conta. Tente novamente.";
+      setError(message);
     } finally {
       setIsLoading(false);
     }

@@ -45,18 +45,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 2. DEFINIR O SIGNIN
   const signIn = useCallback(async ({ email, pass }: SignInCredentials) => {
     try {
-      const response = await api.post<AuthResponse>("/auth/login", { 
-        email, 
-        password: pass 
+      const response = await api.post<AuthResponse>("/auth/login", {
+        email,
+        password: pass,
       });
 
       const { token, name } = response.data;
 
       const decoded = jwtDecode<JWTPayload>(token);
-      const userEmail = decoded.sub; 
+      const userEmail = decoded.sub;
 
       const userLogged: User = {
-        id: "uuid-indisponivel-no-login", 
+        id: "uuid-indisponivel-no-login",
         name: name,
         email: userEmail,
       };
@@ -67,10 +67,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
       setUser(userLogged);
-
     } catch (error) {
-      console.error("Erro ao logar:", error);
-      throw error;
+      const message = error instanceof Error ? error.message : "Erro ao fazer login.";
+      console.error("Erro ao logar:", message);
+      throw new Error(message);
     }
   }, []);
 

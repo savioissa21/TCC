@@ -24,7 +24,8 @@ export function Login() {
       await signIn({ email, pass: password });
       navigate("/dashboard");
     } catch (err) {
-      setError("Email ou senha incorretos.");
+      const message = err instanceof Error ? err.message : "Não foi possível entrar. Tente novamente.";
+      setError(message);
     } finally {
       setIsLoading(false);
     }

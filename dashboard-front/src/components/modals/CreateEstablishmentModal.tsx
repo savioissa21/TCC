@@ -4,19 +4,26 @@ import { X, Store, Link } from "lucide-react";
 const SEARCH_URL_ERROR = "Links de pesquisa não são aceitos. Selecione um estabelecimento específico no Google Maps e copie o link da página da empresa.";
 const SPECIFIC_PLACE_URL_ERROR = "Esse link não identifica um estabelecimento específico. Abra a página da empresa no Google Maps e copie a URL completa, que deve conter /maps/place/.";
 const GOOGLE_MAPS_URL_ERROR = "Informe o link completo da página de um estabelecimento no Google Maps. Links genéricos ou encurtados não são aceitos.";
+const SHORTENED_URL_ERROR = "Links encurtados do Google Maps não são aceitos. Use o link completo da página do estabelecimento.";
+const DIRECT_PLACE_URL_ERROR = "Esse link não é um link direto de estabelecimento do Google Maps. Use a URL da página do estabelecimento sem parâmetros de compartilhamento.";
 
 function getMapsUrlError(value: string) {
   if (!value) return "";
 
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
   try {
-    const parsedUrl = new URL(value);
+    const parsedUrl = new URL(trimmed);
     const host = parsedUrl.hostname.toLowerCase();
     const path = parsedUrl.pathname.toLowerCase();
-    const isGoogleHost = /(^|.*\.)google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(host);
+    const isGoogleHost = /(^|.*\.)google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(host) || host.includes("google") || host.includes("maps.app.goo.gl");
 
+    if (host.includes("maps.app.goo.gl") || host.includes("goo.gl")) return SHORTENED_URL_ERROR;
     if (!isGoogleHost) return GOOGLE_MAPS_URL_ERROR;
     if (path === "/maps/search" || path.includes("/maps/search/")) return SEARCH_URL_ERROR;
     if (!path.includes("/maps/place/")) return SPECIFIC_PLACE_URL_ERROR;
+    if (parsedUrl.search) return DIRECT_PLACE_URL_ERROR;
 
     return "";
   } catch {

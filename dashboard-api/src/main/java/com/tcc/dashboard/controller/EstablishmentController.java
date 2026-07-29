@@ -1,6 +1,7 @@
 package com.tcc.dashboard.controller;
 
 import com.tcc.dashboard.dto.EstablishmentSummaryDTO;
+import com.tcc.dashboard.exception.UnauthorizedException;
 import com.tcc.dashboard.model.Establishment;
 import com.tcc.dashboard.model.User;
 import com.tcc.dashboard.service.EstablishmentService;
@@ -29,7 +30,9 @@ public class EstablishmentController {
 
     private String getCurrentUserEmail() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) auth.getPrincipal();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new UnauthorizedException("Autenticação necessária para acessar este recurso.");
+        }
         return user.getEmail();
     }
 

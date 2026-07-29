@@ -57,9 +57,10 @@ export function Dashboard() {
       toast.info("Mineração iniciada! A IA está analisando as avaliações.");
       // Atualiza a lista de estabelecimentos imediatamente
       setEstablishments((prev) => [...prev, { id: establishment.id, name: establishment.name, mapsUrl: establishment.mapsUrl, reviewCount: 0, avgRating: 0, satisfactionScore: 0 }]);
-    } catch (err: any) {
+    } catch (err) {
       setIsCreating(false);
-      toast.error(err?.response?.data?.error || "Erro ao criar estabelecimento.");
+      const message = err instanceof Error ? err.message : "Erro ao criar estabelecimento.";
+      toast.error(message);
     }
   }
 
