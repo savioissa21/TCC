@@ -2,9 +2,13 @@ import sys
 import asyncio
 from playwright.async_api import async_playwright
 import json
+import os
 import re
 import uuid
+from pathlib import Path
 from transformers import pipeline
+
+from bertimbau_absa import AspectSentimentAnalyzer, model_is_available
 
 if len(sys.argv) < 2:
     print("[ERRO] Faltou a URL do Maps.")
@@ -15,6 +19,11 @@ OUTPUT_FILE = 'dados_temp.json'
 TARGET_REVIEWS = 100
 
 sentiment_pipeline = None
+aspect_sentiment_analyzer = None
+aspect_model_checked = False
+
+DEFAULT_ABSA_MODEL = Path(__file__).resolve().parent / "artifacts" / "bertimbau-absa"
+ABSA_MODEL_PATH = Path(os.getenv("ABSA_MODEL_PATH", DEFAULT_ABSA_MODEL))
 
 def get_sentiment_pipeline():
     global sentiment_pipeline
@@ -22,6 +31,22 @@ def get_sentiment_pipeline():
         print("[IA] Carregando modelo de analise de sentimentos...", flush=True)
         sentiment_pipeline = pipeline("sentiment-analysis", model="pysentimiento/bertweet-pt-sentiment")
     return sentiment_pipeline
+
+
+def get_aspect_sentiment_analyzer():
+    """Carrega o BERTimbau ABSA uma vez e mantém fallback para o BERTweet."""
+    global aspect_sentiment_analyzer, aspect_model_checked
+    if not aspect_model_checked:
+        aspect_model_checked = True
+        if model_is_available(ABSA_MODEL_PATH):
+            print(f"[IA] Carregando BERTimbau ABSA de {ABSA_MODEL_PATH}...", flush=True)
+            aspect_sentiment_analyzer = AspectSentimentAnalyzer(ABSA_MODEL_PATH)
+        else:
+            print(
+                "[IA] BERTimbau ABSA não encontrado; usando o BERTweet por frase.",
+                flush=True,
+            )
+    return aspect_sentiment_analyzer
 
 ASPECT_KEYWORDS = {
     "Atendimento": ["garçom", "atendimento", "serviço", "demora", "rápido", "lento", "educado", "grosseiro", "funcionário", "equipe", "recepção", "espera"],
@@ -32,19 +57,37 @@ ASPECT_KEYWORDS = {
 
 def analyze_aspects(text):
     detected_aspects = []
-    sentences = re.split(r'[.!?;]\s*', text)
+    sentences = re.split(
+        r'[.!?;]\s*|\s*,?\s+(?:mas|porém|contudo|entretanto)\s+',
+        text,
+        flags=re.IGNORECASE,
+    )
     for sentence in sentences:
         if not sentence.strip():
             continue
         sentence_lower = sentence.lower()
         for aspect_name, keywords in ASPECT_KEYWORDS.items():
-            if any(word in sentence_lower for word in keywords):
+            matched_keyword = next(
+                (word for word in keywords if word in sentence_lower),
+                None,
+            )
+            if matched_keyword:
                 try:
-                    result = get_sentiment_pipeline()(sentence[:512])[0]
-                    sentiment_map = {'POS': 'Positivo', 'NEG': 'Negativo', 'NEU': 'Neutro'}
+                    analyzer = get_aspect_sentiment_analyzer()
+                    if analyzer:
+                        prediction = analyzer.predict(
+                            sentence,
+                            aspect_name,
+                            matched_keyword,
+                        )
+                        sentiment = prediction["sentiment"]
+                    else:
+                        result = get_sentiment_pipeline()(sentence[:512])[0]
+                        sentiment_map = {'POS': 'Positivo', 'NEG': 'Negativo', 'NEU': 'Neutro'}
+                        sentiment = sentiment_map.get(result['label'], 'Neutro')
                     detected_aspects.append({
                         "name": aspect_name,
-                        "sentiment": sentiment_map.get(result['label'], 'Neutro'),
+                        "sentiment": sentiment,
                         "excerpt": sentence.strip()
                     })
                 except:

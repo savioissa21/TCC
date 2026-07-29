@@ -18,6 +18,9 @@ minerador-py/*.pyo
 minerador-py/dados_temp.json
 minerador-py/reviews.json
 minerador-py/reviews_processados.json
+minerador-py/.venv/
+minerador-py/data/
+minerador-py/artifacts/
 **/__pycache__/
 **/*.pyc
 
