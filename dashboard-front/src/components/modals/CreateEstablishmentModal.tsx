@@ -1,11 +1,16 @@
 import { useState, type FormEvent } from "react";
 import { X, Store, Link } from "lucide-react";
 
-const SEARCH_URL_ERROR = "Links de pesquisa não são aceitos. Selecione um estabelecimento específico no Google Maps e copie o link da página da empresa.";
-const SPECIFIC_PLACE_URL_ERROR = "Esse link não identifica um estabelecimento específico. Abra a página da empresa no Google Maps e copie a URL completa, que deve conter /maps/place/.";
-const GOOGLE_MAPS_URL_ERROR = "Informe o link completo da página de um estabelecimento no Google Maps. Links genéricos ou encurtados não são aceitos.";
-const SHORTENED_URL_ERROR = "Links encurtados do Google Maps não são aceitos. Use o link completo da página do estabelecimento.";
-const DIRECT_PLACE_URL_ERROR = "Esse link não é um link direto de estabelecimento do Google Maps. Use a URL da página do estabelecimento sem parâmetros de compartilhamento.";
+const SEARCH_URL_ERROR =
+  "Links de pesquisa não são aceitos. Selecione um estabelecimento específico no Google Maps e copie o link da página da empresa.";
+const SPECIFIC_PLACE_URL_ERROR =
+  "Esse link não identifica um estabelecimento específico. Abra a página da empresa no Google Maps e copie a URL completa, que deve conter /maps/place/.";
+const GOOGLE_MAPS_URL_ERROR =
+  "Informe o link completo da página de um estabelecimento no Google Maps. Links genéricos ou encurtados não são aceitos.";
+const SHORTENED_URL_ERROR =
+  "Links encurtados do Google Maps não são aceitos. Use o link completo da página do estabelecimento.";
+const DIRECT_PLACE_URL_ERROR =
+  "Esse link não é um link direto de estabelecimento do Google Maps. Use a URL da página do estabelecimento sem parâmetros de compartilhamento.";
 
 function getMapsUrlError(value: string) {
   if (!value) return "";
@@ -17,11 +22,16 @@ function getMapsUrlError(value: string) {
     const parsedUrl = new URL(trimmed);
     const host = parsedUrl.hostname.toLowerCase();
     const path = parsedUrl.pathname.toLowerCase();
-    const isGoogleHost = /(^|.*\.)google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(host) || host.includes("google") || host.includes("maps.app.goo.gl");
+    const isGoogleHost =
+      /(^|.*\.)google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(host) ||
+      host.includes("google") ||
+      host.includes("maps.app.goo.gl");
 
-    if (host.includes("maps.app.goo.gl") || host.includes("goo.gl")) return SHORTENED_URL_ERROR;
+    if (host.includes("maps.app.goo.gl") || host.includes("goo.gl"))
+      return SHORTENED_URL_ERROR;
     if (!isGoogleHost) return GOOGLE_MAPS_URL_ERROR;
-    if (path === "/maps/search" || path.includes("/maps/search/")) return SEARCH_URL_ERROR;
+    if (path === "/maps/search" || path.includes("/maps/search/"))
+      return SEARCH_URL_ERROR;
     if (!path.includes("/maps/place/")) return SPECIFIC_PLACE_URL_ERROR;
     if (parsedUrl.search) return DIRECT_PLACE_URL_ERROR;
 
@@ -38,7 +48,12 @@ interface Props {
   isLoading: boolean;
 }
 
-export function CreateEstablishmentModal({ isOpen, onClose, onSubmit, isLoading }: Props) {
+export function CreateEstablishmentModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  isLoading,
+}: Props) {
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState("");
@@ -69,10 +84,18 @@ export function CreateEstablishmentModal({ isOpen, onClose, onSubmit, isLoading 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Adicionar Estabelecimento</h2>
-            <p className="text-sm text-slate-500 mt-0.5">A IA irá coletar e analisar as avaliações automaticamente.</p>
+            <h2 className="text-lg font-bold text-slate-900">
+              Adicionar Estabelecimento
+            </h2>
+            <p className="text-sm text-slate-500 mt-0.5">
+              A IA irá coletar e analisar as avaliações automaticamente.
+            </p>
           </div>
-          <button onClick={onClose} disabled={isLoading} className="text-slate-400 hover:text-slate-600 transition-colors">
+          <button
+            onClick={onClose}
+            disabled={isLoading}
+            className="text-slate-400 hover:text-slate-600 transition-colors"
+          >
             <X size={20} />
           </button>
         </div>
@@ -116,9 +139,17 @@ export function CreateEstablishmentModal({ isOpen, onClose, onSubmit, isLoading 
               }`}
             />
             {urlError ? (
-              <p id="maps-url-error" className="text-xs font-medium text-red-600">{urlError}</p>
+              <p
+                id="maps-url-error"
+                className="text-xs font-medium text-red-600"
+              >
+                {urlError}
+              </p>
             ) : (
-              <p className="text-xs text-slate-400">Abra o estabelecimento específico no Google Maps e copie o link da página da empresa.</p>
+              <p className="text-xs text-slate-400">
+                Abra o estabelecimento específico no Google Maps e copie o link
+                da página da empresa.
+              </p>
             )}
           </div>
 
@@ -133,7 +164,9 @@ export function CreateEstablishmentModal({ isOpen, onClose, onSubmit, isLoading 
             </button>
             <button
               type="submit"
-              disabled={isLoading || !name.trim() || !url.trim() || Boolean(urlError)}
+              disabled={
+                isLoading || !name.trim() || !url.trim() || Boolean(urlError)
+              }
               className="flex-1 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "Criando..." : "Criar e Minerar"}

@@ -17,7 +17,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 api.interceptors.response.use(
@@ -29,7 +29,11 @@ api.interceptors.response.use(
       window.location.href = "/login";
     }
 
-    const message = error.response?.data?.error || error.response?.data?.detail || error.message || "Ocorreu um erro inesperado.";
+    const message =
+      error.response?.data?.error ||
+      error.response?.data?.detail ||
+      error.message ||
+      "Ocorreu um erro inesperado.";
     return Promise.reject(new Error(message));
-  }
+  },
 );

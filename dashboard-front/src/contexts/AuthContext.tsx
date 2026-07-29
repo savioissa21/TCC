@@ -1,5 +1,12 @@
 // src/contexts/AuthContext.tsx
-import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+  useCallback,
+} from "react";
 import { jwtDecode } from "jwt-decode";
 import { api } from "../lib/api";
 import { STORAGE_KEYS } from "../lib/storage";
@@ -35,10 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(() => {
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER);
-    
+
     // Limpa o header do axios
     delete api.defaults.headers.common["Authorization"];
-    
+
     setUser(null);
   }, []);
 
@@ -68,7 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(userLogged);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Erro ao fazer login.";
+      const message =
+        error instanceof Error ? error.message : "Erro ao fazer login.";
       console.error("Erro ao logar:", message);
       throw new Error(message);
     }
@@ -91,7 +99,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           setUser(JSON.parse(storedUser));
-          api.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
+          api.defaults.headers.common["Authorization"] =
+            `Bearer ${storedToken}`;
         } catch (error) {
           console.error("Token inválido no storage", error);
           signOut();
@@ -104,13 +113,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [signOut]); // Adicione signOut nas dependências
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated: !!user, 
-      signIn, 
-      signOut,
-      isLoading 
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        signIn,
+        signOut,
+        isLoading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

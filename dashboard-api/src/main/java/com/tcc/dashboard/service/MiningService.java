@@ -38,7 +38,8 @@ public class MiningService {
 
     public int startMining(String url, Long establishmentId) {
         Establishment establishment = establishmentRepository.findById(establishmentId)
-                .orElseThrow(() -> new NotFoundException("Estabelecimento com ID " + establishmentId + " não encontrado."));
+                .orElseThrow(
+                        () -> new NotFoundException("Estabelecimento com ID " + establishmentId + " não encontrado."));
 
         try {
             System.out.println("Iniciando mineração para: " + establishment.getName());
@@ -75,7 +76,8 @@ public class MiningService {
             }
 
             ObjectMapper mapper = new ObjectMapper();
-            List<Review> reviews = mapper.readValue(jsonFile, new TypeReference<List<Review>>() {});
+            List<Review> reviews = mapper.readValue(jsonFile, new TypeReference<List<Review>>() {
+            });
 
             ensureReviewsFound(reviews);
 
@@ -90,7 +92,8 @@ public class MiningService {
 
             if (!reviews.isEmpty()) {
                 reviewRepository.saveAll(reviews);
-                System.out.println("Sucesso: " + reviews.size() + " avaliações salvas para: " + establishment.getName());
+                System.out
+                        .println("Sucesso: " + reviews.size() + " avaliações salvas para: " + establishment.getName());
             }
 
             return reviews.size();
@@ -105,8 +108,7 @@ public class MiningService {
     static void ensureReviewsFound(List<Review> reviews) {
         if (reviews.isEmpty()) {
             throw new BadRequestException(
-                    "Nenhuma avaliação foi encontrada. Selecione um estabelecimento específico no Google Maps e use o link da página da empresa, não um link /maps/search/."
-            );
+                    "Nenhuma avaliação foi encontrada. Selecione um estabelecimento específico no Google Maps e use o link da página da empresa, não um link /maps/search/.");
         }
     }
 }

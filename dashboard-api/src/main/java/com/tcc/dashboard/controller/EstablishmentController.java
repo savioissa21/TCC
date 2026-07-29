@@ -26,7 +26,8 @@ public class EstablishmentController {
     @Autowired
     private MiningJobService miningJobService;
 
-    public record CreateEstablishmentDTO(String name, String url) {}
+    public record CreateEstablishmentDTO(String name, String url) {
+    }
 
     private String getCurrentUserEmail() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

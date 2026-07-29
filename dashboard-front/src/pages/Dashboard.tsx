@@ -17,7 +17,9 @@ export function Dashboard() {
   const { toast } = useToast();
 
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [establishments, setEstablishments] = useState<EstablishmentSummary[]>([]);
+  const [establishments, setEstablishments] = useState<EstablishmentSummary[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   // Modal de criação
@@ -44,9 +46,14 @@ export function Dashboard() {
     }
   }
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  async function handleCreateEstablishment(data: { name: string; url: string }) {
+  async function handleCreateEstablishment(data: {
+    name: string;
+    url: string;
+  }) {
     setIsCreating(true);
     try {
       const { establishment, jobId } = await establishmentService.create(data);
@@ -56,23 +63,38 @@ export function Dashboard() {
       setMiningJobId(jobId);
       toast.info("Mineração iniciada! A IA está analisando as avaliações.");
       // Atualiza a lista de estabelecimentos imediatamente
-      setEstablishments((prev) => [...prev, { id: establishment.id, name: establishment.name, mapsUrl: establishment.mapsUrl, reviewCount: 0, avgRating: 0, satisfactionScore: 0 }]);
+      setEstablishments((prev) => [
+        ...prev,
+        {
+          id: establishment.id,
+          name: establishment.name,
+          mapsUrl: establishment.mapsUrl,
+          reviewCount: 0,
+          avgRating: 0,
+          satisfactionScore: 0,
+        },
+      ]);
     } catch (err) {
       setIsCreating(false);
-      const message = err instanceof Error ? err.message : "Erro ao criar estabelecimento.";
+      const message =
+        err instanceof Error ? err.message : "Erro ao criar estabelecimento.";
       toast.error(message);
     }
   }
 
   function handleMiningComplete() {
     setMiningJobId(null);
-    toast.success(`Mineração de "${miningEstName}" concluída! Atualizando dados...`);
+    toast.success(
+      `Mineração de "${miningEstName}" concluída! Atualizando dados...`,
+    );
     loadData();
   }
 
   function handleMiningError(message?: string) {
     setMiningJobId(null);
-    toast.error(message || "A mineração falhou. Verifique os logs do servidor.");
+    toast.error(
+      message || "A mineração falhou. Verifique os logs do servidor.",
+    );
   }
 
   return (

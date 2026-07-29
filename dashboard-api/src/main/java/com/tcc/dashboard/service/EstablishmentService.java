@@ -62,39 +62,35 @@ public class EstablishmentService {
                 || normalizedHost.contains("maps.app.goo.gl");
 
         if (normalizedHost.contains("maps.app.goo.gl") || normalizedHost.contains("goo.gl")) {
-            throw new BadRequestException("Links encurtados do Google Maps não são aceitos. Use o link completo da página do estabelecimento.");
+            throw new BadRequestException(
+                    "Links encurtados do Google Maps não são aceitos. Use o link completo da página do estabelecimento.");
         }
 
         if (!isGoogleHost) {
             throw new BadRequestException(
-                    "Informe o link completo da página de um estabelecimento no Google Maps. Links genéricos ou encurtados não são aceitos."
-            );
+                    "Informe o link completo da página de um estabelecimento no Google Maps. Links genéricos ou encurtados não são aceitos.");
         }
 
         String path = uri.getPath();
         String normalizedPath = path == null ? "" : path.toLowerCase(Locale.ROOT);
         if (normalizedPath.equals("/maps/search") || normalizedPath.contains("/maps/search/")) {
             throw new BadRequestException(
-                    "Links de pesquisa do Google Maps não são aceitos. Selecione um estabelecimento específico e copie o link da página da empresa."
-            );
+                    "Links de pesquisa do Google Maps não são aceitos. Selecione um estabelecimento específico e copie o link da página da empresa.");
         }
 
         if (!normalizedPath.contains("/maps/place/")) {
             throw new BadRequestException(
-                    "Esse link não identifica um estabelecimento específico. Abra a página da empresa no Google Maps e copie a URL completa, que deve conter /maps/place/."
-            );
+                    "Esse link não identifica um estabelecimento específico. Abra a página da empresa no Google Maps e copie a URL completa, que deve conter /maps/place/.");
         }
 
         if (normalizedPath.equals("/maps/place/") || normalizedPath.equals("/maps/place")) {
             throw new BadRequestException(
-                    "Esse link não identifica um estabelecimento específico. Abra a página da empresa no Google Maps e copie a URL completa, que deve conter /maps/place/."
-            );
+                    "Esse link não identifica um estabelecimento específico. Abra a página da empresa no Google Maps e copie a URL completa, que deve conter /maps/place/.");
         }
 
         if (uri.getQuery() != null && !uri.getQuery().isBlank()) {
             throw new BadRequestException(
-                    "Esse link não é um link direto de estabelecimento do Google Maps. Use a URL da página do estabelecimento sem parâmetros de compartilhamento."
-            );
+                    "Esse link não é um link direto de estabelecimento do Google Maps. Use a URL da página do estabelecimento sem parâmetros de compartilhamento.");
         }
     }
 
@@ -120,8 +116,7 @@ public class EstablishmentService {
                     est.getMapsUrl(),
                     totalReviews,
                     Math.round(avgRating * 10.0) / 10.0,
-                    satisfactionScore
-            );
+                    satisfactionScore);
         }).toList();
     }
 
