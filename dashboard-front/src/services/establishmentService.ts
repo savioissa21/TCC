@@ -15,4 +15,13 @@ export const establishmentService = {
   async delete(id: number): Promise<void> {
     await api.delete(`/establishments/${id}`);
   },
+
+  async refresh(id: number): Promise<{ jobId: string }> {
+    const response = await api.post<{ jobId: string }>(`/establishments/${id}/refresh`);
+    return response.data;
+  },
+
+  async setAutomaticUpdates(id: number, enabled: boolean): Promise<void> {
+    await api.patch(`/establishments/${id}/automatic-updates`, { enabled });
+  },
 };

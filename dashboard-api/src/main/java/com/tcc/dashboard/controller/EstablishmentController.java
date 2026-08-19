@@ -29,6 +29,9 @@ public class EstablishmentController {
     public record CreateEstablishmentDTO(String name, String url) {
     }
 
+    public record AutomaticUpdatesDTO(boolean enabled) {
+    }
+
     private String getCurrentUserEmail() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof User user)) {
@@ -49,6 +52,23 @@ public class EstablishmentController {
     public ResponseEntity<List<EstablishmentSummaryDTO>> listMyEstablishments() {
         String userEmail = getCurrentUserEmail();
         return ResponseEntity.ok(establishmentService.getSummaryByUser(userEmail));
+    }
+
+    @PostMapping("/{id}/refresh")
+    public ResponseEntity<Map<String, String>> refresh(@PathVariable Long id) {
+        String userEmail = getCurrentUserEmail();
+        Establishment establishment = establishmentService.getOwnedEstablishment(id, userEmail);
+        String jobId = miningJobService.startJob(establishment.getId(), establishment.getMapsUrl());
+        return ResponseEntity.ok(Map.of("jobId", jobId));
+    }
+
+    @PatchMapping("/{id}/automatic-updates")
+    public ResponseEntity<Map<String, Boolean>> setAutomaticUpdates(
+            @PathVariable Long id,
+            @RequestBody AutomaticUpdatesDTO data) {
+        String userEmail = getCurrentUserEmail();
+        establishmentService.setAutomaticUpdates(id, data.enabled(), userEmail);
+        return ResponseEntity.ok(Map.of("enabled", data.enabled()));
     }
 
     @DeleteMapping("/{id}")

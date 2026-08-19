@@ -1,6 +1,7 @@
 package com.tcc.dashboard.model;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -8,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
+@Table(indexes = @Index(name = "idx_review_establishment", columnList = "establishment_id"))
 public class Review {
 
     @Id
@@ -26,6 +28,7 @@ public class Review {
     private Double sentimentScore;
     private String overallSentiment;
     private String analysisDate;
+    private LocalDateTime collectedAt;
 
     // Relacionamento: Uma review tem Vários aspectos
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
@@ -117,6 +120,14 @@ public class Review {
 
     public void setAnalysisDate(String analysisDate) {
         this.analysisDate = analysisDate;
+    }
+
+    public LocalDateTime getCollectedAt() {
+        return collectedAt;
+    }
+
+    public void setCollectedAt(LocalDateTime collectedAt) {
+        this.collectedAt = collectedAt;
     }
 
     public List<Aspect> getAspects() {

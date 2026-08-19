@@ -1,6 +1,7 @@
 package com.tcc.dashboard.model;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,6 +19,16 @@ public class Establishment {
 
     @Column(length = 1000)
     private String mapsUrl; // O link que o Python vai usar
+
+    private Boolean automaticUpdatesEnabled = true;
+    private LocalDateTime lastMiningAt;
+    private LocalDateTime lastMiningSuccessAt;
+    private LocalDateTime nextMiningAt;
+    private Integer lastNewReviews = 0;
+    private String lastMiningStatus;
+
+    @Column(length = 1000)
+    private String lastMiningMessage;
 
     // RELACIONAMENTO: Um estabelecimento tem VÁRIAS reviews
     @OneToMany(mappedBy = "establishment", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -59,6 +70,62 @@ public class Establishment {
 
     public void setMapsUrl(String mapsUrl) {
         this.mapsUrl = mapsUrl;
+    }
+
+    public Boolean getAutomaticUpdatesEnabled() {
+        return automaticUpdatesEnabled;
+    }
+
+    public void setAutomaticUpdatesEnabled(Boolean automaticUpdatesEnabled) {
+        this.automaticUpdatesEnabled = automaticUpdatesEnabled;
+    }
+
+    public LocalDateTime getLastMiningAt() {
+        return lastMiningAt;
+    }
+
+    public void setLastMiningAt(LocalDateTime lastMiningAt) {
+        this.lastMiningAt = lastMiningAt;
+    }
+
+    public LocalDateTime getLastMiningSuccessAt() {
+        return lastMiningSuccessAt;
+    }
+
+    public void setLastMiningSuccessAt(LocalDateTime lastMiningSuccessAt) {
+        this.lastMiningSuccessAt = lastMiningSuccessAt;
+    }
+
+    public LocalDateTime getNextMiningAt() {
+        return nextMiningAt;
+    }
+
+    public void setNextMiningAt(LocalDateTime nextMiningAt) {
+        this.nextMiningAt = nextMiningAt;
+    }
+
+    public Integer getLastNewReviews() {
+        return lastNewReviews;
+    }
+
+    public void setLastNewReviews(Integer lastNewReviews) {
+        this.lastNewReviews = lastNewReviews;
+    }
+
+    public String getLastMiningStatus() {
+        return lastMiningStatus;
+    }
+
+    public void setLastMiningStatus(String lastMiningStatus) {
+        this.lastMiningStatus = lastMiningStatus;
+    }
+
+    public String getLastMiningMessage() {
+        return lastMiningMessage;
+    }
+
+    public void setLastMiningMessage(String lastMiningMessage) {
+        this.lastMiningMessage = lastMiningMessage;
     }
 
     public List<Review> getReviews() {

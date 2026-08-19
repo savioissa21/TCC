@@ -17,6 +17,7 @@ export interface Review {
   sentimentScore: number;
   overallSentiment: Sentiment;
   analysisDate?: string;
+  collectedAt?: string | null;
   aspects: Aspect[];
 }
 
@@ -24,6 +25,13 @@ export interface Establishment {
   id: number;
   name: string;
   mapsUrl: string;
+  automaticUpdatesEnabled?: boolean;
+  lastMiningAt?: string | null;
+  lastMiningSuccessAt?: string | null;
+  nextMiningAt?: string | null;
+  lastNewReviews?: number;
+  lastMiningStatus?: string | null;
+  lastMiningMessage?: string | null;
   reviews?: Review[];
 }
 
@@ -35,6 +43,13 @@ export interface EstablishmentSummary {
   reviewCount: number;
   avgRating: number;
   satisfactionScore: number;
+  automaticUpdatesEnabled: boolean;
+  lastMiningAt: string | null;
+  lastMiningSuccessAt: string | null;
+  nextMiningAt: string | null;
+  lastNewReviews: number;
+  lastMiningStatus: "RUNNING" | "COMPLETED" | "FAILED" | null;
+  lastMiningMessage: string | null;
 }
 
 export interface User {

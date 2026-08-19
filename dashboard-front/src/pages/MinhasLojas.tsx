@@ -8,9 +8,10 @@ import {
   Plus,
   Store,
   Star,
-  TrendingUp,
   Trash2,
   ExternalLink,
+  RefreshCw,
+  Clock3,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -23,6 +24,8 @@ export function MinhasLojas() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [refreshingId, setRefreshingId] = useState<number | null>(null);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
   const [miningJobId, setMiningJobId] = useState<string | null>(null);
   const [miningEstName, setMiningEstName] = useState("");
 
@@ -59,6 +62,13 @@ export function MinhasLojas() {
           reviewCount: 0,
           avgRating: 0,
           satisfactionScore: 0,
+          automaticUpdatesEnabled: true,
+          lastMiningAt: null,
+          lastMiningSuccessAt: null,
+          nextMiningAt: null,
+          lastNewReviews: 0,
+          lastMiningStatus: "RUNNING",
+          lastMiningMessage: "Coleta inicial em andamento.",
         },
       ]);
     } catch (err) {
@@ -90,8 +100,46 @@ export function MinhasLojas() {
 
   function handleMiningComplete() {
     setMiningJobId(null);
+    setRefreshingId(null);
     toast.success(`Mineração de "${miningEstName}" concluída!`);
     loadEstablishments();
+  }
+
+  async function handleRefresh(est: EstablishmentSummary) {
+    setRefreshingId(est.id);
+    try {
+      const { jobId } = await establishmentService.refresh(est.id);
+      setMiningEstName(est.name);
+      setMiningJobId(jobId);
+      toast.info(`Buscando novas avaliações de "${est.name}".`);
+    } catch (err) {
+      setRefreshingId(null);
+      toast.error(err instanceof Error ? err.message : "Não foi possível atualizar a loja.");
+    }
+  }
+
+  async function handleAutomaticToggle(est: EstablishmentSummary) {
+    const enabled = !est.automaticUpdatesEnabled;
+    setTogglingId(est.id);
+    try {
+      await establishmentService.setAutomaticUpdates(est.id, enabled);
+      setEstablishments((current) => current.map((item) =>
+        item.id === est.id ? { ...item, automaticUpdatesEnabled: enabled } : item,
+      ));
+      toast.success(enabled ? "Atualizações automáticas ativadas." : "Atualizações automáticas pausadas.");
+    } catch {
+      toast.error("Não foi possível alterar as atualizações automáticas.");
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
+  function formatUpdateDate(value: string | null) {
+    if (!value) return "Ainda não atualizada";
+    return new Intl.DateTimeFormat("pt-BR", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(new Date(value));
   }
 
   const scoreColor = (score: number) =>
@@ -240,18 +288,43 @@ export function MinhasLojas() {
                   </div>
                 </div>
 
-                {/* Ações */}
-                <div className="flex gap-2">
-                  <div className="flex-1 flex items-center gap-1.5 rounded-lg bg-slate-50 px-3 py-1.5">
-                    <TrendingUp size={12} className="text-slate-400" />
-                    <span className="text-xs text-slate-500">
-                      {est.satisfactionScore >= 70
-                        ? "Ótima performance"
-                        : est.satisfactionScore >= 50
-                          ? "Pode melhorar"
-                          : "Precisa de atenção"}
+                <div className="mb-4 flex items-center justify-between gap-3 text-xs">
+                  <div className="flex min-w-0 items-center gap-1.5 text-slate-500">
+                    <Clock3 size={12} className="shrink-0" />
+                    <span className="truncate">
+                      Última: {formatUpdateDate(est.lastMiningSuccessAt)}
                     </span>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => handleAutomaticToggle(est)}
+                    disabled={togglingId === est.id}
+                    className={cn(
+                      "shrink-0 rounded-full px-2 py-1 font-medium transition disabled:opacity-50",
+                      est.automaticUpdatesEnabled
+                        ? "bg-green-50 text-green-700 hover:bg-green-100"
+                        : "bg-slate-100 text-slate-500 hover:bg-slate-200",
+                    )}
+                    title="Ativar ou pausar a atualização semanal"
+                  >
+                    {est.automaticUpdatesEnabled ? "Semanal ativa" : "Pausada"}
+                  </button>
+                </div>
+
+                {/* Ações */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleRefresh(est)}
+                    disabled={refreshingId === est.id}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    title="Buscar avaliações novas agora"
+                  >
+                    <RefreshCw
+                      size={12}
+                      className={refreshingId === est.id ? "animate-spin" : ""}
+                    />
+                    Atualizar agora
+                  </button>
                   <button
                     onClick={() => handleDelete(est)}
                     disabled={deletingId === est.id}
@@ -280,7 +353,9 @@ export function MinhasLojas() {
         onComplete={handleMiningComplete}
         onError={(message) => {
           setMiningJobId(null);
+          setRefreshingId(null);
           toast.error(message || "Falha na mineração.");
+          loadEstablishments();
         }}
       />
     </>

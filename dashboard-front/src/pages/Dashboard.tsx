@@ -72,6 +72,13 @@ export function Dashboard() {
           reviewCount: 0,
           avgRating: 0,
           satisfactionScore: 0,
+          automaticUpdatesEnabled: true,
+          lastMiningAt: null,
+          lastMiningSuccessAt: null,
+          nextMiningAt: null,
+          lastNewReviews: 0,
+          lastMiningStatus: "RUNNING",
+          lastMiningMessage: "Coleta inicial em andamento.",
         },
       ]);
     } catch (err) {

@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 
@@ -39,6 +40,7 @@ public class EstablishmentService {
         establishment.setName(name);
         establishment.setMapsUrl(url);
         establishment.setOwner(owner);
+        establishment.setAutomaticUpdatesEnabled(true);
 
         return establishmentRepository.save(establishment);
     }
@@ -116,8 +118,33 @@ public class EstablishmentService {
                     est.getMapsUrl(),
                     totalReviews,
                     Math.round(avgRating * 10.0) / 10.0,
-                    satisfactionScore);
+                    satisfactionScore,
+                    !Boolean.FALSE.equals(est.getAutomaticUpdatesEnabled()),
+                    est.getLastMiningAt(),
+                    est.getLastMiningSuccessAt(),
+                    est.getNextMiningAt(),
+                    est.getLastNewReviews() == null ? 0 : est.getLastNewReviews(),
+                    est.getLastMiningStatus(),
+                    est.getLastMiningMessage());
         }).toList();
+    }
+
+    public Establishment getOwnedEstablishment(Long id, String userEmail) {
+        Establishment establishment = establishmentRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Estabelecimento não encontrado."));
+        if (!establishment.getOwner().getEmail().equals(userEmail)) {
+            throw new UnauthorizedException("Acesso negado: você não é o dono deste estabelecimento.");
+        }
+        return establishment;
+    }
+
+    public Establishment setAutomaticUpdates(Long id, boolean enabled, String userEmail) {
+        Establishment establishment = getOwnedEstablishment(id, userEmail);
+        establishment.setAutomaticUpdatesEnabled(enabled);
+        if (enabled && establishment.getNextMiningAt() == null) {
+            establishment.setNextMiningAt(LocalDateTime.now());
+        }
+        return establishmentRepository.save(establishment);
     }
 
     public void deleteEstablishment(Long id, String userEmail) {

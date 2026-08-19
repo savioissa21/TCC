@@ -1,10 +1,10 @@
 import sys
 import asyncio
 from playwright.async_api import async_playwright
+import hashlib
 import json
 import os
 import re
-import uuid
 from pathlib import Path
 from transformers import pipeline
 
@@ -15,8 +15,16 @@ if len(sys.argv) < 2:
     sys.exit(1)
 
 TARGET_URL = sys.argv[1]
-OUTPUT_FILE = 'dados_temp.json'
+OUTPUT_FILE = os.getenv('MINING_OUTPUT_FILE', 'dados_temp.json')
 TARGET_REVIEWS = 100
+
+
+def stable_review_id(review_id, author, rating, text):
+    """Gera um identificador repetível, inclusive quando o Maps omite seu ID."""
+    source_key = review_id or "|".join(
+        [author.strip().lower(), str(rating), " ".join(text.lower().split())]
+    )
+    return hashlib.sha256(source_key.encode("utf-8")).hexdigest()
 
 sentiment_pipeline = None
 aspect_sentiment_analyzer = None
@@ -157,6 +165,41 @@ async def run():
                         "O Google Maps exibiu uma visualização limitada e ocultou as avaliações. Tente novamente em alguns instantes."
                     )
 
+            # A coleta recorrente precisa priorizar as avaliações novas. Sem
+            # esta ordenação, o Maps costuma manter "Mais relevantes" e pode
+            # devolver sempre o mesmo lote nas execuções futuras.
+            sorted_by_newest = False
+            for selector in [
+                'button[aria-label*="Classificar"]',
+                'button[aria-label*="Ordenar"]',
+                'button[aria-label*="Sort"]',
+                'button:has-text("Mais relevantes")',
+                'button:has-text("Most relevant")',
+            ]:
+                try:
+                    sort_button = page.locator(selector).first
+                    if await sort_button.is_visible(timeout=1500):
+                        await sort_button.click()
+                        await page.wait_for_timeout(500)
+                        options = page.locator('[role="menuitemradio"], [role="menuitem"]')
+                        for option_index in range(await options.count()):
+                            option = options.nth(option_index)
+                            option_text = (await option.inner_text()).strip().lower()
+                            if 'mais recentes' in option_text or 'newest' in option_text:
+                                await option.click()
+                                await page.wait_for_timeout(2500)
+                                sorted_by_newest = True
+                                print("[INFO] Avaliações ordenadas por mais recentes.")
+                                break
+                        if sorted_by_newest:
+                            break
+                        await page.keyboard.press("Escape")
+                except:
+                    continue
+
+            if not sorted_by_newest:
+                print("[AVISO] Não foi possível confirmar a ordenação por mais recentes.")
+
             # 3. Aguardar reviews aparecerem
             try:
                 await page.wait_for_selector('div.jftiEf', timeout=15000)
@@ -252,6 +295,7 @@ async def run():
                             continue
 
                         raw_reviews[dedup_key] = {
+                            "review_id": review_id,
                             "author": author,
                             "text": text,
                             "rating": rating,
@@ -347,7 +391,9 @@ async def run():
                         display_text = "Avaliação sem comentário."
 
                     processed_data.append({
-                        "id": str(uuid.uuid4()),
+                        "id": stable_review_id(
+                            review.get("review_id"), author, rating, original_text
+                        ),
                         "author": author,
                         "text": display_text,
                         "rating": rating,

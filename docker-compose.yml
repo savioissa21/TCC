@@ -36,6 +36,9 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       MINING_PYTHON_EXECUTABLE: python3
       MINING_PYTHON_SCRIPT_PATH: /app/minerador-py/minerador_integrado.py
+      MINING_SCHEDULE_ENABLED: "true"
+      MINING_SCHEDULE_INTERVAL: PT168H
+      MINING_SCHEDULE_RETRY_INTERVAL: PT24H
     ports:
       - "8080:8080"
     depends_on:

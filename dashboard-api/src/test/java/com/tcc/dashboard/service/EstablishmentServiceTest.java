@@ -14,7 +14,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -104,5 +106,21 @@ class EstablishmentServiceTest {
                 assertEquals("Pizzaria", result.getName());
                 assertEquals(url, result.getMapsUrl());
                 assertEquals(owner, result.getOwner());
+        }
+
+        @Test
+        void enablesAutomaticUpdatesForOwnedEstablishment() {
+                User owner = new User("Usuário", "user@example.com", "password");
+                Establishment establishment = new Establishment("Loja", "https://www.google.com/maps/place/Loja");
+                establishment.setOwner(owner);
+                establishment.setAutomaticUpdatesEnabled(false);
+
+                when(establishmentRepository.findById(7L)).thenReturn(Optional.of(establishment));
+                when(establishmentRepository.save(establishment)).thenReturn(establishment);
+
+                Establishment result = establishmentService.setAutomaticUpdates(7L, true, "user@example.com");
+
+                assertTrue(result.getAutomaticUpdatesEnabled());
+                assertNotNull(result.getNextMiningAt());
         }
 }
