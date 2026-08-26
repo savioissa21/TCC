@@ -8,6 +8,7 @@ import re
 from pathlib import Path
 from transformers import pipeline
 
+from aspect_extractor import extract_aspect_candidates
 from bertimbau_absa import AspectSentimentAnalyzer, model_is_available
 
 if len(sys.argv) < 2:
@@ -56,50 +57,32 @@ def get_aspect_sentiment_analyzer():
             )
     return aspect_sentiment_analyzer
 
-ASPECT_KEYWORDS = {
-    "Atendimento": ["garçom", "atendimento", "serviço", "demora", "rápido", "lento", "educado", "grosseiro", "funcionário", "equipe", "recepção", "espera"],
-    "Comida": ["pizza", "sabor", "gostosa", "fria", "quente", "massa", "recheio", "borda", "cardápio", "bebida", "suco", "carne", "sobremesa", "prato", "comida", "lanche"],
-    "Ambiente": ["lugar", "local", "ambiente", "banheiro", "limpeza", "sujo", "barulho", "música", "confortável", "mesa", "cadeira", "espaço", "iluminação", "decoração"],
-    "Preço": ["preço", "valor", "caro", "barato", "conta", "pagar", "custo", "promoção", "custa", "cobrar"]
-}
-
 def analyze_aspects(text):
     detected_aspects = []
-    sentences = re.split(
-        r'[.!?;]\s*|\s*,?\s+(?:mas|porém|contudo|entretanto)\s+',
-        text,
-        flags=re.IGNORECASE,
-    )
-    for sentence in sentences:
-        if not sentence.strip():
-            continue
-        sentence_lower = sentence.lower()
-        for aspect_name, keywords in ASPECT_KEYWORDS.items():
-            matched_keyword = next(
-                (word for word in keywords if word in sentence_lower),
-                None,
+    for candidate in extract_aspect_candidates(text):
+        try:
+            analyzer = get_aspect_sentiment_analyzer()
+            if analyzer:
+                prediction = analyzer.predict(
+                    candidate["excerpt"],
+                    candidate["name"],
+                    candidate["target"],
+                )
+                sentiment = prediction["sentiment"]
+            else:
+                result = get_sentiment_pipeline()(candidate["excerpt"][:512])[0]
+                sentiment_map = {'POS': 'Positivo', 'NEG': 'Negativo', 'NEU': 'Neutro'}
+                sentiment = sentiment_map.get(result['label'], 'Neutro')
+            detected_aspects.append({
+                "name": candidate["name"],
+                "sentiment": sentiment,
+                "excerpt": candidate["excerpt"],
+            })
+        except Exception as error:
+            print(
+                f"[AVISO] Falha ao analisar o aspecto {candidate['name']}: {error}",
+                flush=True,
             )
-            if matched_keyword:
-                try:
-                    analyzer = get_aspect_sentiment_analyzer()
-                    if analyzer:
-                        prediction = analyzer.predict(
-                            sentence,
-                            aspect_name,
-                            matched_keyword,
-                        )
-                        sentiment = prediction["sentiment"]
-                    else:
-                        result = get_sentiment_pipeline()(sentence[:512])[0]
-                        sentiment_map = {'POS': 'Positivo', 'NEG': 'Negativo', 'NEU': 'Neutro'}
-                        sentiment = sentiment_map.get(result['label'], 'Neutro')
-                    detected_aspects.append({
-                        "name": aspect_name,
-                        "sentiment": sentiment,
-                        "excerpt": sentence.strip()
-                    })
-                except:
-                    continue
     return detected_aspects
 
 async def run():
