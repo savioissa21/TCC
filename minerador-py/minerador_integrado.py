@@ -16,7 +16,7 @@ if len(sys.argv) < 2:
 
 TARGET_URL = sys.argv[1]
 OUTPUT_FILE = os.getenv('MINING_OUTPUT_FILE', 'dados_temp.json')
-TARGET_REVIEWS = 100
+TARGET_REVIEWS = int(os.getenv('TARGET_REVIEWS', '100'))
 
 
 def stable_review_id(review_id, author, rating, text):
@@ -111,34 +111,77 @@ async def run():
             headless=True,
             args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled']
         )
+        browser_version = browser.version
         context = await browser.new_context(
             locale='pt-BR',
-            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            user_agent=(
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                f'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{browser_version} Safari/537.36'
+            ),
             viewport={'width': 1280, 'height': 800}
         )
         page = await context.new_page()
 
         try:
             await page.goto(TARGET_URL, timeout=60000, wait_until='domcontentloaded')
-            await page.wait_for_timeout(3000)
+            await page.wait_for_timeout(5000)
 
             # 1. Aceitar cookies (Google Consent - aparece sempre em headless)
-            for selector in [
-                'button:has-text("Aceitar tudo")',
-                'button:has-text("Accept all")',
-                'button:has-text("Concordar")',
-                'button:has-text("Agree")',
-                '[aria-label="Aceitar tudo"]',
-            ]:
-                try:
-                    btn = page.locator(selector).first
-                    if await btn.is_visible(timeout=2000):
-                        await btn.click()
-                        print("[INFO] Cookie consent aceito.")
-                        await page.wait_for_timeout(2000)
-                        break
-                except:
-                    continue
+            async def accept_cookie_consent():
+                for selector in [
+                    'button:has-text("Aceitar tudo")',
+                    'button:has-text("Accept all")',
+                    'button:has-text("Concordar")',
+                    'button:has-text("Agree")',
+                    '[aria-label="Aceitar tudo"]',
+                ]:
+                    try:
+                        btn = page.locator(selector).first
+                        if await btn.is_visible(timeout=1200):
+                            await btn.click()
+                            print("[INFO] Cookie consent aceito.")
+                            await page.wait_for_timeout(2000)
+                            return
+                    except:
+                        continue
+
+            async def has_reviews_entry_point():
+                if await page.locator('div.jftiEf').count() > 0:
+                    return True
+
+                tabs = page.locator('button[role="tab"]')
+                for tab_index in range(await tabs.count()):
+                    tab = tabs.nth(tab_index)
+                    tab_text = (await tab.inner_text()).lower()
+                    tab_label = (await tab.get_attribute('aria-label') or '').lower()
+                    if 'avaliaç' in tab_text or 'review' in tab_text or 'avaliaç' in tab_label or 'review' in tab_label:
+                        return True
+
+                return await page.locator(
+                    'button[jsaction*="moreReviews"], '
+                    'button:has-text("Mais avaliações"), '
+                    'button:has-text("More reviews")'
+                ).count() > 0
+
+            await accept_cookie_consent()
+
+            # O Maps pode entregar uma visualização limitada na primeira
+            # abertura anônima. Depois que os cookies iniciais são gravados,
+            # uma recarga geralmente libera a aba e os cartões de avaliação.
+            for retry in range(2):
+                if await has_reviews_entry_point():
+                    break
+
+                body_text = (await page.locator('body').inner_text()).lower()
+                limited_view = (
+                    'limited view of google maps' in body_text
+                    or 'visualização limitada do google maps' in body_text
+                )
+                reason = 'visualização limitada' if limited_view else 'avaliações ainda não carregadas'
+                print(f"[AVISO] Google Maps sem acesso às avaliações ({reason}). Recarregando ({retry + 1}/2)...")
+                await page.reload(timeout=60000, wait_until='domcontentloaded')
+                await page.wait_for_timeout(5000)
+                await accept_cookie_consent()
 
             # 2. Clicar na aba Avaliações
             reviews_tab_clicked = False
@@ -159,8 +202,28 @@ async def run():
                 print(f"[AVISO] Aba Avaliacoes: {e}")
 
             if not reviews_tab_clicked:
-                body_text = await page.locator('body').inner_text()
-                if 'limited view of google maps' in body_text.lower():
+                for selector in [
+                    'button[jsaction*="moreReviews"]',
+                    'button:has-text("Mais avaliações")',
+                    'button:has-text("More reviews")',
+                ]:
+                    try:
+                        reviews_button = page.locator(selector).first
+                        if await reviews_button.is_visible(timeout=1500):
+                            await reviews_button.click()
+                            reviews_tab_clicked = True
+                            print("[INFO] Lista de Avaliacoes aberta.")
+                            await page.wait_for_timeout(2500)
+                            break
+                    except:
+                        continue
+
+            if not reviews_tab_clicked:
+                body_text = (await page.locator('body').inner_text()).lower()
+                if (
+                    'limited view of google maps' in body_text
+                    or 'visualização limitada do google maps' in body_text
+                ):
                     raise RuntimeError(
                         "O Google Maps exibiu uma visualização limitada e ocultou as avaliações. Tente novamente em alguns instantes."
                     )
@@ -357,8 +420,11 @@ async def run():
             print(f"[PROCESSANDO] {min(total, TARGET_REVIEWS)} reviews para analisar...")
 
             if total == 0:
-                body_text = await page.locator('body').inner_text()
-                if 'limited view of google maps' in body_text.lower():
+                body_text = (await page.locator('body').inner_text()).lower()
+                if (
+                    'limited view of google maps' in body_text
+                    or 'visualização limitada do google maps' in body_text
+                ):
                     raise RuntimeError(
                         "O Google Maps exibiu uma visualização limitada e ocultou as avaliações. Tente novamente em alguns instantes."
                     )

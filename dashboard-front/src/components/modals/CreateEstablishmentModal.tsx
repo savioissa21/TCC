@@ -4,36 +4,67 @@ import { X, Store, Link } from "lucide-react";
 const SEARCH_URL_ERROR =
   "Links de pesquisa não são aceitos. Selecione um estabelecimento específico no Google Maps e copie o link da página da empresa.";
 const SPECIFIC_PLACE_URL_ERROR =
-  "Esse link não identifica um estabelecimento específico. Abra a página da empresa no Google Maps e copie a URL completa, que deve conter /maps/place/.";
+  "Esse link não identifica um estabelecimento específico. Abra a empresa no Google Maps e use Compartilhar > Copiar link.";
 const GOOGLE_MAPS_URL_ERROR =
-  "Informe o link completo da página de um estabelecimento no Google Maps. Links genéricos ou encurtados não são aceitos.";
-const SHORTENED_URL_ERROR =
-  "Links encurtados do Google Maps não são aceitos. Use o link completo da página do estabelecimento.";
-const DIRECT_PLACE_URL_ERROR =
-  "Esse link não é um link direto de estabelecimento do Google Maps. Use a URL da página do estabelecimento sem parâmetros de compartilhamento.";
+  "Informe um link do Google Maps, como maps.app.goo.gl ou google.com/maps/place/...";
+const INCOMPLETE_SHORT_URL_ERROR =
+  "O link encurtado está incompleto. No Google Maps, abra a empresa e use Compartilhar > Copiar link.";
+
+function normalizeMapsUrlInput(value: string) {
+  let normalized = value.trim().replace(/\\([_&])/g, "$1");
+  const markdownLink = normalized.match(/^\[[^\]]*]\((https?:\/\/.+)\)$/i);
+
+  if (markdownLink) {
+    normalized = markdownLink[1].trim();
+  } else if (normalized.startsWith("<") && normalized.endsWith(">")) {
+    normalized = normalized.slice(1, -1).trim();
+  }
+
+  if (
+    /^(maps\.app\.goo\.gl|goo\.gl\/maps|www\.google\.|maps\.google\.)/i.test(
+      normalized,
+    )
+  ) {
+    normalized = `https://${normalized}`;
+  }
+
+  return normalized;
+}
 
 function getMapsUrlError(value: string) {
   if (!value) return "";
 
-  const trimmed = value.trim();
+  const trimmed = normalizeMapsUrlInput(value);
   if (!trimmed) return "";
 
   try {
     const parsedUrl = new URL(trimmed);
     const host = parsedUrl.hostname.toLowerCase();
     const path = parsedUrl.pathname.toLowerCase();
-    const isGoogleHost =
-      /(^|.*\.)google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(host) ||
-      host.includes("google") ||
-      host.includes("maps.app.goo.gl");
+    const isModernShortLink = host === "maps.app.goo.gl";
+    const isLegacyShortLink = host === "goo.gl" && path.startsWith("/maps/");
 
-    if (host.includes("maps.app.goo.gl") || host.includes("goo.gl"))
-      return SHORTENED_URL_ERROR;
+    if (isModernShortLink || isLegacyShortLink) {
+      if (path.length <= 1 || path === "/maps/")
+        return INCOMPLETE_SHORT_URL_ERROR;
+      return "";
+    }
+
+    const isGoogleHost = /(^|.*\.)google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(host);
     if (!isGoogleHost) return GOOGLE_MAPS_URL_ERROR;
     if (path === "/maps/search" || path.includes("/maps/search/"))
       return SEARCH_URL_ERROR;
-    if (!path.includes("/maps/place/")) return SPECIFIC_PLACE_URL_ERROR;
-    if (parsedUrl.search) return DIRECT_PLACE_URL_ERROR;
+
+    const hasNamedPlace =
+      path.includes("/maps/place/") && !path.endsWith("/maps/place/");
+    const placeQuery = parsedUrl.searchParams.get("q")?.toLowerCase() || "";
+    const hasPlaceIdentifier =
+      parsedUrl.searchParams.has("cid") ||
+      parsedUrl.searchParams.has("query_place_id") ||
+      placeQuery.startsWith("place_id:");
+
+    if (!hasNamedPlace && !hasPlaceIdentifier)
+      return SPECIFIC_PLACE_URL_ERROR;
 
     return "";
   } catch {
@@ -70,7 +101,7 @@ export function CreateEstablishmentModal({
       return;
     }
 
-    onSubmit({ name: name.trim(), url: url.trim() });
+    onSubmit({ name: name.trim(), url: normalizeMapsUrlInput(url) });
   }
 
   function handleUrlChange(value: string) {
@@ -124,10 +155,12 @@ export function CreateEstablishmentModal({
               URL do Google Maps
             </label>
             <input
-              type="url"
-              placeholder="https://maps.google.com/..."
+              type="text"
+              inputMode="url"
+              placeholder="https://maps.app.goo.gl/..."
               value={url}
               onChange={(e) => handleUrlChange(e.target.value)}
+              onBlur={() => setUrl(normalizeMapsUrlInput(url))}
               required
               disabled={isLoading}
               aria-invalid={Boolean(urlError)}
@@ -147,8 +180,8 @@ export function CreateEstablishmentModal({
               </p>
             ) : (
               <p className="text-xs text-slate-400">
-                Abra o estabelecimento específico no Google Maps e copie o link
-                da página da empresa.
+                Aceitamos o link de Compartilhar (maps.app.goo.gl) ou a URL
+                completa da página da empresa.
               </p>
             )}
           </div>

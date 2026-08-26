@@ -44,7 +44,7 @@ public class EstablishmentController {
     public ResponseEntity<Map<String, Object>> create(@RequestBody CreateEstablishmentDTO data) {
         String userEmail = getCurrentUserEmail();
         Establishment est = establishmentService.createEstablishment(data.name(), data.url(), userEmail);
-        String jobId = miningJobService.startJob(est.getId(), data.url());
+        String jobId = miningJobService.startJob(est.getId(), est.getMapsUrl());
         return ResponseEntity.ok(Map.of("establishment", est, "jobId", jobId));
     }
 

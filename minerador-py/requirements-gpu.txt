@@ -1,7 +1,7 @@
 --index-url https://download.pytorch.org/whl/cu130
 --extra-index-url https://pypi.org/simple
 
-playwright==1.49.1
+playwright==1.62.0
 pysentimiento==0.7.3
 transformers==4.57.6
 torch==2.10.0

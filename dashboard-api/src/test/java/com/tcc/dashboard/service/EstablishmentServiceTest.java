@@ -59,37 +59,70 @@ class EstablishmentServiceTest {
                                                 "user@example.com"));
 
                 assertEquals(
-                                "Esse link não identifica um estabelecimento específico. Abra a página da empresa no Google Maps e copie a URL completa, que deve conter /maps/place/.",
+                                "Esse link não identifica um estabelecimento específico. Abra a empresa no Google Maps e use Compartilhar > Copiar link.",
                                 exception.getMessage());
                 verifyNoInteractions(userRepository, establishmentRepository, reviewRepository);
         }
 
         @Test
-        void rejectsShortenedUrlBeforeSaving() {
+        void acceptsGoogleMapsShortenedUrl() {
+                String url = "https://maps.app.goo.gl/VfkiBDD6m9U5RaCy7";
+                User owner = new User("Usuário", "user@example.com", "password");
+
+                when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(owner));
+                when(establishmentRepository.save(any(Establishment.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
+
+                Establishment result = establishmentService.createEstablishment("Pastelaria", url,
+                                "user@example.com");
+
+                assertEquals(url, result.getMapsUrl());
+                assertEquals(owner, result.getOwner());
+        }
+
+        @Test
+        void acceptsGoogleMapsPlaceUrlWithShareParameters() {
+                String url = "https://www.google.com/maps/place/Pastel+da+v%C3%B3+cleuza/@-17.3066586,-48.288953,4305m/data=!3m1!1e3!4m8!3m7!1s0x94a76372804ee625:0x9b25daaefa71e5f6!8m2!3d-17.2892789!4d-48.2769059!9m1!1b1!16s%2Fg%2F11fsjgmjdf?entry=ttu&g_ep=EgoyMDI2MDgyMy4wIKXMDSoASAFQAw%3D%3D";
+                User owner = new User("Usuário", "user@example.com", "password");
+
+                when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(owner));
+                when(establishmentRepository.save(any(Establishment.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
+
+                Establishment result = establishmentService.createEstablishment("Pastelaria", url,
+                                "user@example.com");
+
+                assertEquals(url, result.getMapsUrl());
+                assertEquals(owner, result.getOwner());
+        }
+
+        @Test
+        void rejectsLookalikeGoogleDomain() {
                 RuntimeException exception = assertThrows(RuntimeException.class,
                                 () -> establishmentService.createEstablishment(
                                                 "Pizzaria",
-                                                "https://maps.app.goo.gl/abc123",
+                                                "https://google.example.com/maps/place/Pizzaria",
                                                 "user@example.com"));
 
                 assertEquals(
-                                "Links encurtados do Google Maps não são aceitos. Use o link completo da página do estabelecimento.",
+                                "Informe um link do Google Maps, como maps.app.goo.gl ou google.com/maps/place/...",
                                 exception.getMessage());
                 verifyNoInteractions(userRepository, establishmentRepository, reviewRepository);
         }
 
         @Test
-        void rejectsGoogleMapsShareLinkWithTrackingParamsBeforeSaving() {
-                RuntimeException exception = assertThrows(RuntimeException.class,
-                                () -> establishmentService.createEstablishment(
-                                                "Pizzaria",
-                                                "https://www.google.com/maps/place/Pz.%C3%81ria+-+Forneria+Criativa/@-16.675498,-49.3085628,14z/data=!3m1!5s0x935ef3e248a0911d:0xc32db09235713f62!4m11!1m2!2m1!1spizzaria+goiania!3m7!1s0x935ef3b7de96a087:0xb1e889a4e108886d!8m2!3d-16.6754977!4d-49.2704541!9m1!1b1!16s%2Fg%2F11j6wc7kvq?entry=ttu&g_ep=EgoyMDI2MDcyNi4wIKXMDSoASAFQAw%3D%3D",
-                                                "user@example.com"));
+        void extractsUrlWhenUserPastesMarkdownLink() {
+                String input = "[Google Maps](https://maps.app.goo.gl/VfkiBDD6m9U5RaCy7)";
+                User owner = new User("Usuário", "user@example.com", "password");
 
-                assertEquals(
-                                "Esse link não é um link direto de estabelecimento do Google Maps. Use a URL da página do estabelecimento sem parâmetros de compartilhamento.",
-                                exception.getMessage());
-                verifyNoInteractions(userRepository, establishmentRepository, reviewRepository);
+                when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(owner));
+                when(establishmentRepository.save(any(Establishment.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
+
+                Establishment result = establishmentService.createEstablishment("Pastelaria", input,
+                                "user@example.com");
+
+                assertEquals("https://maps.app.goo.gl/VfkiBDD6m9U5RaCy7", result.getMapsUrl());
         }
 
         @Test

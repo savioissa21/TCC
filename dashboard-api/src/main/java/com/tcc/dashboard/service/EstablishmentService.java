@@ -17,9 +17,17 @@ import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class EstablishmentService {
+
+    private static final Pattern GOOGLE_DOMAIN = Pattern.compile(
+            "(^|.*\\.)google\\.[a-z]{2,3}(\\.[a-z]{2})?$");
+    private static final Pattern MARKDOWN_LINK = Pattern.compile(
+            "^\\[[^\\]]*]\\((https?://.+)\\)$",
+            Pattern.CASE_INSENSITIVE);
 
     @Autowired
     private EstablishmentRepository establishmentRepository;
@@ -31,69 +39,102 @@ public class EstablishmentService {
     private ReviewRepository reviewRepository;
 
     public Establishment createEstablishment(String name, String url, String userEmail) {
-        validateMapsUrl(url);
+        String normalizedUrl = normalizeAndValidateMapsUrl(url);
 
         User owner = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new NotFoundException("Usuário não encontrado: " + userEmail));
 
         Establishment establishment = new Establishment();
         establishment.setName(name);
-        establishment.setMapsUrl(url);
+        establishment.setMapsUrl(normalizedUrl);
         establishment.setOwner(owner);
         establishment.setAutomaticUpdatesEnabled(true);
 
         return establishmentRepository.save(establishment);
     }
 
-    private void validateMapsUrl(String url) {
+    static String normalizeAndValidateMapsUrl(String url) {
         if (url == null || url.isBlank()) {
             throw new BadRequestException("Informe o link de um estabelecimento específico no Google Maps.");
         }
 
+        String normalizedUrl = normalizeMapsUrlInput(url);
         final URI uri;
         try {
-            uri = URI.create(url.trim());
+            uri = URI.create(normalizedUrl);
         } catch (IllegalArgumentException ex) {
+            throw new BadRequestException("O link informado não é uma URL válida do Google Maps.");
+        }
+
+        String scheme = uri.getScheme();
+        if (scheme == null || !(scheme.equalsIgnoreCase("https") || scheme.equalsIgnoreCase("http"))) {
             throw new BadRequestException("O link informado não é uma URL válida do Google Maps.");
         }
 
         String host = uri.getHost();
         String normalizedHost = host == null ? "" : host.toLowerCase(Locale.ROOT);
-        boolean isGoogleHost = normalizedHost.matches("(^|.*\\.)google\\.[a-z]{2,3}(\\.[a-z]{2})?")
-                || normalizedHost.contains("google")
-                || normalizedHost.contains("maps.app.goo.gl");
-
-        if (normalizedHost.contains("maps.app.goo.gl") || normalizedHost.contains("goo.gl")) {
-            throw new BadRequestException(
-                    "Links encurtados do Google Maps não são aceitos. Use o link completo da página do estabelecimento.");
-        }
-
-        if (!isGoogleHost) {
-            throw new BadRequestException(
-                    "Informe o link completo da página de um estabelecimento no Google Maps. Links genéricos ou encurtados não são aceitos.");
-        }
-
         String path = uri.getPath();
         String normalizedPath = path == null ? "" : path.toLowerCase(Locale.ROOT);
+
+        boolean isModernShortLink = normalizedHost.equals("maps.app.goo.gl");
+        boolean isLegacyShortLink = normalizedHost.equals("goo.gl")
+                && normalizedPath.startsWith("/maps/");
+        if (isModernShortLink || isLegacyShortLink) {
+            if (normalizedPath.length() <= 1 || normalizedPath.equals("/maps/")) {
+                throw new BadRequestException(
+                        "O link encurtado do Google Maps está incompleto. No aplicativo, abra o estabelecimento e use Compartilhar > Copiar link.");
+            }
+            return normalizedUrl;
+        }
+
+        if (!GOOGLE_DOMAIN.matcher(normalizedHost).matches()) {
+            throw new BadRequestException(
+                    "Informe um link do Google Maps, como maps.app.goo.gl ou google.com/maps/place/...");
+        }
+
         if (normalizedPath.equals("/maps/search") || normalizedPath.contains("/maps/search/")) {
             throw new BadRequestException(
                     "Links de pesquisa do Google Maps não são aceitos. Selecione um estabelecimento específico e copie o link da página da empresa.");
         }
 
-        if (!normalizedPath.contains("/maps/place/")) {
+        boolean hasNamedPlace = normalizedPath.contains("/maps/place/")
+                && !normalizedPath.endsWith("/maps/place/");
+        String query = uri.getRawQuery();
+        String normalizedQuery = query == null ? "" : query.toLowerCase(Locale.ROOT);
+        boolean hasPlaceIdentifier = normalizedQuery.contains("cid=")
+                || normalizedQuery.contains("query_place_id=")
+                || normalizedQuery.contains("q=place_id%3a")
+                || normalizedQuery.contains("q=place_id:");
+
+        if (!hasNamedPlace && !hasPlaceIdentifier) {
             throw new BadRequestException(
-                    "Esse link não identifica um estabelecimento específico. Abra a página da empresa no Google Maps e copie a URL completa, que deve conter /maps/place/.");
+                    "Esse link não identifica um estabelecimento específico. Abra a empresa no Google Maps e use Compartilhar > Copiar link.");
         }
 
-        if (normalizedPath.equals("/maps/place/") || normalizedPath.equals("/maps/place")) {
-            throw new BadRequestException(
-                    "Esse link não identifica um estabelecimento específico. Abra a página da empresa no Google Maps e copie a URL completa, que deve conter /maps/place/.");
+        return normalizedUrl;
+    }
+
+    private static String normalizeMapsUrlInput(String value) {
+        String normalized = value.trim()
+                .replace("\\_", "_")
+                .replace("\\&", "&");
+
+        Matcher markdownLink = MARKDOWN_LINK.matcher(normalized);
+        if (markdownLink.matches()) {
+            normalized = markdownLink.group(1).trim();
+        } else if (normalized.startsWith("<") && normalized.endsWith(">")) {
+            normalized = normalized.substring(1, normalized.length() - 1).trim();
         }
 
-        if (uri.getQuery() != null && !uri.getQuery().isBlank()) {
-            throw new BadRequestException(
-                    "Esse link não é um link direto de estabelecimento do Google Maps. Use a URL da página do estabelecimento sem parâmetros de compartilhamento.");
+        String lowerCaseUrl = normalized.toLowerCase(Locale.ROOT);
+        if (lowerCaseUrl.startsWith("maps.app.goo.gl/")
+                || lowerCaseUrl.startsWith("goo.gl/maps/")
+                || lowerCaseUrl.startsWith("www.google.")
+                || lowerCaseUrl.startsWith("maps.google.")) {
+            normalized = "https://" + normalized;
         }
+
+        return normalized;
     }
 
     public List<EstablishmentSummaryDTO> getSummaryByUser(String userEmail) {
