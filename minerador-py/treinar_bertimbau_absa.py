@@ -35,6 +35,7 @@ SOURCE_BASE_URL = (
 LABELS = ["Negativo", "Neutro", "Positivo"]
 LABEL_TO_ID = {label: index for index, label in enumerate(LABELS)}
 ID_TO_LABEL = {index: label for label, index in LABEL_TO_ID.items()}
+DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "artifacts" / "bertimbau-absa"
 POLARITY_MAP = {
     "negative": "Negativo",
     "neutral": "Neutro",
@@ -245,7 +246,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-name", default="neuralmind/bert-base-portuguese-cased")
     parser.add_argument("--data-dir", type=Path, default=Path("data/mabsa"))
-    parser.add_argument("--output-dir", type=Path, default=Path("artifacts/bertimbau-absa"))
+    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--domains", nargs="+", default=["restaurant", "food"])
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--batch-size", type=int, default=8)

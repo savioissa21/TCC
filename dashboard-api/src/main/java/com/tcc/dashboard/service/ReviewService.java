@@ -19,11 +19,11 @@ public class ReviewService {
     @Autowired
     private ReviewRepository reviewRepository;
 
-    public List<Review> getAllReviews() {
-        return sortMostRecentFirst(reviewRepository.findAll());
-    }
+    @Autowired
+    private EstablishmentService establishmentService;
 
-    public List<Review> getByEstablishmentId(Long establishmentId) {
+    public List<Review> getByEstablishmentId(Long establishmentId, String userEmail) {
+        establishmentService.getOwnedEstablishment(establishmentId, userEmail);
         return sortMostRecentFirst(reviewRepository.findByEstablishmentId(establishmentId));
     }
 

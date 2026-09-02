@@ -30,10 +30,18 @@ dashboard-api/target/*.original
 **/*.pyc
 **/*.pyo
 minerador-py/*.json
+# O checkpoint ABSA é fornecido em runtime por um volume somente leitura.
+minerador-py/artifacts/
 
 # Logs e temporários
 **/*.log
 **/logs
+
+# Variaveis locais e segredos
+.env
+.env.*
+**/.env
+**/.env.*
 
 # Docker próprio
 **/docker-compose*.yml

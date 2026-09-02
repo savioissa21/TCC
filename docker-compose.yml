@@ -7,15 +7,15 @@ services:
     image: postgres:15-alpine
     container_name: dashboard_db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 123456
-      POSTGRES_DB: dashboard_tcc
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no arquivo .env}
+      POSTGRES_DB: ${DB_NAME:-dashboard_tcc}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d dashboard_tcc"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -30,12 +30,15 @@ services:
       dockerfile: dashboard-api/Dockerfile
     container_name: dashboard_api
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/dashboard_tcc
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: 123456
+      DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-dashboard_tcc}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no arquivo .env}
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET no arquivo .env}
       SPRING_PROFILES_ACTIVE: prod
       MINING_PYTHON_EXECUTABLE: python3
       MINING_PYTHON_SCRIPT_PATH: /app/minerador-py/minerador_integrado.py
+      ABSA_MODEL_PATH: /models/bertimbau-absa
+      ABSA_MODEL_SHA256: "${ABSA_MODEL_SHA256:?Defina ABSA_MODEL_SHA256 no arquivo .env}"
       MINING_SCHEDULE_ENABLED: "true"
       MINING_SCHEDULE_INTERVAL: PT168H
       MINING_SCHEDULE_RETRY_INTERVAL: PT24H
@@ -46,6 +49,12 @@ services:
         condition: service_healthy
     volumes:
       - api_temp_data:/app/dados_temp
+      - type: bind
+        source: "${ABSA_MODEL_HOST_PATH:?Defina ABSA_MODEL_HOST_PATH no arquivo .env}"
+        target: /models/bertimbau-absa
+        read_only: true
+        bind:
+          create_host_path: false
     restart: unless-stopped
 
   # ─────────────────────────────────────────────────

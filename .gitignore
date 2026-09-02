@@ -44,8 +44,8 @@ logs/
 
 # ─── Env / Secrets ──────────────────────────────────────
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
 
 # ─── Docker volumes ─────────────────────────────────────
 # (volumes são gerenciados pelo Docker, não precisa trackear)

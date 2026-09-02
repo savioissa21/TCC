@@ -1,5 +1,6 @@
 package com.tcc.dashboard.controller;
 
+import com.tcc.dashboard.exception.UnauthorizedException;
 import com.tcc.dashboard.model.Review;
 import com.tcc.dashboard.model.User;
 import com.tcc.dashboard.service.ReviewService;
@@ -21,7 +22,9 @@ public class ReviewController {
 
     private String getCurrentUserEmail() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) auth.getPrincipal();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new UnauthorizedException("Autenticação necessária para acessar este recurso.");
+        }
         return user.getEmail();
     }
 
@@ -33,6 +36,7 @@ public class ReviewController {
 
     @GetMapping("/reviews/establishment/{establishmentId}")
     public ResponseEntity<List<Review>> getByEstablishment(@PathVariable Long establishmentId) {
-        return ResponseEntity.ok(reviewService.getByEstablishmentId(establishmentId));
+        String userEmail = getCurrentUserEmail();
+        return ResponseEntity.ok(reviewService.getByEstablishmentId(establishmentId, userEmail));
     }
 }

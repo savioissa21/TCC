@@ -2,6 +2,7 @@ package com.tcc.dashboard.service;
 
 import com.tcc.dashboard.model.Establishment;
 import com.tcc.dashboard.model.User;
+import com.tcc.dashboard.exception.UnauthorizedException;
 import com.tcc.dashboard.repository.EstablishmentRepository;
 import com.tcc.dashboard.repository.ReviewRepository;
 import com.tcc.dashboard.repository.UserRepository;
@@ -155,5 +156,23 @@ class EstablishmentServiceTest {
 
                 assertTrue(result.getAutomaticUpdatesEnabled());
                 assertNotNull(result.getNextMiningAt());
+        }
+
+        @Test
+        void rejectsAccessToEstablishmentOwnedByAnotherUser() {
+                User owner = new User("Owner", "owner@example.com", "password");
+                Establishment establishment = new Establishment(
+                                "Loja", "https://www.google.com/maps/place/Loja");
+                establishment.setOwner(owner);
+                when(establishmentRepository.findById(7L)).thenReturn(Optional.of(establishment));
+
+                UnauthorizedException exception = assertThrows(
+                                UnauthorizedException.class,
+                                () -> establishmentService.getOwnedEstablishment(
+                                                7L, "intruder@example.com"));
+
+                assertEquals(
+                                "Acesso negado: você não é o dono deste estabelecimento.",
+                                exception.getMessage());
         }
 }

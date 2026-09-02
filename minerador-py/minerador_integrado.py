@@ -9,7 +9,12 @@ from pathlib import Path
 from transformers import pipeline
 
 from aspect_extractor import extract_aspect_candidates
-from bertimbau_absa import AspectSentimentAnalyzer, model_is_available
+from absa_model_validation import (
+    AbsaModelError,
+    DEFAULT_MODEL_DIR,
+    require_absa_model,
+)
+from bertimbau_absa import AspectSentimentAnalyzer
 
 if len(sys.argv) < 2:
     print("[ERRO] Faltou a URL do Maps.")
@@ -29,10 +34,12 @@ def stable_review_id(review_id, author, rating, text):
 
 sentiment_pipeline = None
 aspect_sentiment_analyzer = None
-aspect_model_checked = False
 
-DEFAULT_ABSA_MODEL = Path(__file__).resolve().parent / "artifacts" / "bertimbau-absa"
-ABSA_MODEL_PATH = Path(os.getenv("ABSA_MODEL_PATH", DEFAULT_ABSA_MODEL))
+configured_absa_model_path = os.getenv("ABSA_MODEL_PATH")
+ABSA_MODEL_PATH = (
+    Path(configured_absa_model_path) if configured_absa_model_path else DEFAULT_MODEL_DIR
+)
+ABSA_MODEL_SHA256 = os.getenv("ABSA_MODEL_SHA256")
 
 def get_sentiment_pipeline():
     global sentiment_pipeline
@@ -43,50 +50,42 @@ def get_sentiment_pipeline():
 
 
 def get_aspect_sentiment_analyzer():
-    """Carrega o BERTimbau ABSA uma vez e mantém fallback para o BERTweet."""
-    global aspect_sentiment_analyzer, aspect_model_checked
-    if not aspect_model_checked:
-        aspect_model_checked = True
-        if model_is_available(ABSA_MODEL_PATH):
-            print(f"[IA] Carregando BERTimbau ABSA de {ABSA_MODEL_PATH}...", flush=True)
-            aspect_sentiment_analyzer = AspectSentimentAnalyzer(ABSA_MODEL_PATH)
-        else:
-            print(
-                "[IA] BERTimbau ABSA não encontrado; usando o BERTweet por frase.",
-                flush=True,
-            )
+    """Carrega uma única vez o checkpoint BERTimbau ABSA obrigatório."""
+    global aspect_sentiment_analyzer
+    if aspect_sentiment_analyzer is None:
+        print(f"[IA] Carregando BERTimbau ABSA de {ABSA_MODEL_PATH}...", flush=True)
+        aspect_sentiment_analyzer = AspectSentimentAnalyzer(ABSA_MODEL_PATH)
     return aspect_sentiment_analyzer
 
 def analyze_aspects(text):
     detected_aspects = []
+    analyzer = get_aspect_sentiment_analyzer()
     for candidate in extract_aspect_candidates(text):
-        try:
-            analyzer = get_aspect_sentiment_analyzer()
-            if analyzer:
-                prediction = analyzer.predict(
-                    candidate["excerpt"],
-                    candidate["name"],
-                    candidate["target"],
-                )
-                sentiment = prediction["sentiment"]
-            else:
-                result = get_sentiment_pipeline()(candidate["excerpt"][:512])[0]
-                sentiment_map = {'POS': 'Positivo', 'NEG': 'Negativo', 'NEU': 'Neutro'}
-                sentiment = sentiment_map.get(result['label'], 'Neutro')
-            detected_aspects.append({
-                "name": candidate["name"],
-                "sentiment": sentiment,
-                "excerpt": candidate["excerpt"],
-            })
-        except Exception as error:
-            print(
-                f"[AVISO] Falha ao analisar o aspecto {candidate['name']}: {error}",
-                flush=True,
-            )
+        prediction = analyzer.predict(
+            candidate["excerpt"],
+            candidate["name"],
+            candidate["target"],
+        )
+        detected_aspects.append({
+            "name": candidate["name"],
+            "sentiment": prediction["sentiment"],
+            "excerpt": candidate["excerpt"],
+        })
     return detected_aspects
 
 async def run():
     print(f"[INFO] Iniciando Mineracao para: {TARGET_URL}")
+
+    try:
+        require_absa_model(
+            ABSA_MODEL_PATH,
+            ABSA_MODEL_SHA256,
+            require_checksum=True,
+        )
+        get_aspect_sentiment_analyzer()
+    except AbsaModelError as error:
+        print(f"[MINING_ERROR] {error}", flush=True)
+        raise
 
     async with async_playwright() as p:
         # User-agent real para evitar detecção de bot pelo Google
@@ -456,6 +455,8 @@ async def run():
                     if len(processed_data) % 10 == 0:
                         print(f"[PROGRESSO] {len(processed_data)} analisadas...")
 
+                except AbsaModelError:
+                    raise
                 except Exception as e:
                     print(f"[ERRO review {i}]: {e}")
                     continue
@@ -477,4 +478,7 @@ async def run():
             await browser.close()
 
 if __name__ == "__main__":
-    asyncio.run(run())
+    try:
+        asyncio.run(run())
+    except AbsaModelError:
+        raise SystemExit(1)

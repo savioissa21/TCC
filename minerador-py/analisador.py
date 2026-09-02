@@ -1,124 +1,108 @@
+"""Analisador offline compatível com o mesmo BERTimbau ABSA da aplicação."""
+
+from __future__ import annotations
+
 import json
-import uuid
-from transformers import pipeline
-from datetime import datetime
-import re
 import os
+import uuid
+from datetime import datetime
+from pathlib import Path
 
-# --- CONFIGURAÇÃO ---
-INPUT_FILE = 'reviews.json'
-OUTPUT_FILE = 'reviews_processados.json'
+from transformers import pipeline
 
-def analyze_aspects(text, sentiment_pipeline):
-    """
-    Analisa frases individuais procurando por aspectos específicos.
-    """
-    ASPECT_KEYWORDS = {
-        "Atendimento": ["garçom", "atendimento", "serviço", "demora", "rápido", "lento", "educado", "grosseiro", "funcionário", "equipe", "recepção"],
-        "Comida": ["pizza", "sabor", "gostosa", "fria", "quente", "massa", "recheio", "borda", "cardápio", "bebida", "suco", "carne", "sobremesa"],
-        "Ambiente": ["lugar", "local", "ambiente", "banheiro", "limpeza", "sujo", "barulho", "música", "confortável", "mesa", "cadeira", "espaço", "iluminação"],
-        "Preço": ["preço", "valor", "caro", "barato", "conta", "pagar", "custo", "promoção"]
-    }
+from absa_model_validation import (
+    DEFAULT_MODEL_DIR,
+    require_absa_model,
+)
+from aspect_extractor import extract_aspect_candidates
+from bertimbau_absa import AspectSentimentAnalyzer
 
+
+INPUT_FILE = "reviews.json"
+OUTPUT_FILE = "reviews_processados.json"
+SENTIMENT_MAP = {"POS": "Positivo", "NEG": "Negativo", "NEU": "Neutro"}
+
+
+def configured_model_path() -> Path:
+    configured_path = os.getenv("ABSA_MODEL_PATH")
+    return Path(configured_path) if configured_path else DEFAULT_MODEL_DIR
+
+
+def analyze_aspects(
+    text: str,
+    analyzer: AspectSentimentAnalyzer,
+) -> list[dict[str, str]]:
     detected_aspects = []
-    
-    # Divide por pontuação mantendo a frase limpa
-    sentences = re.split(r'[.!?;]\s*', text)
-
-    for sentence in sentences:
-        if not sentence.strip():
-            continue
-
-        sentence_lower = sentence.lower()
-
-        for aspect_name, keywords in ASPECT_KEYWORDS.items():
-            if any(word in sentence_lower for word in keywords):
-                # Analisa o sentimento só desta frase
-                try:
-                    result = sentiment_pipeline(sentence)[0]
-                    
-                    sentiment_map = {'POS': 'Positivo', 'NEG': 'Negativo', 'NEU': 'Neutro'}
-                    sentiment_pt = sentiment_map.get(result['label'], 'Neutro')
-
-                    detected_aspects.append({
-                        "name": aspect_name,      # CORRIGIDO: Java espera 'name', não 'aspect'
-                        "sentiment": sentiment_pt,
-                        "excerpt": sentence.strip()
-                    })
-                except Exception as e:
-                    print(f"⚠️ Erro ao analisar frase: {e}")
-                    continue
-
+    for candidate in extract_aspect_candidates(text):
+        prediction = analyzer.predict(
+            candidate["excerpt"],
+            candidate["name"],
+            candidate["target"],
+        )
+        detected_aspects.append(
+            {
+                "name": candidate["name"],
+                "sentiment": str(prediction["sentiment"]),
+                "excerpt": candidate["excerpt"],
+            }
+        )
     return detected_aspects
 
-def process_reviews():
-    print("🔄 Carregando o modelo BERT para Português (pode demorar na 1ª vez)...")
+
+def process_reviews() -> int:
     try:
-        # Carrega a IA uma única vez
-        sentiment_pipeline = pipeline("sentiment-analysis", model="pysentimiento/bertweet-pt-sentiment")
-    except Exception as e:
-        print(f"❌ Erro ao baixar o modelo: {e}")
-        return
+        model_path = require_absa_model(
+            configured_model_path(),
+            os.getenv("ABSA_MODEL_SHA256"),
+            require_checksum=True,
+        )
+        print(f"[IA] Carregando BERTimbau ABSA de {model_path}...", flush=True)
+        aspect_analyzer = AspectSentimentAnalyzer(model_path)
+        print("[IA] Carregando BERTweet para o sentimento geral...", flush=True)
+        overall_analyzer = pipeline(
+            "sentiment-analysis",
+            model="pysentimiento/bertweet-pt-sentiment",
+        )
 
-    print(f"📂 Lendo {INPUT_FILE}...")
-    try:
-        if not os.path.exists(INPUT_FILE):
-             print(f"❌ Arquivo {INPUT_FILE} não encontrado. Rode o minerador primeiro.")
-             return
-             
-        with open(INPUT_FILE, 'r', encoding='utf-8') as f:
-            reviews = json.load(f)
-    except Exception as e:
-        print(f"❌ Erro ao abrir arquivo: {e}")
-        return
-    
-    processed_data = []
-    total = len(reviews)
+        input_path = Path(INPUT_FILE)
+        if not input_path.is_file():
+            raise RuntimeError(
+                f"Arquivo {INPUT_FILE} não encontrado. Rode o minerador primeiro."
+            )
+        reviews = json.loads(input_path.read_text(encoding="utf-8"))
 
-    print(f"🚀 Iniciando análise de {total} avaliações...")
+        processed_data = []
+        for review in reviews:
+            text = review.get("text", "")
+            if not text:
+                continue
 
-    for i, review in enumerate(reviews):
-        text = review.get('text', '')
+            overall_result = overall_analyzer(text[:512])[0]
+            label = overall_result.get("label")
+            if label not in SENTIMENT_MAP:
+                raise RuntimeError(f"BERTweet retornou uma classe desconhecida: {label}")
 
-        if not text:
-            continue
+            processed_data.append(
+                {
+                    "id": str(uuid.uuid4()),
+                    "sentimentScore": overall_result["score"],
+                    "overallSentiment": SENTIMENT_MAP[label],
+                    "originalReview": review,
+                    "aspects": analyze_aspects(text, aspect_analyzer),
+                    "analysisDate": datetime.now().isoformat(),
+                }
+            )
 
-        # 1. Sentimento Geral
-        # Cortamos em 512 chars pois é o limite do BERT
-        try:
-            overall_result = sentiment_pipeline(text[:512])[0]
-            sentiment_map = {'POS': 'Positivo', 'NEG': 'Negativo', 'NEU': 'Neutro'}
-            overall_sentiment = sentiment_map.get(overall_result['label'], 'Neutro')
-            sentiment_score = overall_result['score']
-        except:
-            overall_sentiment = "Neutro"
-            sentiment_score = 0.5
+        Path(OUTPUT_FILE).write_text(
+            json.dumps(processed_data, ensure_ascii=False, indent=4),
+            encoding="utf-8",
+        )
+        print(f"[SUCESSO] {len(processed_data)} avaliações salvas em {OUTPUT_FILE}.")
+        return 0
+    except Exception as error:
+        print(f"[ANALYSIS_ERROR] {error}", flush=True)
+        return 1
 
-        # 2. Aspectos
-        aspects = analyze_aspects(text, sentiment_pipeline)
-
-        processed_review = {
-            "id": str(uuid.uuid4()),
-            "sentimentScore": sentiment_score,
-            "overallSentiment": overall_sentiment,
-            "originalReview": review,
-            "aspects": aspects,
-            "analysisDate": datetime.now().isoformat()
-        }
-
-        processed_data.append(processed_review)
-
-        if (i + 1) % 10 == 0:
-            print(f"   Processado {i + 1}/{total}...")
-
-    # Salva o resultado final
-    try:
-        with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-            json.dump(processed_data, f, ensure_ascii=False, indent=4)
-        print(f"✅ SUCESSO! Arquivo '{OUTPUT_FILE}' gerado.")
-        print("👉 Agora atualize seu ReviewService.java para ler este arquivo novo!")
-    except Exception as e:
-        print(f"❌ Erro ao salvar arquivo: {e}")
 
 if __name__ == "__main__":
-    process_reviews()
+    raise SystemExit(process_reviews())

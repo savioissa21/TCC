@@ -50,8 +50,9 @@ COPY dashboard-api/target/dashboard-0.0.1-SNAPSHOT.jar app.jar
 ENV SPRING_PROFILES_ACTIVE=prod
 ENV MINING_PYTHON_EXECUTABLE=python3
 ENV MINING_PYTHON_SCRIPT_PATH=/app/minerador-py/minerador_integrado.py
+ENV ABSA_MODEL_PATH=/models/bertimbau-absa
 ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "python3 /app/minerador-py/validate_absa_model.py && exec java -jar /app/app.jar"]

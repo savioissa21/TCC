@@ -16,6 +16,22 @@ O script baixa automaticamente as partições em português dos domínios
 validação e teste e salva o melhor checkpoint em
 `artifacts/bertimbau-absa`.
 
+O caminho padrão é ancorado nesta pasta (`minerador-py`), independentemente do
+diretório em que o comando for executado. Preserve e publique a pasta completa,
+incluindo os pesos, tokenizer, `training_report.json`, `training_args.json` e
+`dataset_examples.json`, em uma versão imutável do seu armazenamento de
+artefatos. Depois de baixá-la no servidor, aponte `ABSA_MODEL_HOST_PATH` do
+`.env` para essa versão; o Docker a montará em modo somente leitura.
+
+Não publique os pesos diretamente no Git comum. Para registrar a integridade da
+versão distribuída, calcule e guarde o SHA-256 do checkpoint completo junto do
+artefato. Configure esse valor como `ABSA_MODEL_SHA256` no `.env` de produção;
+sem ele, o contêiner recusa iniciar:
+
+```bash
+python validate_absa_model.py --model-path artifacts/bertimbau-absa --print-sha256
+```
+
 ## Teste de inferência
 
 ```powershell
