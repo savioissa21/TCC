@@ -1,9 +1,8 @@
 import { Activity, TrendingUp, Star, Store, TrendingDown } from "lucide-react";
-import { type Review, type EstablishmentSummary } from "../../types";
-import { useMemo } from "react";
+import { type ReviewStats, type EstablishmentSummary } from "../../types";
 
 interface StatsGridProps {
-  reviews: Review[];
+  stats: ReviewStats;
   establishments: EstablishmentSummary[];
 }
 
@@ -35,17 +34,7 @@ function StatCard({
   );
 }
 
-export function StatsGrid({ reviews, establishments }: StatsGridProps) {
-  const stats = useMemo(() => {
-    const total = reviews.length;
-    const positive = reviews.filter((r) => r.overallSentiment === "Positivo").length;
-    const negative = reviews.filter((r) => r.overallSentiment === "Negativo").length;
-    const score = total > 0 ? Math.round((positive / total) * 100) : 0;
-    const avgRating =
-      total > 0 ? (reviews.reduce((acc, r) => acc + (r.rating || 0), 0) / total).toFixed(1) : "0.0";
-    return { total, positive, negative, score, avgRating };
-  }, [reviews]);
-
+export function StatsGrid({ stats, establishments }: StatsGridProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <StatCard
@@ -76,7 +65,7 @@ export function StatsGrid({ reviews, establishments }: StatsGridProps) {
       />
       <StatCard
         title="Nota Média"
-        value={stats.avgRating}
+        value={stats.avgRating.toFixed(1)}
         sub="Google Maps · escala de 1 a 5"
         icon={<Star size={20} className="text-yellow-500 fill-yellow-500" />}
         accentColor="bg-yellow-500"

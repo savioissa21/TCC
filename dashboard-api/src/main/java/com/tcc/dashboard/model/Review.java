@@ -9,11 +9,18 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
-@Table(indexes = @Index(name = "idx_review_establishment", columnList = "establishment_id"))
+@Table(uniqueConstraints = @UniqueConstraint(name = "uk_review_google_establishment",
+        columnNames = {"establishment_id", "google_review_id"}), indexes = {
+    @Index(name = "idx_review_establishment", columnList = "establishment_id"),
+    @Index(name = "idx_review_establishment_collected", columnList = "establishment_id,collectedAt,id")
+})
 public class Review {
 
     @Id
-    private String id; // ID que vem do Python/UUID
+    private String id; // Chave interna, estável e restrita ao estabelecimento.
+
+    @Column(name = "google_review_id", length = 512)
+    private String googleReviewId;
 
     private String author;
 
@@ -31,11 +38,11 @@ public class Review {
     private LocalDateTime collectedAt;
 
     // Relacionamento: Uma review tem Vários aspectos
-    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference // Gerencia a serialização do JSON
     private List<Aspect> aspects = new ArrayList<>();
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "establishment_id") // Cria a coluna de chave estrangeira
     @JsonBackReference // Evita loop infinito no JSON
     private Establishment establishment;
@@ -56,6 +63,14 @@ public class Review {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getGoogleReviewId() {
+        return googleReviewId;
+    }
+
+    public void setGoogleReviewId(String googleReviewId) {
+        this.googleReviewId = googleReviewId;
     }
 
     public String getAuthor() {

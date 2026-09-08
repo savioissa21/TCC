@@ -1,13 +1,13 @@
 import sys
 import asyncio
 from playwright.async_api import async_playwright
-import hashlib
 import json
 import os
 import re
 from pathlib import Path
 from transformers import pipeline
 
+from review_identity import review_identity
 from aspect_extractor import extract_aspect_candidates
 from absa_model_validation import (
     AbsaModelError,
@@ -24,13 +24,6 @@ TARGET_URL = sys.argv[1]
 OUTPUT_FILE = os.getenv('MINING_OUTPUT_FILE', 'dados_temp.json')
 TARGET_REVIEWS = int(os.getenv('TARGET_REVIEWS', '100'))
 
-
-def stable_review_id(review_id, author, rating, text):
-    """Gera um identificador repetível, inclusive quando o Maps omite seu ID."""
-    source_key = review_id or "|".join(
-        [author.strip().lower(), str(rating), " ".join(text.lower().split())]
-    )
-    return hashlib.sha256(source_key.encode("utf-8")).hexdigest()
 
 sentiment_pipeline = None
 aspect_sentiment_analyzer = None
@@ -439,7 +432,7 @@ async def run():
                         display_text = "Avaliação sem comentário."
 
                     processed_data.append({
-                        "id": stable_review_id(
+                        **review_identity(
                             review.get("review_id"), author, rating, original_text
                         ),
                         "author": author,

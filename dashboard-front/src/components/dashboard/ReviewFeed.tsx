@@ -1,52 +1,25 @@
-import { useState, useMemo } from "react";
 import { Search, Zap, Plus } from "lucide-react";
 import { ReviewCard } from "./ReviewCard";
 import { cn } from "../../lib/utils";
-import { type Review, type Sentiment } from "../../types";
+import { type ReviewStats } from "../../types";
+import { useReviews } from "../../hooks/useReviews";
 
-type Filter = "Todos" | Sentiment;
+type Filter = "Todos" | "Positivo" | "Negativo" | "Neutro";
 
 interface ReviewFeedProps {
-  reviews: Review[];
-  isLoading: boolean;
+  feed: ReturnType<typeof useReviews>;
+  stats: ReviewStats;
   onAddStore: () => void;
 }
 
 const FILTERS: Filter[] = ["Todos", "Positivo", "Negativo", "Neutro"];
-const PAGE_SIZE = 8;
 
-export function ReviewFeed({ reviews, isLoading, onAddStore }: ReviewFeedProps) {
-  const [filter, setFilter] = useState<Filter>("Todos");
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-
-  const filtered = useMemo(() => {
-    let list = reviews;
-    if (filter !== "Todos") list = list.filter((r) => r.overallSentiment === filter);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter((r) => r.text?.toLowerCase().includes(q) || r.author?.toLowerCase().includes(q));
-    }
-    return list;
-  }, [reviews, filter, search]);
-
-  const paginated = filtered.slice(0, page * PAGE_SIZE);
-  const hasMore = paginated.length < filtered.length;
-
-  const counts = useMemo<Record<Filter, number>>(
-    () => ({
-      Todos: reviews.length,
-      Positivo: reviews.filter((r) => r.overallSentiment === "Positivo").length,
-      Negativo: reviews.filter((r) => r.overallSentiment === "Negativo").length,
-      Neutro: reviews.filter((r) => r.overallSentiment === "Neutro").length,
-    }),
-    [reviews]
-  );
-
-  function handleFilterChange(f: Filter) {
-    setFilter(f);
-    setPage(1);
-  }
+export function ReviewFeed({ feed, stats, onAddStore }: ReviewFeedProps) {
+  const { reviews, result, page, filter, search, isLoading, error,
+    changeFilter, changeSearch, changePage, fetchReviews } = feed;
+  const counts: Record<Filter, number> = {
+    Todos: stats.total, Positivo: stats.positive, Negativo: stats.negative, Neutro: stats.neutral,
+  };
 
   const filterColors: Record<Filter, string> = {
     Todos: "bg-slate-900 text-white",
@@ -63,7 +36,7 @@ export function ReviewFeed({ reviews, isLoading, onAddStore }: ReviewFeedProps) 
           <Zap size={20} className="text-yellow-500 fill-yellow-500" />
           Avaliações
         </h2>
-        <span className="text-sm text-slate-400">{filtered.length} resultados</span>
+        <span className="text-sm text-slate-400">{result.totalElements} resultados</span>
       </div>
 
       {/* Filtros */}
@@ -71,7 +44,7 @@ export function ReviewFeed({ reviews, isLoading, onAddStore }: ReviewFeedProps) 
         {FILTERS.map((f) => (
           <button
             key={f}
-            onClick={() => handleFilterChange(f)}
+            onClick={() => changeFilter(f)}
             className={cn(
               "rounded-full px-3 py-1 text-xs font-semibold transition-all border",
               filter === f
@@ -94,13 +67,18 @@ export function ReviewFeed({ reviews, isLoading, onAddStore }: ReviewFeedProps) 
           type="text"
           placeholder="Buscar por autor ou texto..."
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          onChange={(e) => changeSearch(e.target.value)}
           className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm placeholder-slate-400 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-900/10 transition"
         />
       </div>
 
       {/* Lista */}
-      {isLoading ? (
+      {error ? (
+        <div role="alert" className="rounded-xl border border-red-200 p-6 text-center">
+          <p className="text-red-600">{error}</p>
+          <button onClick={fetchReviews} className="mt-3 text-sm underline">Tentar novamente</button>
+        </div>
+      ) : isLoading ? (
         <div className="flex flex-col items-center justify-center py-16 space-y-3 rounded-xl border-2 border-dashed border-slate-200">
           <div className="relative h-10 w-10">
             <div className="absolute inset-0 rounded-full border-4 border-slate-200" />
@@ -108,9 +86,9 @@ export function ReviewFeed({ reviews, isLoading, onAddStore }: ReviewFeedProps) 
           </div>
           <p className="text-slate-400 text-sm">Carregando avaliações...</p>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : reviews.length === 0 ? (
         <div className="rounded-xl border-2 border-dashed border-slate-200 py-16 text-center">
-          {reviews.length === 0 ? (
+          {stats.total === 0 ? (
             <>
               <p className="text-slate-500 font-medium mb-3">Nenhuma avaliação ainda.</p>
               <button
@@ -127,18 +105,21 @@ export function ReviewFeed({ reviews, isLoading, onAddStore }: ReviewFeedProps) 
       ) : (
         <>
           <div className="grid gap-3">
-            {paginated.map((review) => (
+            {reviews.map((review) => (
               <ReviewCard key={review.id} review={review} />
             ))}
           </div>
-          {hasMore && (
-            <button
-              onClick={() => setPage((p) => p + 1)}
-              className="w-full rounded-lg border border-slate-200 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
-            >
-              Carregar mais ({filtered.length - paginated.length} restantes)
+          <div className="flex items-center justify-between gap-3">
+            <button disabled={page === 0} onClick={() => changePage(page - 1)}
+              className="rounded-lg border border-slate-200 px-4 py-2 text-sm disabled:opacity-40">
+              Anterior
             </button>
-          )}
+            <span className="text-sm text-slate-500">Página {result.number + 1} de {result.totalPages}</span>
+            <button disabled={result.last} onClick={() => changePage(page + 1)}
+              className="rounded-lg border border-slate-200 px-4 py-2 text-sm disabled:opacity-40">
+              Próxima
+            </button>
+          </div>
         </>
       )}
     </div>

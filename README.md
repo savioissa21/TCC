@@ -12,6 +12,13 @@ TCC/
 └── docker-compose.yml  # Orquestração Docker
 ```
 
+## Banco de dados e migrations
+
+O esquema é versionado pelo Flyway. O Hibernate usa `ddl-auto=validate`,
+inclusive no perfil `prod` selecionado pelo Docker. Em bancos novos, as migrations
+são aplicadas na inicialização. Antes de atualizar um volume PostgreSQL existente,
+siga o procedimento de baseline em [dashboard-api/README.md](dashboard-api/README.md#adoção-de-um-banco-existente).
+
 ## Como rodar com Docker
 
 ### Pré-requisitos

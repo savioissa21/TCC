@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
 public class Establishment {
@@ -32,7 +31,7 @@ public class Establishment {
 
     // RELACIONAMENTO: Um estabelecimento tem VÁRIAS reviews
     @OneToMany(mappedBy = "establishment", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonIgnore
     private List<Review> reviews = new ArrayList<>();
 
     @ManyToOne

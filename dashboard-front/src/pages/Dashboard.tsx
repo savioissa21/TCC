@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useReviews } from "../hooks/useReviews";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
-import { reviewService } from "../services/reviewService";
+import { EMPTY_REVIEW_STATS, reviewService } from "../services/reviewService";
 import { establishmentService } from "../services/establishmentService";
-import { type Review, type EstablishmentSummary } from "../types";
+import { type ReviewStats, type EstablishmentSummary } from "../types";
 
 import { DashboardHeader } from "../components/dashboard/DashboardHeader";
 import { StatsGrid } from "../components/dashboard/StatsGrid";
@@ -16,7 +17,11 @@ export function Dashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const feed = useReviews();
+  const { fetchReviews } = feed;
+  const [stats, setStats] = useState<ReviewStats>(EMPTY_REVIEW_STATS);
+  const toastRef = useRef(toast);
+  useEffect(() => { toastRef.current = toast; }, [toast]);
   const [establishments, setEstablishments] = useState<EstablishmentSummary[]>(
     [],
   );
@@ -30,25 +35,26 @@ export function Dashboard() {
   const [miningJobId, setMiningJobId] = useState<string | null>(null);
   const [miningEstName, setMiningEstName] = useState("");
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
+    fetchReviews();
     setIsLoading(true);
     try {
-      const [rev, est] = await Promise.all([
-        reviewService.getAll(),
+      const [summary, est] = await Promise.all([
+        reviewService.getStats(),
         establishmentService.getAll(),
       ]);
-      setReviews(rev);
+      setStats(summary);
       setEstablishments(est);
     } catch {
-      toast.error("Não foi possível carregar os dados.");
+      toastRef.current.error("Não foi possível carregar os dados.");
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [fetchReviews]);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    void loadData();
+  }, [loadData]);
 
   async function handleCreateEstablishment(data: {
     name: string;
@@ -114,15 +120,15 @@ export function Dashboard() {
           onNewStore={() => setIsCreateOpen(true)}
         />
 
-        <StatsGrid reviews={reviews} establishments={establishments} />
+        <StatsGrid stats={stats} establishments={establishments} />
 
         <div className="grid gap-6 lg:grid-cols-7">
           <ReviewFeed
-            reviews={reviews}
-            isLoading={isLoading}
+            feed={feed}
+            stats={stats}
             onAddStore={() => setIsCreateOpen(true)}
           />
-          <InsightsSidebar reviews={reviews} />
+          <InsightsSidebar stats={stats} />
         </div>
       </div>
 

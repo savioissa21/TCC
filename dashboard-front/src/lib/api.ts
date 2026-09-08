@@ -9,8 +9,15 @@ export const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+const isAuthRequest = (url?: string) =>
+  /(?:^|\/)auth\/(?:login|register)\/?(?:\?|$)/.test(url || "");
+
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    if (isAuthRequest(config.url)) {
+      config.headers.delete("Authorization");
+      return config;
+    }
     const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -23,7 +30,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<{ error?: string; detail?: string }>) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !isAuthRequest(error.config?.url)) {
       localStorage.removeItem(STORAGE_KEYS.TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER);
       window.location.href = "/login";

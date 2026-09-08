@@ -3,6 +3,9 @@ package com.tcc.dashboard.model;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -11,6 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 
 @Entity
+@Table(indexes = @Index(name = "idx_aspect_review", columnList = "review_id"))
 public class Aspect {
 
     @Id
@@ -24,7 +28,7 @@ public class Aspect {
     private String excerpt;
 
     // Relacionamento: Vários aspectos pertencem a Uma review
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "review_id")
     @JsonBackReference // Evita loop infinito no JSON
     private Review review;

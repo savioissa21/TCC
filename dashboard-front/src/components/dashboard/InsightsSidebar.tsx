@@ -1,10 +1,9 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Award, AlertCircle } from "lucide-react";
-import { type Review, type AspectStat } from "../../types";
-import { useMemo } from "react";
+import { type ReviewStats } from "../../types";
 
 interface Props {
-  reviews: Review[];
+  stats: ReviewStats;
 }
 
 const SENTIMENT_COLORS = {
@@ -20,57 +19,19 @@ const ASPECT_COLORS: Record<string, string> = {
   Preço: "#8b5cf6",
 };
 
-function SentimentLabel({ viewBox, value, label }: any) {
-  const { cx, cy } = viewBox;
-  return (
-    <>
-      <text x={cx} y={cy - 6} textAnchor="middle" className="fill-slate-900 text-xl font-bold" style={{ fontSize: 24, fontWeight: 700 }}>
-        {value}%
-      </text>
-      <text x={cx} y={cy + 16} textAnchor="middle" className="fill-slate-500" style={{ fontSize: 11, fill: "#64748b" }}>
-        {label}
-      </text>
-    </>
-  );
-}
-
-export function InsightsSidebar({ reviews }: Props) {
-  const sentimentData = useMemo(() => {
-    const positive = reviews.filter((r) => r.overallSentiment === "Positivo").length;
-    const negative = reviews.filter((r) => r.overallSentiment === "Negativo").length;
-    const neutral = reviews.filter((r) => r.overallSentiment === "Neutro").length;
-    return [
-      { name: "Positivo", value: positive, color: SENTIMENT_COLORS.Positivo },
-      { name: "Negativo", value: negative, color: SENTIMENT_COLORS.Negativo },
-      { name: "Neutro", value: neutral, color: SENTIMENT_COLORS.Neutro },
-    ].filter((d) => d.value > 0);
-  }, [reviews]);
-
-  const positivePercent = useMemo(() => {
-    if (reviews.length === 0) return 0;
-    return Math.round((reviews.filter((r) => r.overallSentiment === "Positivo").length / reviews.length) * 100);
-  }, [reviews]);
-
-  const aspectStats = useMemo<AspectStat[]>(() => {
-    const map: Record<string, { positive: number; negative: number; neutral: number }> = {};
-    reviews.forEach((r) => {
-      r.aspects?.forEach((a) => {
-        if (!map[a.name]) map[a.name] = { positive: 0, negative: 0, neutral: 0 };
-        if (a.sentiment === "Positivo") map[a.name].positive++;
-        else if (a.sentiment === "Negativo") map[a.name].negative++;
-        else map[a.name].neutral++;
-      });
-    });
-    return Object.entries(map).map(([name, c]) => {
-      const total = c.positive + c.negative + c.neutral;
-      return { name, ...c, total, score: total > 0 ? Math.round((c.positive / total) * 100) : 0 };
-    }).sort((a, b) => b.total - a.total);
-  }, [reviews]);
+export function InsightsSidebar({ stats }: Props) {
+  const sentimentData = [
+    { name: "Positivo", value: stats.positive, color: SENTIMENT_COLORS.Positivo },
+    { name: "Negativo", value: stats.negative, color: SENTIMENT_COLORS.Negativo },
+    { name: "Neutro", value: stats.neutral, color: SENTIMENT_COLORS.Neutro },
+  ].filter(d => d.value > 0);
+  const positivePercent = stats.score;
+  const aspectStats = stats.aspects;
 
   const highlights = aspectStats.filter((a) => a.score >= 60).sort((a, b) => b.score - a.score).slice(0, 2);
   const attentions = aspectStats.filter((a) => a.score < 60).sort((a, b) => a.score - b.score).slice(0, 2);
 
-  if (reviews.length === 0) {
+  if (stats.total === 0) {
     return (
       <div className="col-span-4 md:col-span-3 space-y-4">
         <h2 className="text-xl font-semibold tracking-tight">Insights da IA</h2>
@@ -88,7 +49,7 @@ export function InsightsSidebar({ reviews }: Props) {
       {/* Donut de Sentimento */}
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <p className="text-sm font-semibold text-slate-700 mb-1">Distribuição de Sentimento</p>
-        <p className="text-xs text-slate-400 mb-3">{reviews.length} avaliações analisadas</p>
+        <p className="text-xs text-slate-400 mb-3">{stats.total} avaliações analisadas</p>
         <div className="h-[160px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -104,8 +65,10 @@ export function InsightsSidebar({ reviews }: Props) {
                 {sentimentData.map((entry, i) => (
                   <Cell key={i} fill={entry.color} strokeWidth={0} />
                 ))}
-                <SentimentLabel viewBox={{ cx: "50%", cy: "50%" }} value={positivePercent} label="positivos" />
+
               </Pie>
+              <text x="50%" y="46%" textAnchor="middle" className="fill-slate-900 text-xl font-bold">{positivePercent}%</text>
+              <text x="50%" y="58%" textAnchor="middle" className="fill-slate-500 text-xs">positivos</text>
               <Tooltip formatter={(val: number | undefined) => [`${val || 0} avaliações`, ""]} />
             </PieChart>
           </ResponsiveContainer>

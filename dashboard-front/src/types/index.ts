@@ -90,3 +90,22 @@ export interface AspectStat {
   total: number;
   score: number;
 }
+
+export interface PageResponse<T> {
+  content: T[];
+  number: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}
+
+export interface ReviewStats {
+  total: number;
+  positive: number;
+  negative: number;
+  neutral: number;
+  avgRating: number;
+  score: number;
+  aspects: AspectStat[];
+}

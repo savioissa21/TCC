@@ -77,6 +77,9 @@ export function Register() {
               <Input
                 label="Nome Completo"
                 type="text"
+                minLength={2}
+                maxLength={100}
+                autoComplete="name"
                 placeholder="Seu nome"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -87,6 +90,8 @@ export function Register() {
               <Input
                 label="Email Corporativo"
                 type="email"
+                maxLength={254}
+                autoComplete="email"
                 placeholder="voce@empresa.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -97,6 +102,8 @@ export function Register() {
               <Input
                 label="Senha"
                 type="password"
+                maxLength={72}
+                autoComplete="new-password"
                 placeholder="Mínimo 6 caracteres"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

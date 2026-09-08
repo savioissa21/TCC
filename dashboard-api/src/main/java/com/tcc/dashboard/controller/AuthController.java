@@ -4,12 +4,11 @@ import com.tcc.dashboard.dto.LoginRequestDTO;
 import com.tcc.dashboard.dto.RegisterRequestDTO;
 import com.tcc.dashboard.dto.ResponseDTO;
 import com.tcc.dashboard.exception.BadRequestException;
-import com.tcc.dashboard.exception.NotFoundException;
 import com.tcc.dashboard.exception.UnauthorizedException;
 import com.tcc.dashboard.model.User;
 import com.tcc.dashboard.repository.UserRepository;
 import com.tcc.dashboard.security.TokenService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,22 +24,26 @@ import java.util.Optional;
 @CrossOrigin(origins = "*") // Importante pro React acessar
 public class AuthController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final TokenService tokenService;
+    private final String dummyPasswordHash;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private TokenService tokenService;
+    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, TokenService tokenService) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.tokenService = tokenService;
+        this.dummyPasswordHash = passwordEncoder.encode("non-account-placeholder");
+    }
 
     @PostMapping("/login")
-    public ResponseEntity<ResponseDTO> login(@RequestBody LoginRequestDTO body) {
-        User user = userRepository.findByEmail(body.email())
-                .orElseThrow(() -> new NotFoundException("Usuário não encontrado."));
-
-        if (!passwordEncoder.matches(body.password(), user.getPassword())) {
-            throw new UnauthorizedException("Email ou senha incorretos.");
+    public ResponseEntity<ResponseDTO> login(@Valid @RequestBody LoginRequestDTO body) {
+        User user = userRepository.findByEmail(body.email()).orElse(null);
+        // Check a hash even for an unknown account to avoid the immediate failure path.
+        boolean matches = passwordEncoder.matches(body.password(),
+                user == null ? dummyPasswordHash : user.getPassword());
+        if (user == null || !matches) {
+            throw new UnauthorizedException(LoginRequestDTO.INVALID_CREDENTIALS);
         }
 
         String token = tokenService.generateToken(user);
@@ -48,15 +51,11 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ResponseDTO> register(@RequestBody RegisterRequestDTO body) {
+    public ResponseEntity<ResponseDTO> register(@Valid @RequestBody RegisterRequestDTO body) {
         Optional<User> user = userRepository.findByEmail(body.email());
 
         if (user.isPresent()) {
             throw new BadRequestException("Email já cadastrado.");
-        }
-
-        if (body.password() == null || body.password().isBlank()) {
-            throw new BadRequestException("A senha é obrigatória.");
         }
 
         User newUser = new User();

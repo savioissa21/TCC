@@ -5,10 +5,8 @@ import com.tcc.dashboard.exception.BadRequestException;
 import com.tcc.dashboard.exception.NotFoundException;
 import com.tcc.dashboard.exception.UnauthorizedException;
 import com.tcc.dashboard.model.Establishment;
-import com.tcc.dashboard.model.Review;
 import com.tcc.dashboard.model.User;
 import com.tcc.dashboard.repository.EstablishmentRepository;
-import com.tcc.dashboard.repository.ReviewRepository;
 import com.tcc.dashboard.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -34,9 +32,6 @@ public class EstablishmentService {
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private ReviewRepository reviewRepository;
 
     public Establishment createEstablishment(String name, String url, String userEmail) {
         String normalizedUrl = normalizeAndValidateMapsUrl(url);
@@ -138,36 +133,15 @@ public class EstablishmentService {
     }
 
     public List<EstablishmentSummaryDTO> getSummaryByUser(String userEmail) {
-        List<Establishment> establishments = establishmentRepository.findByOwnerEmail(userEmail);
-
-        return establishments.stream().map(est -> {
-            List<Review> reviews = reviewRepository.findByEstablishmentId(est.getId());
-
-            long totalReviews = reviews.size();
-            double avgRating = reviews.stream()
-                    .mapToDouble(r -> r.getRating() != null ? r.getRating() : 0.0)
-                    .average().orElse(0.0);
-            long positiveCount = reviews.stream()
-                    .filter(r -> "Positivo".equals(r.getOverallSentiment())).count();
-            double satisfactionScore = totalReviews > 0
-                    ? Math.round((double) positiveCount / totalReviews * 1000.0) / 10.0
-                    : 0.0;
-
-            return new EstablishmentSummaryDTO(
-                    est.getId(),
-                    est.getName(),
-                    est.getMapsUrl(),
-                    totalReviews,
-                    Math.round(avgRating * 10.0) / 10.0,
-                    satisfactionScore,
-                    !Boolean.FALSE.equals(est.getAutomaticUpdatesEnabled()),
-                    est.getLastMiningAt(),
-                    est.getLastMiningSuccessAt(),
-                    est.getNextMiningAt(),
-                    est.getLastNewReviews() == null ? 0 : est.getLastNewReviews(),
-                    est.getLastMiningStatus(),
-                    est.getLastMiningMessage());
-        }).toList();
+        return establishmentRepository.summarizeByOwner(userEmail).stream().map(est ->
+                new EstablishmentSummaryDTO(est.getId(), est.getName(), est.getMapsUrl(),
+                        est.getReviewCount(), Math.round(est.getAvgRating() * 10.0) / 10.0,
+                        est.getReviewCount() == 0 ? 0.0
+                                : Math.round(1000.0 * est.getPositiveCount() / est.getReviewCount()) / 10.0,
+                        !Boolean.FALSE.equals(est.getAutomaticUpdatesEnabled()),
+                        est.getLastMiningAt(), est.getLastMiningSuccessAt(), est.getNextMiningAt(),
+                        est.getLastNewReviews() == null ? 0 : est.getLastNewReviews(),
+                        est.getLastMiningStatus(), est.getLastMiningMessage())).toList();
     }
 
     public Establishment getOwnedEstablishment(Long id, String userEmail) {

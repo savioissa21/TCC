@@ -71,6 +71,8 @@ export function Login() {
               <Input
                 label="Email"
                 type="email"
+                maxLength={254}
+                autoComplete="email"
                 placeholder="admin@nexo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -82,6 +84,8 @@ export function Login() {
                 <Input
                   label="Senha"
                   type="password"
+                  maxLength={72}
+                  autoComplete="current-password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
