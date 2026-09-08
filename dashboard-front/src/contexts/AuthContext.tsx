@@ -1,37 +1,21 @@
 // src/contexts/AuthContext.tsx
 import {
-  createContext,
-  useContext,
   useState,
   useEffect,
   type ReactNode,
   useCallback,
 } from "react";
+import { AuthContext, type SignInCredentials } from "../hooks/useAuth";
 import { jwtDecode } from "jwt-decode";
 import { api } from "../lib/api";
 import { STORAGE_KEYS } from "../lib/storage";
 import { type AuthResponse, type User } from "../types";
-
-interface SignInCredentials {
-  email: string;
-  pass: string;
-}
 
 interface JWTPayload {
   sub: string;
   iss: string;
   exp: number;
 }
-
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  signIn: (credentials: SignInCredentials) => Promise<void>;
-  signOut: () => void;
-  isLoading: boolean;
-}
-
-const AuthContext = createContext({} as AuthContextType);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -95,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           if (isExpired) {
             signOut(); // Agora funciona!
+            setIsLoading(false);
             return;
           }
 
@@ -125,16 +110,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-// SOBRE O ERRO DE FAST REFRESH:
-// Se o aviso "Fast refresh only works when a file only exports components" persistir e te incomodar,
-// a solução ideal é mover este hook abaixo para um arquivo separado chamado 'useAuth.ts'.
-// Mas, para fins de TCC, você pode ignorar o aviso ou manter assim que funciona.
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
-  }
-  return context;
 }

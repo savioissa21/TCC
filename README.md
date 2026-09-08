@@ -142,6 +142,13 @@ Configurações da API:
 | `mining.schedule.interval` | `PT168H` | Intervalo de sete dias |
 | `mining.schedule.retry-interval` | `PT24H` | Nova tentativa após erro |
 | `mining.schedule.poll-delay-ms` | `3600000` | Frequência de verificação |
+| `mining.process.timeout` | `PT15M` | Limite total de execução do Python; configurável por `MINING_PROCESS_TIMEOUT` |
+
+Ao exceder o limite, a API encerra o Python e seus subprocessos, registra a
+coleta como falha e libera a fila para o próximo trabalho. O limite inclui
+carregamento dos modelos, coleta, análise e leitura dos logs. O Playwright
+também limita ações a 15 segundos e navegação/inicialização a 60 segundos,
+salvo limites específicos menores definidos nas operações.
 
 Os textos já coletados permanecem no PostgreSQL com a data de coleta. O
 identificador estável e uma impressão digital do conteúdo evitam duplicação,

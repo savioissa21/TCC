@@ -12,8 +12,8 @@ export function useEstablishment() {
     try {
       const { establishment } = await establishmentService.create(data);
       return establishment;
-    } catch (err: any) {
-      const msg = err.response?.data?.message || "Erro ao criar estabelecimento.";
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao criar estabelecimento.";
       setError(msg);
       console.error(err);
       return null;

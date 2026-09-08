@@ -17,9 +17,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import java.util.stream.Collectors;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.MessageDigest;
@@ -60,6 +58,9 @@ public class MiningService {
     @Value("${mining.schedule.retry-interval:PT24H}")
     private Duration retryInterval;
 
+    @Value("${mining.process.timeout:PT15M}")
+    private Duration processTimeout;
+
     public int startMining(String url, Long establishmentId) {
         Establishment establishment = establishmentRepository.findById(establishmentId)
                 .orElseThrow(() -> new NotFoundException(
@@ -85,25 +86,7 @@ public class MiningService {
             pb.environment().put("PYTHONUNBUFFERED", "1");
             pb.environment().put("MINING_OUTPUT_FILE", jsonFile.getAbsolutePath());
 
-            Process process = pb.start();
-            String miningError = null;
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    System.out.println("[PYTHON]: " + line);
-                    if (line.startsWith("[MINING_ERROR] ")) {
-                        miningError = line.substring("[MINING_ERROR] ".length());
-                    }
-                }
-            }
-
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                if (miningError != null) {
-                    throw new BadRequestException(miningError);
-                }
-                throw new BadRequestException("Script Python falhou com código de saída: " + exitCode);
-            }
+            MiningProcessRunner.run(pb, processTimeout);
 
             if (!jsonFile.isFile()) {
                 throw new BadRequestException("O minerador não gerou o arquivo de resultado.");

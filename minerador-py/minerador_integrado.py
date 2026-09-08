@@ -84,6 +84,7 @@ async def run():
         # User-agent real para evitar detecção de bot pelo Google
         browser = await p.chromium.launch(
             headless=True,
+            timeout=60000,
             args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled']
         )
         browser_version = browser.version
@@ -95,6 +96,8 @@ async def run():
             ),
             viewport={'width': 1280, 'height': 800}
         )
+        context.set_default_timeout(15000)
+        context.set_default_navigation_timeout(60000)
         page = await context.new_page()
 
         try:

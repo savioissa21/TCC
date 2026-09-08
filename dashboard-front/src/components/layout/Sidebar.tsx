@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 import { Avatar } from "../ui/avatar";
 import { LayoutDashboard, Store, LogOut, Sparkles } from "lucide-react";
 import { cn } from "../../lib/utils";

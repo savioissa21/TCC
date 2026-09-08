@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 import { Typography } from "../ui/typography";
 import { Button } from "../ui/button";
 import { NavItem } from "./NavItem";

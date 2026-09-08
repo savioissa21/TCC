@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useReviews } from "../hooks/useReviews";
-import { useAuth } from "../contexts/AuthContext";
-import { useToast } from "../contexts/ToastContext";
+import { useAuth } from "../hooks/useAuth";
+import { useToast } from "../hooks/useToast";
 import { EMPTY_REVIEW_STATS, reviewService } from "../services/reviewService";
 import { establishmentService } from "../services/establishmentService";
 import { type ReviewStats, type EstablishmentSummary } from "../types";

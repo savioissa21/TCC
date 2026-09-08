@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useToast } from "../contexts/ToastContext";
+import { useCallback, useEffect, useState } from "react";
+import { useToast } from "../hooks/useToast";
 import { establishmentService } from "../services/establishmentService";
 import { type EstablishmentSummary } from "../types";
 import { CreateEstablishmentModal } from "../components/modals/CreateEstablishmentModal";
@@ -29,7 +29,7 @@ export function MinhasLojas() {
   const [miningJobId, setMiningJobId] = useState<string | null>(null);
   const [miningEstName, setMiningEstName] = useState("");
 
-  async function loadEstablishments() {
+  const loadEstablishments = useCallback(async () => {
     try {
       const data = await establishmentService.getAll();
       setEstablishments(data);
@@ -38,11 +38,11 @@ export function MinhasLojas() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [toast]);
 
   useEffect(() => {
     loadEstablishments();
-  }, []);
+  }, [loadEstablishments]);
 
   async function handleCreate(data: { name: string; url: string }) {
     setIsCreating(true);
