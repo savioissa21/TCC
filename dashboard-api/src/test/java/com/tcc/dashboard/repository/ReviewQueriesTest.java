@@ -28,6 +28,7 @@ class ReviewQueriesTest {
     @Autowired ReviewService reviews;
     @Autowired EstablishmentService establishments;
     @Autowired ReviewRepository repository;
+    @Autowired MiningJobRepository miningJobs;
     private Establishment store;
     private Establishment empty;
     private Statistics statistics;
@@ -123,6 +124,23 @@ class ReviewQueriesTest {
                 PageRequest.of(0, 8)).getTotalElements());
         Review review = em.find(Review.class, "b");
         assertFalse(emf.getPersistenceUnitUtil().isLoaded(review, "aspects"));
+    }
+
+    @Test
+    void miningJobLookupIsRestrictedToItsOwner() {
+        MiningJob job = new MiningJob();
+        job.setId("job-owned");
+        job.setEstablishment(em.find(Establishment.class, store.getId()));
+        job.setState(MiningJobState.RUNNING);
+        job.setMessage("Coletando");
+        job.setCreatedAt(LocalDateTime.now());
+        job.setUpdatedAt(LocalDateTime.now());
+        em.persist(job);
+        em.flush();
+        em.clear();
+
+        assertTrue(miningJobs.findOwnedJob("job-owned", "owner@query.test").isPresent());
+        assertTrue(miningJobs.findOwnedJob("job-owned", "other@query.test").isEmpty());
     }
 
     private Establishment store(User owner, String name) {

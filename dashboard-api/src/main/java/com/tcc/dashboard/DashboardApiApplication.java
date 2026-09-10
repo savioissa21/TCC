@@ -25,6 +25,7 @@ public class DashboardApiApplication {
 		executor.setMaxPoolSize(1);
 		executor.setQueueCapacity(100);
 		executor.setThreadNamePrefix("mining-");
+		executor.setWaitForTasksToCompleteOnShutdown(false);
 		executor.initialize();
 		return executor;
 	}

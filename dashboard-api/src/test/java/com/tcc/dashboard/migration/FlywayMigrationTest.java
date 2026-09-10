@@ -26,8 +26,8 @@ class FlywayMigrationTest {
     @Test
     void migratesEmptyDatabaseAndDoesNotReapplyVersions() {
         Flyway flyway = flyway();
-        assertEquals(2, flyway.migrate().migrationsExecuted);
-        assertEquals("2", flyway.info().current().getVersion().getVersion());
+        assertEquals(3, flyway.migrate().migrationsExecuted);
+        assertEquals("3", flyway.info().current().getVersion().getVersion());
         flyway.validate();
         seedLegacyData();
         jdbc.update("update review set google_review_id = 'google-1' where id = 'legacy'");
@@ -51,7 +51,7 @@ class FlywayMigrationTest {
         seedLegacyData();
         Flyway flyway = flyway();
         flyway.baseline();
-        assertEquals(1, flyway.migrate().migrationsExecuted);
+        assertEquals(2, flyway.migrate().migrationsExecuted);
         assertLegacyDataPreserved();
         assertNull(jdbc.queryForObject("select google_review_id from review where id = 'legacy'", String.class));
         flyway.validate();
@@ -68,7 +68,7 @@ class FlywayMigrationTest {
         jdbc.update("update review set google_review_id = 'original-google-id' where id = 'legacy'");
         Flyway flyway = flyway();
         flyway.baseline();
-        assertEquals(1, flyway.migrate().migrationsExecuted);
+        assertEquals(2, flyway.migrate().migrationsExecuted);
         assertLegacyDataPreserved();
         assertEquals("original-google-id", jdbc.queryForObject(
                 "select google_review_id from review where id = 'legacy'", String.class));
@@ -87,6 +87,26 @@ class FlywayMigrationTest {
         Long other = jdbc.queryForObject("select id from establishment where name = 'Other'", Long.class);
         jdbc.update("insert into review (id, establishment_id, google_review_id) values ('other', ?, 'google-1')", other);
         assertEquals(3, jdbc.queryForObject("select count(*) from review", Integer.class));
+    }
+
+    @Test
+    void persistsMiningJobsAndDeletesThemWithTheirEstablishment() {
+        flyway().migrate();
+        seedLegacyData();
+        jdbc.update("insert into establishment (name, owner_id) select 'Job Store', id from users");
+        Long store = jdbc.queryForObject(
+                "select id from establishment where name = 'Job Store'", Long.class);
+        UUID jobId = UUID.randomUUID();
+        jdbc.update("""
+                insert into mining_job
+                    (id, establishment_id, state, message, reviews_imported, created_at, updated_at)
+                values (?, ?, 'QUEUED', 'Aguardando', 0, current_timestamp, current_timestamp)
+                """, jobId.toString(), store);
+
+        assertEquals("QUEUED", jdbc.queryForObject(
+                "select state from mining_job where id = ?", String.class, jobId.toString()));
+        jdbc.update("delete from establishment where id = ?", store);
+        assertEquals(0, jdbc.queryForObject("select count(*) from mining_job", Integer.class));
     }
 
     @Test
