@@ -2,6 +2,9 @@ package com.tcc.dashboard.exception;
 
 import com.tcc.dashboard.dto.LoginRequestDTO;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import java.util.TreeMap;
@@ -15,6 +18,8 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
@@ -51,16 +56,25 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "error", ex.getMessage(),
+        logger.error("Erro interno não tratado", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "error", "Erro interno no servidor. Tente novamente.",
+                "timestamp", LocalDateTime.now().toString()));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException ex) {
+        logger.warn("Conflito de integridade ao processar requisição", ex);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "error", "Os dados informados entram em conflito com um registro existente.",
                 "timestamp", LocalDateTime.now().toString()));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
+        logger.error("Erro interno não tratado", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                 "error", "Erro interno no servidor. Tente novamente.",
-                "detail", ex.getMessage(),
                 "timestamp", LocalDateTime.now().toString()));
     }
 }

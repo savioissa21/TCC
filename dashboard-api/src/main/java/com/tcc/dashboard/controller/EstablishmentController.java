@@ -6,6 +6,10 @@ import com.tcc.dashboard.model.Establishment;
 import com.tcc.dashboard.model.User;
 import com.tcc.dashboard.service.EstablishmentService;
 import com.tcc.dashboard.service.MiningJobService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -17,7 +21,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/establishments")
-@CrossOrigin(origins = "*")
 public class EstablishmentController {
 
     @Autowired
@@ -26,10 +29,17 @@ public class EstablishmentController {
     @Autowired
     private MiningJobService miningJobService;
 
-    public record CreateEstablishmentDTO(String name, String url) {
+    public record CreateEstablishmentDTO(
+            @NotBlank(message = "O nome do estabelecimento é obrigatório.")
+            @Size(min = 2, max = 100, message = "O nome deve ter entre 2 e 100 caracteres.")
+            String name,
+            @NotBlank(message = "A URL do Google Maps é obrigatória.")
+            @Size(max = 2000, message = "A URL do Google Maps é muito longa.")
+            String url) {
     }
 
-    public record AutomaticUpdatesDTO(boolean enabled) {
+    public record AutomaticUpdatesDTO(@NotNull(message = "Informe se a atualização automática deve ficar ativa.")
+            Boolean enabled) {
     }
 
     private String getCurrentUserEmail() {
@@ -41,7 +51,7 @@ public class EstablishmentController {
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> create(@RequestBody CreateEstablishmentDTO data) {
+    public ResponseEntity<Map<String, Object>> create(@Valid @RequestBody CreateEstablishmentDTO data) {
         String userEmail = getCurrentUserEmail();
         Establishment est = establishmentService.createEstablishment(data.name(), data.url(), userEmail);
         String jobId = miningJobService.startJob(est.getId(), est.getMapsUrl());
@@ -65,7 +75,7 @@ public class EstablishmentController {
     @PatchMapping("/{id}/automatic-updates")
     public ResponseEntity<Map<String, Boolean>> setAutomaticUpdates(
             @PathVariable Long id,
-            @RequestBody AutomaticUpdatesDTO data) {
+            @Valid @RequestBody AutomaticUpdatesDTO data) {
         String userEmail = getCurrentUserEmail();
         establishmentService.setAutomaticUpdates(id, data.enabled(), userEmail);
         return ResponseEntity.ok(Map.of("enabled", data.enabled()));

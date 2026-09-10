@@ -9,6 +9,8 @@ import com.tcc.dashboard.model.Establishment;
 import com.tcc.dashboard.model.Review;
 import com.tcc.dashboard.repository.EstablishmentRepository;
 import com.tcc.dashboard.repository.ReviewRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,8 @@ import java.util.Set;
 
 @Service
 public class MiningService {
+
+    private static final Logger logger = LoggerFactory.getLogger(MiningService.class);
 
     @Autowired
     private ReviewRepository reviewRepository;
@@ -104,8 +108,8 @@ public class MiningService {
             return imported;
 
         } catch (Exception e) {
-            System.err.println("Erro no MiningService: " + e.getMessage());
-            markFailed(establishment, e.getMessage());
+            logger.error("Falha ao minerar o estabelecimento {}", establishmentId, e);
+            markFailed(establishment, MiningJobService.publicFailureMessage(e));
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
@@ -118,7 +122,8 @@ public class MiningService {
                 try {
                     Files.deleteIfExists(jsonFile.toPath());
                 } catch (Exception cleanupError) {
-                    System.err.println("Não foi possível remover o arquivo temporário: " + cleanupError.getMessage());
+                    logger.warn("Não foi possível remover o arquivo temporário {}",
+                            jsonFile.getAbsolutePath(), cleanupError);
                 }
             }
         }
