@@ -48,7 +48,7 @@ export interface EstablishmentSummary {
   lastMiningSuccessAt: string | null;
   nextMiningAt: string | null;
   lastNewReviews: number;
-  lastMiningStatus: "RUNNING" | "COMPLETED" | "FAILED" | null;
+  lastMiningStatus: "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED" | null;
   lastMiningMessage: string | null;
 }
 
@@ -73,12 +73,13 @@ export interface MineReviewsParams {
   establishmentId: number;
 }
 
-export type MiningJobState = "RUNNING" | "COMPLETED" | "FAILED";
+export type MiningJobState = "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED";
 
 export interface MiningStatus {
   state: MiningJobState;
   message: string;
   reviewsImported: number;
+  updatedAt: string;
 }
 
 // Para os gráficos de aspectos

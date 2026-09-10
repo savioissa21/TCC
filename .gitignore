@@ -10,6 +10,8 @@ dashboard-api/dados_temp.json
 dashboard-front/node_modules/
 dashboard-front/dist/
 dashboard-front/.vite/
+dashboard-front/test-results/
+dashboard-front/playwright-report/
 
 # ─── Python / Minerador ─────────────────────────────────
 minerador-py/__pycache__/

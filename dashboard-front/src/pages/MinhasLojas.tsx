@@ -67,8 +67,8 @@ export function MinhasLojas() {
           lastMiningSuccessAt: null,
           nextMiningAt: null,
           lastNewReviews: 0,
-          lastMiningStatus: "RUNNING",
-          lastMiningMessage: "Coleta inicial em andamento.",
+          lastMiningStatus: "QUEUED",
+          lastMiningMessage: "Aguardando na fila de mineração...",
         },
       ]);
     } catch (err) {
