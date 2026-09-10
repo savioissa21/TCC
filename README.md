@@ -101,10 +101,14 @@ python minerador-py/validate_absa_model.py \
 O BERTweet permanece somente na análise de sentimento geral. A polaridade de
 cada aspecto é calculada obrigatoriamente pelo BERTimbau treinado.
 
+O primeiro processamento baixa o BERTweet usado no sentimento geral. Esse
+download fica no volume `huggingface_cache`, portanto recriar o contêiner da API
+não exige baixar o modelo novamente.
+
 ### 3. Compilar a API
 ```bash
 cd dashboard-api
-./mvnw clean package -DskipTests
+bash ./mvnw clean package -DskipTests
 ```
 
 ### 4. Subir todos os serviços
@@ -118,6 +122,9 @@ docker compose up -d --build
 | Frontend  | http://localhost      |
 | API       | http://localhost:8080 |
 | Banco     | localhost:5432        |
+
+Se alguma porta já estiver ocupada, configure `FRONTEND_PORT`, `API_PORT` ou
+`DB_PORT` no `.env`; as portas internas entre os contêineres não mudam.
 
 ## Stack
 - **Backend**: Spring Boot 4, Spring Security, JWT, JPA/Hibernate
@@ -153,3 +160,31 @@ salvo limites específicos menores definidos nas operações.
 Os textos já coletados permanecem no PostgreSQL com a data de coleta. O
 identificador estável e uma impressão digital do conteúdo evitam duplicação,
 inclusive para registros antigos que ainda possuam UUID aleatório.
+
+Os trabalhos de mineração também ficam persistidos no PostgreSQL com os estados
+`QUEUED`, `RUNNING`, `COMPLETED` e `FAILED`. Ao reiniciar a API, trabalhos que
+estavam na fila ou em execução são retomados. A consulta de um trabalho valida o
+usuário proprietário do estabelecimento em todas as requisições.
+
+## Verificação automatizada
+
+```bash
+# Backend (migrations, autorização, fila, recuperação e consultas)
+cd dashboard-api && bash ./mvnw test
+
+# Minerador (checkpoint, aspectos e identidade/deduplicação)
+python -m unittest discover -s minerador-py -p 'test_*.py'
+
+# Frontend (lint, testes, build e fluxo no Chromium)
+cd dashboard-front
+npm ci
+npm run lint
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) executa essas
+verificações em pushes para `main` e em pull requests. A evidência da validação
+integrada em Docker está em [`VALIDACAO_TECNICA.md`](VALIDACAO_TECNICA.md).

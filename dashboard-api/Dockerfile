@@ -51,6 +51,7 @@ ENV SPRING_PROFILES_ACTIVE=prod
 ENV MINING_PYTHON_EXECUTABLE=python3
 ENV MINING_PYTHON_SCRIPT_PATH=/app/minerador-py/minerador_integrado.py
 ENV ABSA_MODEL_PATH=/models/bertimbau-absa
+ENV PYTHONUNBUFFERED=1
 ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 
 EXPOSE 8080
