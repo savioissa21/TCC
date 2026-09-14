@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MiningProgressModal } from "./MiningProgressModal";
 import { miningService } from "../../services/miningService";
@@ -76,5 +76,17 @@ describe("MiningProgressModal", () => {
     expect(onError).toHaveBeenCalledWith(
       "Não foi possível acompanhar a mineração. O trabalho continua salvo; consulte Minhas Lojas.",
     );
+  });
+
+  it("mantém o aviso de coleta parcial até o usuário abrir as avaliações", async () => {
+    const message = "Coleta parcial: o Google limitou o acesso ou a ordenação. 5 novas; 0 já conhecidas.";
+    getStatus.mockResolvedValue({ state: "COMPLETED", message, reviewsImported: 5, updatedAt: "2026-09-13T12:00:00" });
+    const onComplete = vi.fn();
+    render(<MiningProgressModal jobId="partial" establishmentName="Loja" onComplete={onComplete} onError={vi.fn()} />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
+    expect(screen.queryByText("Mineração concluída!")).not.toBeInTheDocument();
+    expect(onComplete).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Ver avaliações" }));
+    expect(onComplete).toHaveBeenCalledWith(message);
   });
 });

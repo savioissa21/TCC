@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { reviewService } from "../services/reviewService";
 import { type PageResponse, type Review } from "../types";
 
-export function useReviews() {
+export function useReviews(establishmentId?: number) {
   const [result, setResult] = useState<PageResponse<Review>>({
     content: [], number: 0, size: 8, totalElements: 0, totalPages: 0, last: true,
   });
@@ -19,9 +19,12 @@ export function useReviews() {
       setIsLoading(true);
       setError(null);
       try {
-        const data = await reviewService.getAll({
+        const query = {
           page, size: 8, sentiment: filter === "Todos" ? "" : filter, search,
-        }, controller.signal);
+        };
+        const data = establishmentId === undefined
+          ? await reviewService.getAll(query, controller.signal)
+          : await reviewService.getByEstablishment(establishmentId, query, controller.signal);
         if (!controller.signal.aborted) {
           if (page > 0 && page >= data.totalPages) {
             setPage(Math.max(0, data.totalPages - 1));
@@ -36,7 +39,7 @@ export function useReviews() {
       }
     }, 250);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [page, filter, search, revision]);
+  }, [page, filter, search, revision, establishmentId]);
 
   const fetchReviews = useCallback(() => {
     setIsLoading(true);

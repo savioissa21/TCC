@@ -6,7 +6,7 @@ import { type MiningStatus } from "../../types";
 interface Props {
   jobId: string | null;
   establishmentName: string;
-  onComplete: () => void;
+  onComplete: (message?: string) => void;
   onError: (message?: string) => void;
 }
 
@@ -60,7 +60,9 @@ function MiningProgressSession({ jobId, establishmentName, onComplete, onError }
         setStatus(nextStatus);
 
         if (nextStatus.state === "COMPLETED") {
-          resultTimer = setTimeout(() => onCompleteRef.current(), 800);
+          if (!nextStatus.message.startsWith("Coleta parcial:")) {
+            resultTimer = setTimeout(() => onCompleteRef.current(nextStatus.message), 800);
+          }
           return;
         }
         if (nextStatus.state === "FAILED") {
@@ -94,6 +96,7 @@ function MiningProgressSession({ jobId, establishmentName, onComplete, onError }
   }, [jobId]);
 
   const isDone = status?.state === "COMPLETED";
+  const isPartial = isDone && status.message.startsWith("Coleta parcial:");
   const isFailed = status?.state === "FAILED";
   const isQueued = status?.state === "QUEUED";
 
@@ -102,11 +105,16 @@ function MiningProgressSession({ jobId, establishmentName, onComplete, onError }
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center animate-in zoom-in-95 duration-200">
         {isDone ? (
           <>
-            <CheckCircle size={52} className="text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-slate-900">Mineração concluída!</h3>
+            <CheckCircle size={52} className={isPartial ? "text-amber-500 mx-auto mb-4" : "text-green-500 mx-auto mb-4"} />
+            <h3 className="text-lg font-bold text-slate-900">{isPartial ? "Coleta parcial" : "Mineração concluída!"}</h3>
             <p className="text-slate-500 text-sm mt-1">
               {status.reviewsImported} avaliações novas importadas para <strong>{establishmentName}</strong>.
             </p>
+            {isPartial && <>
+              <p role="alert" className="mt-3 text-sm text-amber-700">{status.message}</p>
+              <button onClick={() => onCompleteRef.current(status.message)}
+                className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white">Ver avaliações</button>
+            </>}
           </>
         ) : isFailed ? (
           <>

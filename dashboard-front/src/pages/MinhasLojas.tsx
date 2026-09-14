@@ -98,10 +98,11 @@ export function MinhasLojas() {
     }
   }
 
-  function handleMiningComplete() {
+  function handleMiningComplete(message?: string) {
     setMiningJobId(null);
     setRefreshingId(null);
-    toast.success(`Mineração de "${miningEstName}" concluída!`);
+    if (message?.startsWith("Coleta parcial:")) toast.info(message);
+    else toast.success(`Mineração de "${miningEstName}" concluída!`);
     loadEstablishments();
   }
 
@@ -233,6 +234,8 @@ export function MinhasLojas() {
                 </div>
 
                 {/* Métricas */}
+                {est.lastMiningMessage?.startsWith("Coleta parcial:") &&
+                  <p role="status" className="mb-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">{est.lastMiningMessage}</p>}
                 <div className="grid grid-cols-3 gap-2 mb-4">
                   <div className="rounded-lg bg-slate-50 p-2.5 text-center">
                     <p className="text-lg font-bold text-slate-900">

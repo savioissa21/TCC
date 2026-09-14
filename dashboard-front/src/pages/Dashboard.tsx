@@ -17,7 +17,9 @@ export function Dashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const feed = useReviews();
+  const [selectedStore, setSelectedStore] = useState<number | undefined>();
+  const [revision, setRevision] = useState(0);
+  const feed = useReviews(selectedStore);
   const { fetchReviews } = feed;
   const [stats, setStats] = useState<ReviewStats>(EMPTY_REVIEW_STATS);
   const toastRef = useRef(toast);
@@ -25,7 +27,7 @@ export function Dashboard() {
   const [establishments, setEstablishments] = useState<EstablishmentSummary[]>(
     [],
   );
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Modal de criação
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -38,23 +40,35 @@ export function Dashboard() {
   const loadData = useCallback(async () => {
     fetchReviews();
     setIsLoading(true);
+    setRevision(value => value + 1);
     try {
-      const [summary, est] = await Promise.all([
-        reviewService.getStats(),
-        establishmentService.getAll(),
-      ]);
-      setStats(summary);
-      setEstablishments(est);
+      setEstablishments(await establishmentService.getAll());
     } catch {
-      toastRef.current.error("Não foi possível carregar os dados.");
-    } finally {
-      setIsLoading(false);
+      toastRef.current.error("Não foi possível carregar as lojas.");
     }
   }, [fetchReviews]);
 
   useEffect(() => {
-    void loadData();
-  }, [loadData]);
+    const controller = new AbortController();
+    void reviewService.getStats(selectedStore, controller.signal).then(summary => {
+      if (!controller.signal.aborted) setStats(summary);
+    }).catch(() => {
+      if (!controller.signal.aborted) toastRef.current.error("Não foi possível carregar os indicadores.");
+    }).finally(() => {
+      if (!controller.signal.aborted) setIsLoading(false);
+    });
+    return () => controller.abort();
+  }, [selectedStore, revision]);
+
+  useEffect(() => {
+    let active = true;
+    void establishmentService.getAll().then(stores => {
+      if (active) setEstablishments(stores);
+    }).catch(() => {
+      if (active) toastRef.current.error("Não foi possível carregar as lojas.");
+    });
+    return () => { active = false; };
+  }, []);
 
   async function handleCreateEstablishment(data: {
     name: string;
@@ -67,6 +81,10 @@ export function Dashboard() {
       setIsCreateOpen(false);
       setMiningEstName(establishment.name);
       setMiningJobId(jobId);
+      setSelectedStore(establishment.id);
+      setStats(EMPTY_REVIEW_STATS);
+      setIsLoading(true);
+      fetchReviews();
       toast.info("Mineração iniciada! A IA está analisando as avaliações.");
       // Atualiza a lista de estabelecimentos imediatamente
       setEstablishments((prev) => [
@@ -95,9 +113,10 @@ export function Dashboard() {
     }
   }
 
-  function handleMiningComplete() {
+  function handleMiningComplete(message?: string) {
     setMiningJobId(null);
-    toast.success(
+    if (message?.startsWith("Coleta parcial:")) toast.info(message);
+    else toast.success(
       `Mineração de "${miningEstName}" concluída! Atualizando dados...`,
     );
     loadData();
@@ -120,7 +139,26 @@ export function Dashboard() {
           onNewStore={() => setIsCreateOpen(true)}
         />
 
-        <StatsGrid stats={stats} establishments={establishments} />
+        <div className="block text-sm font-medium text-slate-700">
+          <label htmlFor="dashboard-store">Estabelecimento</label>
+          <select id="dashboard-store" value={selectedStore ?? "all"} onChange={event => {
+            setIsLoading(true);
+            setStats(EMPTY_REVIEW_STATS);
+            setSelectedStore(event.target.value === "all" ? undefined : Number(event.target.value));
+            fetchReviews();
+          }} className="ml-3 rounded-lg border border-slate-300 bg-white p-2">
+            <option value="all">Todas as lojas (visão consolidada)</option>
+            {establishments.map(store => <option key={store.id} value={store.id}>{store.name}</option>)}
+          </select>
+        </div>
+        {establishments.filter(store => (selectedStore === undefined || store.id === selectedStore)
+          && store.lastMiningMessage?.startsWith("Coleta parcial:")).map(store => (
+          <p key={store.id} role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+            <strong>{store.name}:</strong> {store.lastMiningMessage}
+          </p>
+        ))}
+        {isLoading ? <p role="status">Carregando indicadores...</p> :
+          <StatsGrid stats={stats} establishments={establishments.filter(store => selectedStore === undefined || store.id === selectedStore)} />}
 
         <div className="grid gap-6 lg:grid-cols-7">
           <ReviewFeed
@@ -128,7 +166,7 @@ export function Dashboard() {
             stats={stats}
             onAddStore={() => setIsCreateOpen(true)}
           />
-          <InsightsSidebar stats={stats} />
+          {!isLoading && <InsightsSidebar stats={stats} />}
         </div>
       </div>
 

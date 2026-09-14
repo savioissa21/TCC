@@ -25,8 +25,8 @@ export const reviewService = {
     return response.data;
   },
 
-  async getStats(): Promise<ReviewStats> {
-    const response = await api.get<ReviewStats>("/api/reviews/stats");
+  async getStats(establishmentId?: number, signal?: AbortSignal): Promise<ReviewStats> {
+    const response = await api.get<ReviewStats>("/api/reviews/stats", { params: { establishmentId }, signal });
     return response.data;
   },
 };
