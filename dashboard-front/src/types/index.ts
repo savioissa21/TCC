@@ -8,6 +8,8 @@ export interface Aspect {
 }
 
 export interface Review {
+  establishmentId?: number;
+  establishmentName?: string;
   id: string;
   author: string;
   text: string;

@@ -1,4 +1,5 @@
 import { Star, MapPin } from "lucide-react";
+import { useState } from "react";
 import { cn } from "../../lib/utils";
 import { type Review } from "../../types";
 
@@ -19,6 +20,16 @@ const aspectColor = {
 };
 
 export function ReviewCard({ review }: ReviewCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  // Multiple excerpts are evidence of the same polarity, not separate badges.
+  // Preserve opposing polarities instead of hiding mixed opinions.
+  const aspects = Array.from((review.aspects ?? []).reduce((groups, aspect) => {
+    const key = `${aspect.name.trim().toLocaleLowerCase()}|${aspect.sentiment.trim().toLocaleLowerCase()}`;
+    const existing = groups.get(key);
+    if (existing) existing.excerpts.add(aspect.excerpt);
+    else groups.set(key, { ...aspect, excerpts: new Set([aspect.excerpt]) });
+    return groups;
+  }, new Map<string, Review["aspects"][number] & { excerpts: Set<string> }>()).values());
   const initials = review.author
     ? review.author.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase()
     : "?";
@@ -52,6 +63,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
             </span>
           </div>
 
+          {review.establishmentName && <p className="mt-1 text-xs text-slate-500">{review.establishmentName}</p>}
           {/* Stars */}
           <div className="flex items-center gap-0.5 mt-1">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -67,14 +79,17 @@ export function ReviewCard({ review }: ReviewCardProps) {
       </div>
 
       {/* Texto */}
-      <p className="mt-3 text-sm text-slate-600 leading-relaxed line-clamp-3 pl-[52px]">"{review.text}"</p>
+      <p className={cn("mt-3 text-sm text-slate-600 leading-relaxed pl-[52px]", !expanded && "line-clamp-3")}>"{review.text}"</p>
+      <button type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}
+        className="ml-[52px] mt-1 text-xs text-indigo-600 underline">{expanded ? "Ler menos" : "Ler avaliação completa"}</button>
 
       {/* Aspectos */}
       {review.aspects && review.aspects.length > 0 && (
         <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2 pl-[52px]">
-          {review.aspects.map((aspect, idx) => (
+          {aspects.map((aspect) => (
             <span
-              key={idx}
+              key={`${aspect.name}|${aspect.sentiment}`}
+              title={Array.from(aspect.excerpts).filter(Boolean).join("\n")}
               className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-1 text-xs ring-1 ring-inset ring-slate-200"
             >
               <span className="text-slate-600 font-medium">{aspect.name}:</span>
