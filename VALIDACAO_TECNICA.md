@@ -65,3 +65,100 @@ obrigatório.
 A coleta do Google Maps depende da interface pública e pode receber uma
 visualização limitada; por isso o sistema registra mensagens explícitas,
 permite nova tentativa e mantém o último conjunto bem-sucedido no banco.
+
+## Correções de coleta e dashboard — 11/09/2026
+
+- O dashboard permite selecionar uma loja ou a visão consolidada, explicitamente
+  identificada. Feed, totais e gráficos usam o mesmo escopo. A criação de uma loja
+  seleciona essa loja; a troca reinicia a paginação e cancela consultas antigas.
+  Cada cartão informa o estabelecimento de origem. A API valida a propriedade
+  também no filtro dos indicadores.
+- Etiquetas são agrupadas por aspecto e polaridade na apresentação. Os trechos
+  continuam preservados e podem ser consultados no título da etiqueta. Opiniões
+  positivas e negativas sobre o mesmo aspecto permanecem distintas. A agregação
+  científica no banco continua contando os trechos analisados, não as etiquetas.
+- O cartão permite expandir o texto no dashboard. O coletor distingue o botão do
+  comentário de menus, detalhes de avaliações sem texto e respostas da empresa,
+  e espera a confirmação de expansão antes de extrair o comentário.
+- `maps_collector.py` concentra a navegação e coleta, sem carregar os modelos.
+  Exige acesso à ordenação por mais recentes, tenta reabrir a página quando a
+  sessão recebe uma prévia limitada, coleta lotes virtualizados e resolve o painel
+  rolável atual. Falhas persistentes de expansão não geram importação parcial.
+  Quando a contagem pública está disponível, compara o coletado com a menor
+  quantidade entre essa contagem e a meta configurada.
+
+Validação automatizada: 105 testes Java, 34 testes Python, 4 testes React e 2
+testes de navegador com API simulada, além de lint e build do frontend. Os novos
+testes incluem duas lojas da mesma conta, acesso por outra conta, paginação,
+etiquetas repetidas, expansão assíncrona, lote inicial de cinco itens e lista
+virtualizada de quinze avaliações. Python/Chromium também foi incluído no CI.
+
+O teste público do coletor pode ser repetido sem IA e sem gravar no banco:
+
+```powershell
+python minerador-py/smoke_maps_collector.py "URL_DO_GOOGLE_MAPS" --target 100
+```
+
+Em uma execução intermediária no link público testado, a coleta chegou a 20 IDs
+únicos. Outras execuções, inclusive em contêiner, receberam um convite de login
+ao tentar ordenar: as tentativas limitadas terminaram com erro explícito. Isso
+documenta uma limitação externa ainda presente; os testes locais não demonstram
+que a coleta anônima de 100 avaliações estará sempre disponível. Os testes de
+DOM de expansão passaram, mas a versão final não teve uma nova coleta pública
+completa confirmada enquanto essa restrição persistiu.
+
+As imagens Docker foram reconstruídas e os contêineres locais da API e do
+frontend foram atualizados. API, frontend e PostgreSQL ficaram saudáveis; a
+página inicial respondeu HTTP 200 e o endpoint `/health` respondeu normalmente.
+O banco existente e o arquivo `.env` foram preservados.
+
+As alterações de apresentação valem também para os registros existentes. Textos
+antigos já gravados truncados não são reescritos automaticamente: a importação
+continua deduplicando por identidade, e sua correção exige reprocessamento.
+
+## Correção da regressão de coleta vazia — 13/09/2026
+
+A tentativa do Vikings Pub falhava antes da extração: a ordenação por mais
+recentes era obrigatória mesmo quando o Maps disponibilizava avaliações públicas.
+O fluxo de produção agora tenta abrir e ordenar a lista e, se não conseguir,
+importa os comentários completos acessíveis com indicação de **coleta parcial**.
+O modo estrito continua disponível nas funções de coleta para validações.
+
+O resultado do Python inclui `reviews` e `collectionWarnings`. O backend aceita
+também o formato antigo em lista, preserva a indicação parcial na loja e no job
+e agenda a próxima tentativa pelo intervalo de repetição (24 horas por padrão).
+Uma coleta parcial com zero avaliações novas não apaga esse aviso. A interface
+o mostra no modal, no dashboard e em Minhas Lojas. Comentários cuja expansão
+falhe são excluídos do lote parcial; uma coleta sem nenhuma avaliação legível
+continua sendo considerada falha. Limitação de acesso não é evidência de ausência
+de avaliações novas.
+
+O smoke test público do link usado pelo usuário recuperou 10 avaliações com
+10 IDs distintos e texto de até 1.282 caracteres, com os avisos
+`SORT_UNCONFIRMED` e `TARGET_NOT_REACHED`. Essa evidência é de coleta parcial,
+não de acesso garantido a todas as avaliações ou às 100 mais recentes.
+
+Validação desta correção: 110 testes Java, 37 testes Python, 5 testes React,
+lint e 2 E2E no Chromium passaram. A primeira execução concorrente teve timeout
+de inicialização dos workers React e uma falha de temporização no cenário de
+rolagem simulada. Os testes React passaram com um worker; a simulação de rolagem
+foi ajustada para reposicionar o painel após o próximo frame, sem ancoragem de
+rolagem, e a suíte Python passou. As imagens
+Docker foram reconstruídas, a API e o frontend atualizados, e os endpoints da
+página inicial e de saúde responderam HTTP 200 e `UP`, respectivamente.
+
+O teste integrado também expôs um limite de tokens do BERTweet: um comentário
+longo ainda ultrapassava o limite apesar do corte antigo em 512 caracteres.
+A inferência geral agora usa `truncation=True` no tokenizer, preservando o texto
+completo no armazenamento e na extração de aspectos. Erros inesperados de
+inferência interrompem a execução, em vez de descartar avaliações silenciosamente.
+Também se confirma a presença dos cartões após ordenar: um clique aceito com
+lista vazia leva a uma nova tentativa ou à reabertura da prévia pública.
+
+Após a correção do limite de tokens, o minerador integrado executado dentro do
+Docker terminou com 10 avaliações analisadas, 10 IDs Google distintos e 32
+trechos de aspectos, mantendo o texto de 1.282 caracteres e os dois avisos de
+coleta parcial. Esse teste gerou um arquivo temporário para validar coleta e
+inferência; não inseriu registros na conta do usuário. A leitura/importação do
+novo formato foi coberta pelos testes Java. A imagem final da API foi
+reconstruída e aplicada com a mesma correção testada.
