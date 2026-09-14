@@ -3,11 +3,11 @@ import asyncio
 from playwright.async_api import async_playwright
 import json
 import os
-import re
 from pathlib import Path
 from transformers import pipeline
 
 from review_identity import review_identity
+from maps_collector import prepare_reviews, collect_reviews
 from aspect_extractor import extract_aspect_candidates
 from absa_model_validation import (
     AbsaModelError,
@@ -123,292 +123,11 @@ async def run():
                     except:
                         continue
 
-            async def has_reviews_entry_point():
-                if await page.locator('div.jftiEf').count() > 0:
-                    return True
-
-                tabs = page.locator('button[role="tab"]')
-                for tab_index in range(await tabs.count()):
-                    tab = tabs.nth(tab_index)
-                    tab_text = (await tab.inner_text()).lower()
-                    tab_label = (await tab.get_attribute('aria-label') or '').lower()
-                    if 'avaliaç' in tab_text or 'review' in tab_text or 'avaliaç' in tab_label or 'review' in tab_label:
-                        return True
-
-                return await page.locator(
-                    'button[jsaction*="moreReviews"], '
-                    'button:has-text("Mais avaliações"), '
-                    'button:has-text("More reviews")'
-                ).count() > 0
-
             await accept_cookie_consent()
-
-            # O Maps pode entregar uma visualização limitada na primeira
-            # abertura anônima. Depois que os cookies iniciais são gravados,
-            # uma recarga geralmente libera a aba e os cartões de avaliação.
-            for retry in range(2):
-                if await has_reviews_entry_point():
-                    break
-
-                body_text = (await page.locator('body').inner_text()).lower()
-                limited_view = (
-                    'limited view of google maps' in body_text
-                    or 'visualização limitada do google maps' in body_text
-                )
-                reason = 'visualização limitada' if limited_view else 'avaliações ainda não carregadas'
-                print(f"[AVISO] Google Maps sem acesso às avaliações ({reason}). Recarregando ({retry + 1}/2)...")
-                await page.reload(timeout=60000, wait_until='domcontentloaded')
-                await page.wait_for_timeout(5000)
-                await accept_cookie_consent()
-
-            # 2. Clicar na aba Avaliações
-            reviews_tab_clicked = False
-            try:
-                await page.wait_for_selector('button[role="tab"]', timeout=10000)
-                tabs = page.locator('button[role="tab"]')
-                tab_count = await tabs.count()
-                print(f"[INFO] {tab_count} abas encontradas.")
-                for i in range(tab_count):
-                    tab_text = await tabs.nth(i).inner_text()
-                    if 'avaliaç' in tab_text.lower() or 'review' in tab_text.lower():
-                        await tabs.nth(i).click()
-                        reviews_tab_clicked = True
-                        print("[INFO] Aba Avaliacoes clicada.")
-                        await page.wait_for_timeout(2000)
-                        break
-            except Exception as e:
-                print(f"[AVISO] Aba Avaliacoes: {e}")
-
-            if not reviews_tab_clicked:
-                for selector in [
-                    'button[jsaction*="moreReviews"]',
-                    'button:has-text("Mais avaliações")',
-                    'button:has-text("More reviews")',
-                ]:
-                    try:
-                        reviews_button = page.locator(selector).first
-                        if await reviews_button.is_visible(timeout=1500):
-                            await reviews_button.click()
-                            reviews_tab_clicked = True
-                            print("[INFO] Lista de Avaliacoes aberta.")
-                            await page.wait_for_timeout(2500)
-                            break
-                    except:
-                        continue
-
-            if not reviews_tab_clicked:
-                body_text = (await page.locator('body').inner_text()).lower()
-                if (
-                    'limited view of google maps' in body_text
-                    or 'visualização limitada do google maps' in body_text
-                ):
-                    raise RuntimeError(
-                        "O Google Maps exibiu uma visualização limitada e ocultou as avaliações. Tente novamente em alguns instantes."
-                    )
-
-            # A coleta recorrente precisa priorizar as avaliações novas. Sem
-            # esta ordenação, o Maps costuma manter "Mais relevantes" e pode
-            # devolver sempre o mesmo lote nas execuções futuras.
-            sorted_by_newest = False
-            for selector in [
-                'button[aria-label*="Classificar"]',
-                'button[aria-label*="Ordenar"]',
-                'button[aria-label*="Sort"]',
-                'button:has-text("Mais relevantes")',
-                'button:has-text("Most relevant")',
-            ]:
-                try:
-                    sort_button = page.locator(selector).first
-                    if await sort_button.is_visible(timeout=1500):
-                        await sort_button.click()
-                        await page.wait_for_timeout(500)
-                        options = page.locator('[role="menuitemradio"], [role="menuitem"]')
-                        for option_index in range(await options.count()):
-                            option = options.nth(option_index)
-                            option_text = (await option.inner_text()).strip().lower()
-                            if 'mais recentes' in option_text or 'newest' in option_text:
-                                await option.click()
-                                await page.wait_for_timeout(2500)
-                                sorted_by_newest = True
-                                print("[INFO] Avaliações ordenadas por mais recentes.")
-                                break
-                        if sorted_by_newest:
-                            break
-                        await page.keyboard.press("Escape")
-                except:
-                    continue
-
-            if not sorted_by_newest:
-                print("[AVISO] Não foi possível confirmar a ordenação por mais recentes.")
-
-            # 3. Aguardar reviews aparecerem
-            try:
-                await page.wait_for_selector('div.jftiEf', timeout=15000)
-                print("[INFO] Reviews encontradas, iniciando scroll...")
-            except:
-                print("[AVISO] Seletor jftiEf nao encontrou nada. Tentando continuar...")
-
-            # 4. Encontrar o ancestral realmente rolável da lista de avaliações.
-            # Há vários painéis m6QErb na página e o primeiro pode ser a lista
-            # lateral de resultados, não a lista de avaliações.
-            scroll_panel = None
-            reviews_locator = page.locator('div.jftiEf')
-            if await reviews_locator.count() > 0:
-                try:
-                    panel_handle = await reviews_locator.first.evaluate_handle("""
-                        review => {
-                            let element = review.parentElement;
-                            while (element) {
-                                const style = window.getComputedStyle(element);
-                                const canScroll = element.scrollHeight > element.clientHeight + 10;
-                                const hasScrollOverflow = /auto|scroll/.test(style.overflowY);
-                                if (canScroll && hasScrollOverflow) return element;
-                                element = element.parentElement;
-                            }
-                            return null;
-                        }
-                    """)
-                    scroll_panel = panel_handle.as_element()
-                    if scroll_panel:
-                        print("[INFO] Painel rolável das avaliações encontrado.")
-                except Exception as e:
-                    print(f"[AVISO] Painel rolável não identificado: {e}")
-
-            # 5. Coletar cada lote enquanto ele está visível. O Google Maps
-            # virtualiza a lista: avaliações antigas podem sair do DOM durante
-            # a rolagem e não podem ser recuperadas apenas no final.
-            raw_reviews = {}
-
-            async def collect_visible_reviews():
-                visible_count = await reviews_locator.count()
-                added = 0
-
-                for index in range(visible_count):
-                    try:
-                        review = reviews_locator.nth(index)
-
-                        for btn_text in ["Mais", "Ver mais", "more", "More"]:
-                            more_btn = review.locator(f'button:has-text("{btn_text}")').first
-                            if await more_btn.count() > 0:
-                                try:
-                                    await more_btn.click(force=True, timeout=1500)
-                                    await page.wait_for_timeout(100)
-                                except:
-                                    pass
-                                break
-
-                        try:
-                            review_id = await review.get_attribute('data-review-id')
-                        except:
-                            review_id = None
-
-                        try:
-                            author = (await review.locator('.d4r55').first.inner_text()).strip()
-                        except:
-                            author = "Anônimo"
-
-                        try:
-                            rating_attr = await review.locator('span.kvMYJc').first.get_attribute('aria-label')
-                            match = re.search(r'(\d+)', rating_attr or '')
-                            rating = int(match.group(1)) if match else 0
-                        except:
-                            rating = 0
-
-                        try:
-                            date = (await review.locator('.rsqaWe').first.inner_text()).strip()
-                        except:
-                            date = ""
-
-                        # A resposta oficial da empresa também pode usar wiI7pd.
-                        # A primeira ocorrência pertence ao texto do cliente.
-                        try:
-                            text_locator = review.locator('.wiI7pd').first
-                            text = (await text_locator.inner_text()).strip() if await text_locator.count() > 0 else ""
-                        except:
-                            text = ""
-
-                        # Avaliações somente com estrelas também são válidas.
-                        if not text and rating == 0:
-                            continue
-
-                        dedup_key = review_id or f"{author}|{date}|{rating}|{text}"
-                        if dedup_key in raw_reviews:
-                            continue
-
-                        raw_reviews[dedup_key] = {
-                            "review_id": review_id,
-                            "author": author,
-                            "text": text,
-                            "rating": rating,
-                            "date": date,
-                        }
-                        added += 1
-                    except Exception as e:
-                        print(f"[AVISO coleta {index}]: {e}")
-
-                return visible_count, added
-
-            # 6. Loop de scroll e coleta incremental
-            no_change_count = 0
-
-            for attempt in range(80):
-                count, added = await collect_visible_reviews()
-                discovered = len(raw_reviews)
-                print(f"[SCROLL] No DOM: {count} | coletadas: {discovered} (+{added})")
-
-                if discovered >= TARGET_REVIEWS:
-                    print("[INFO] Meta atingida!")
-                    break
-
-                if added == 0:
-                    no_change_count += 1
-                else:
-                    no_change_count = 0
-
-                if no_change_count > 12:
-                    print("[INFO] Sem novas avaliações após várias rolagens, encerrando.")
-                    break
-
-                try:
-                    # Avança menos de uma tela para não pular itens virtualizados.
-                    if scroll_panel:
-                        await scroll_panel.evaluate(
-                            'el => el.scrollBy(0, Math.max(600, Math.floor(el.clientHeight * 0.85)))'
-                        )
-
-                    if count > 0:
-                        last_review = reviews_locator.nth(count - 1)
-                        try:
-                            await last_review.hover(timeout=1500)
-                            await page.mouse.wheel(0, 900)
-                        except:
-                            pass
-                    else:
-                        await page.mouse.wheel(0, 900)
-
-                    await page.wait_for_timeout(1400)
-                except Exception as e:
-                    print(f"[ERRO SCROLL] {e}")
-                    break
-
-            # Uma última coleta captura o lote carregado pela rolagem final.
-            await collect_visible_reviews()
-            collected_reviews = list(raw_reviews.values())[:TARGET_REVIEWS]
-            total = len(collected_reviews)
-            print(f"[PROCESSANDO] {min(total, TARGET_REVIEWS)} reviews para analisar...")
-
-            if total == 0:
-                body_text = (await page.locator('body').inner_text()).lower()
-                if (
-                    'limited view of google maps' in body_text
-                    or 'visualização limitada do google maps' in body_text
-                ):
-                    raise RuntimeError(
-                        "O Google Maps exibiu uma visualização limitada e ocultou as avaliações. Tente novamente em alguns instantes."
-                    )
-                raise RuntimeError(
-                    "A página abriu, mas nenhuma avaliação foi encontrada. Confirme se o estabelecimento possui avaliações públicas."
-                )
+            collection_warnings = []
+            expected = await prepare_reviews(page, accept_cookie_consent, warnings=collection_warnings)
+            collected_reviews = await collect_reviews(page, TARGET_REVIEWS, expected=expected, warnings=collection_warnings)
+            print(f"[PROCESSANDO] {len(collected_reviews)} reviews para analisar...", flush=True)
 
             processed_data = []
             for i, review in enumerate(collected_reviews):
@@ -421,7 +140,9 @@ async def run():
                     date = review["date"]
 
                     if original_text:
-                        overall = get_sentiment_pipeline()(original_text[:512])[0]
+                        # Respect the tokenizer's token limit (characters are not tokens).
+                        # Keep the complete text for storage and aspect extraction.
+                        overall = get_sentiment_pipeline()(original_text, truncation=True)[0]
                         sentiment_map = {'POS': 'Positivo', 'NEG': 'Negativo', 'NEU': 'Neutro'}
                         overall_sentiment = sentiment_map.get(overall['label'], 'Neutro')
                         sentiment_score = round(overall['score'], 4)
@@ -455,11 +176,12 @@ async def run():
                     raise
                 except Exception as e:
                     print(f"[ERRO review {i}]: {e}")
-                    continue
+                    raise RuntimeError("A análise de sentimentos falhou; esta execução não será importada.") from e
 
             # 7. Salvar
             with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-                json.dump(processed_data, f, ensure_ascii=False, indent=2)
+                json.dump({"reviews": processed_data, "collectionWarnings": list(dict.fromkeys(collection_warnings))},
+                          f, ensure_ascii=False, indent=2)
 
             print(f"[SUCESSO] {len(processed_data)} reviews salvas em {OUTPUT_FILE}")
 

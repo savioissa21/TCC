@@ -87,6 +87,20 @@ class MiningJobServiceTest {
     }
 
     @Test
+    void preservesPartialCollectionWarningEvenWhenNoNewReviewsWereImported() {
+        AtomicReference<MiningJob> persisted = configureRepository();
+        String warning = "Coleta parcial: acesso limitado. 0 novas; 5 já conhecidas.";
+        when(miningService.startMining(establishment.getMapsUrl(), 7L)).thenAnswer(call -> {
+            establishment.setLastMiningMessage(warning);
+            return 0;
+        });
+        service(Runnable::run).startJob(7L, establishment.getMapsUrl());
+        assertEquals(MiningJobState.COMPLETED, persisted.get().getState());
+        assertEquals(warning, persisted.get().getMessage());
+        assertEquals(0, persisted.get().getReviewsImported());
+    }
+
+    @Test
     void returnsStatusOnlyWhenJobBelongsToAuthenticatedOwner() {
         MiningJob job = job(MiningJobState.RUNNING);
         when(miningJobRepository.findOwnedJob("job-1", "owner@example.com"))

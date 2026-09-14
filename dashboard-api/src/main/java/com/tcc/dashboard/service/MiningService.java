@@ -97,12 +97,13 @@ public class MiningService {
             }
 
             ObjectMapper mapper = new ObjectMapper();
-            List<Review> reviews = mapper.readValue(jsonFile, new TypeReference<List<Review>>() {});
+            MiningPayload payload = parsePayload(mapper, jsonFile);
+            List<Review> reviews = payload.reviews();
             ensureReviewsFound(reviews);
 
             int imported = importNewReviews(establishment, reviews);
             int skipped = reviews.size() - imported;
-            markCompleted(establishment, imported, skipped);
+            markCompleted(establishment, imported, skipped, payload.partial());
             System.out.println("Sucesso: " + imported + " avaliações novas e " + skipped
                     + " já conhecidas para: " + establishment.getName());
             return imported;
@@ -127,6 +128,21 @@ public class MiningService {
                 }
             }
         }
+    }
+
+    record MiningPayload(List<Review> reviews, boolean partial) {}
+
+    static MiningPayload parsePayload(ObjectMapper mapper, File file) throws java.io.IOException {
+        var root = mapper.readTree(file);
+        if (root == null || (!root.isArray() && (!root.isObject() || !root.path("collectionWarnings").isArray()))) {
+            throw new BadRequestException("Resultado inválido do minerador.");
+        }
+        // Accept the previous array format as well as the explicit collection report.
+        var reviews = root.isArray() ? root : root.path("reviews");
+        if (!reviews.isArray()) throw new BadRequestException("Resultado inválido do minerador.");
+        boolean partial = !root.isArray() && root.path("collectionWarnings").isArray()
+                && !root.path("collectionWarnings").isEmpty();
+        return new MiningPayload(mapper.convertValue(reviews, new TypeReference<List<Review>>() {}), partial);
     }
 
     private record ImportCandidate(Review review, String googleId, String databaseId, String fingerprint) {}
@@ -265,13 +281,15 @@ public class MiningService {
         establishmentRepository.save(establishment);
     }
 
-    private void markCompleted(Establishment establishment, int imported, int skipped) {
+    private void markCompleted(Establishment establishment, int imported, int skipped, boolean partial) {
         LocalDateTime now = LocalDateTime.now();
         establishment.setLastMiningSuccessAt(now);
-        establishment.setNextMiningAt(now.plus(updateInterval));
+        establishment.setNextMiningAt(now.plus(partial ? retryInterval : updateInterval));
         establishment.setLastNewReviews(imported);
         establishment.setLastMiningStatus("COMPLETED");
-        establishment.setLastMiningMessage(imported + " novas; " + skipped + " já conhecidas.");
+        establishment.setLastMiningMessage((partial
+                ? "Coleta parcial: o Google limitou o acesso ou a ordenação. As avaliações podem não ser as mais recentes. " : "")
+                + imported + " novas; " + skipped + " já conhecidas.");
         establishmentRepository.save(establishment);
     }
 

@@ -104,6 +104,9 @@ public class MiningJobService {
             String message = count == 0
                     ? "Atualização concluída. Nenhuma avaliação nova."
                     : "Atualização concluída com sucesso!";
+            String collectionMessage = establishmentRepository.findById(establishmentId)
+                    .map(Establishment::getLastMiningMessage).orElse("");
+            if (collectionMessage.startsWith("Coleta parcial:")) message = collectionMessage;
             updateJob(jobId, MiningJobState.COMPLETED, message, count, true);
         } catch (Exception error) {
             logger.error("Falha no job de mineração {} do estabelecimento {}", jobId,
