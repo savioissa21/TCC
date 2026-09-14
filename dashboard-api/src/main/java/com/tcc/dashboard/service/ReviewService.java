@@ -52,8 +52,14 @@ public class ReviewService {
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public ReviewStatsDTO getStats(String email) {
-        var totals = reviewRepository.aggregateByOwner(email);
-        var aspects = reviewRepository.aggregateAspectsByOwner(email).stream()
+        return getStats(email, null);
+    }
+
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public ReviewStatsDTO getStats(String email, Long establishmentId) {
+        if (establishmentId != null) establishmentService.getOwnedEstablishment(establishmentId, email);
+        var totals = reviewRepository.aggregateByOwner(email, establishmentId);
+        var aspects = reviewRepository.aggregateAspectsByOwner(email, establishmentId).stream()
                 .map(a -> new ReviewStatsDTO.AspectStat(a.getName(), a.getPositive(), a.getNegative(),
                         a.getNeutral(), a.getTotal(), Math.round(100.0 * a.getPositive() / a.getTotal())))
                 .toList();

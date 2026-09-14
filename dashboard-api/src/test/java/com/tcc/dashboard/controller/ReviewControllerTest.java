@@ -46,7 +46,7 @@ class ReviewControllerTest {
     void rejectsRequestWithoutAuthenticatedUser() {
         assertThrows(UnauthorizedException.class,
                 () -> reviewController.getByEstablishment(7L, "", "", PageRequest.of(0, 8)));
-        assertThrows(UnauthorizedException.class, () -> reviewController.getStats());
+        assertThrows(UnauthorizedException.class, () -> reviewController.getStats(null));
         assertThrows(UnauthorizedException.class,
                 () -> reviewController.getAllReviews("", "", PageRequest.of(0, 8)));
         verifyNoInteractions(reviewService);

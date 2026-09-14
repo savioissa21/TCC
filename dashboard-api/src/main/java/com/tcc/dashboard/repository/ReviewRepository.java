@@ -35,7 +35,7 @@ public interface ReviewRepository extends JpaRepository<Review, String> {
             @Param("search") String search, Pageable pageable);
 
     @Query("""
-            select distinct r from Review r left join fetch r.aspects
+            select distinct r from Review r join fetch r.establishment e join fetch e.owner left join fetch r.aspects
             where r.id in :ids and r.establishment.owner.email = :email
             """)
     List<Review> findPageWithAspects(@Param("ids") Collection<String> ids, @Param("email") String email);
@@ -66,8 +66,9 @@ public interface ReviewRepository extends JpaRepository<Review, String> {
                    coalesce(sum(case when r.overallSentiment = 'Neutro' then 1 else 0 end), 0) as neutral,
                    coalesce(avg(coalesce(r.rating, 0.0)), 0.0) as avgRating
             from Review r where r.establishment.owner.email = :email
+              and (:establishmentId is null or r.establishment.id = :establishmentId)
             """)
-    Totals aggregateByOwner(@Param("email") String email);
+    Totals aggregateByOwner(@Param("email") String email, @Param("establishmentId") Long establishmentId);
 
     interface AspectTotals {
         String getName();
@@ -83,7 +84,8 @@ public interface ReviewRepository extends JpaRepository<Review, String> {
                    sum(case when a.sentiment = 'Negativo' then 1 else 0 end) as negative,
                    sum(case when a.sentiment in ('Positivo', 'Negativo') then 0 else 1 end) as neutral
             from Aspect a where a.review.establishment.owner.email = :email
+              and (:establishmentId is null or a.review.establishment.id = :establishmentId)
             group by a.name order by count(a) desc, a.name asc
             """)
-    List<AspectTotals> aggregateAspectsByOwner(@Param("email") String email);
+    List<AspectTotals> aggregateAspectsByOwner(@Param("email") String email, @Param("establishmentId") Long establishmentId);
 }

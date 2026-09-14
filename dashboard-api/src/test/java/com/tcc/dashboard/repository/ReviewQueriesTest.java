@@ -91,7 +91,8 @@ class ReviewQueriesTest {
         assertEquals(2, first.getTotalPages());
         assertEquals(2, first.getContent().getFirst().aspects().size());
         assertEquals(3, statistics.getPrepareStatementCount()); // IDs, count, page with aspects.
-        assertEquals(4, statistics.getEntityLoadCount()); // Two reviews and two aspects.
+        assertEquals(6, statistics.getEntityLoadCount()); // Two reviews, two aspects, store and owner.
+        assertEquals("Reviewed", first.getContent().getFirst().establishmentName());
         em.clear();
         assertTrue(first.getContent().getFirst().aspects().stream().anyMatch(a -> "boa".equals(a.excerpt())));
         var last = reviews.getByUserEmail("owner@query.test", "", "", PageRequest.of(1, 2));
@@ -124,6 +125,21 @@ class ReviewQueriesTest {
                 PageRequest.of(0, 8)).getTotalElements());
         Review review = em.find(Review.class, "b");
         assertFalse(emf.getPersistenceUnitUtil().isLoaded(review, "aspects"));
+    }
+
+    @Test
+    void selectedStoreScopesBothFeedAndStatsAndRejectsAnotherOwner() {
+        Establishment second = em.find(Establishment.class, empty.getId());
+        Review extra = review(second, "second-store", 1.0, "Negativo", LocalDateTime.now(), "Outro", "ruim");
+        extra.addAspect(new Aspect("Ambiente", "Negativo", "sujo"));
+        em.persist(extra); em.flush(); em.clear();
+        assertEquals(1, reviews.getStats("owner@query.test", empty.getId()).total());
+        assertEquals("Ambiente", reviews.getStats("owner@query.test", empty.getId()).aspects().getFirst().name());
+        assertEquals(3, reviews.getStats("owner@query.test", store.getId()).total());
+        assertEquals(List.of("second-store"), reviews.getByEstablishmentId(empty.getId(), "owner@query.test", "", "",
+                PageRequest.of(0, 8)).map(ReviewDTO::id).getContent());
+        assertThrows(com.tcc.dashboard.exception.UnauthorizedException.class,
+                () -> reviews.getStats("other@query.test", store.getId()));
     }
 
     @Test

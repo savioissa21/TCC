@@ -40,8 +40,8 @@ public class ReviewController {
     }
 
     @GetMapping("/reviews/stats")
-    public ResponseEntity<ReviewStatsDTO> getStats() {
-        return ResponseEntity.ok(reviewService.getStats(getCurrentUserEmail()));
+    public ResponseEntity<ReviewStatsDTO> getStats(@RequestParam(required = false) Long establishmentId) {
+        return ResponseEntity.ok(reviewService.getStats(getCurrentUserEmail(), establishmentId));
     }
 
     @GetMapping("/reviews/establishment/{establishmentId}")
