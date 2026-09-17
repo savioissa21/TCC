@@ -41,6 +41,29 @@ Validação: 112 testes Java em Java 21.0.2; 6 React, lint e build aprovados;
 O teste do contexto precisou atualizar a versão esperada de V3 para V4.
 Após instalar Chromium, baseline de navegador: 2/2 aprovados.
 
+### Fase 2 — segurança e persistência
+
+Normalização de e-mail antes da validação; V5 normaliza registros e exige a
+representação canônica. Colisões entre contas interrompem a migration, sem
+mesclar usuários. Bearer exige prefixo válido, usuário removido recebe 401,
+issuer é validado, e segredo curto ou repetitivo impede startup. O tamanho e a
+diversidade são verificáveis; entropia real exige geração aleatória. BCrypt e
+expiração de 24 horas mantidos, sem refresh token. Erros incluem status e
+timestamp; conflitos de banco não imprimem dados recebidos.
+
+V6 usa TEXT para comentários e trechos completos. V7 impõe nulidade e tamanho
+nos campos essenciais. Sentimentos históricos nulos continuam aceitos como
+não classificados; valores presentes têm domínio restrito. Antes de atualizar
+um banco legado, corrigir registros inválidos em cópia: não há preenchimento
+fictício nem truncamento. Importação e atualização de sucesso executam em uma
+transação, após o subprocesso, incluindo promoção das identidades antigas.
+Saúde consulta `SELECT 1` e retorna 503 se o banco falhar.
+
+Validação H2/Java 21: 116 testes, 0 falhas/erros/skips. Inclui JWT inválido,
+expirado, usuário removido, prefixos malformados, chave fraca, CORS e e-mail.
+PostgreSQL real e E2E integrado são a próxima camada, ainda não comprovados
+por esse resultado. Baseline Python após instalar navegador: 37/37, sem skips.
+
 Validação executada em 9 de setembro de 2026, em um ambiente Docker isolado,
 com PostgreSQL 15, Java 21, Python 3.11, Chromium, frontend Nginx e o checkpoint
 BERTimbau ABSA local.

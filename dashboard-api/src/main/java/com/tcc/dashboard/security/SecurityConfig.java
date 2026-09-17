@@ -91,7 +91,7 @@ public class SecurityConfig {
         response.setStatus(status.value());
         response.setCharacterEncoding("UTF-8");
         response.setContentType("application/json");
-        response.getWriter().write("{\"error\":\"" + message + "\",\"timestamp\":\""
+        response.getWriter().write("{\"status\":" + status.value() + ",\"error\":\"" + message + "\",\"timestamp\":\""
                 + LocalDateTime.now() + "\"}");
     }
 }

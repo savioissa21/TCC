@@ -17,6 +17,39 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class SecurityConfigTest {
 
+    @Autowired private com.tcc.dashboard.repository.UserRepository users;
+    @Autowired private TokenService tokens;
+
+    @Test
+    void rejectsInvalidExpiredRemovedAndMalformedBearerTokens() throws Exception {
+        var user = users.save(new com.tcc.dashboard.model.User("Token Test", "token-test@example.com", "hash"));
+        String token = tokens.generateToken(user);
+        mockMvc.perform(get("/establishments").header("Authorization", "Bearer " + token)).andExpect(status().isOk());
+        for (String header : new String[]{token, "Basic " + token, "prefixBearer " + token, "Bearer invalid", "Bearer  " + token}) {
+            mockMvc.perform(get("/establishments").header("Authorization", header))
+                    .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.status").value(401));
+        }
+        String expired = io.jsonwebtoken.Jwts.builder().setSubject(user.getEmail()).setIssuer("Dashboard SaaS")
+                .setExpiration(new java.util.Date(1))
+                .signWith(io.jsonwebtoken.security.Keys.hmacShaKeyFor(
+                        "only-for-tests-0123456789-abcdefghijklmnopqrstuvwxyz".getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+                .compact();
+        mockMvc.perform(get("/establishments").header("Authorization", "Bearer " + expired)).andExpect(status().isUnauthorized());
+        users.delete(user);
+        mockMvc.perform(get("/establishments").header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.timestamp").isNotEmpty());
+    }
+
+    @Test
+    void corsRejectsUnconfiguredOrigin() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options("/establishments")
+                .header("Origin", "https://untrusted.example").header("Access-Control-Request-Method", "GET"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options("/establishments")
+                .header("Origin", "http://localhost:5173").header("Access-Control-Request-Method", "GET"))
+                .andExpect(status().isOk());
+    }
+
     @Autowired
     private MockMvc mockMvc;
 

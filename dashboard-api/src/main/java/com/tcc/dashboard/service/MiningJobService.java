@@ -75,6 +75,7 @@ public class MiningJobService {
         job.setCreatedAt(now);
         job.setUpdatedAt(now);
         miningJobRepository.saveAndFlush(job);
+        logger.info("event=job_queued jobId={} establishmentId={}", job.getId(), establishmentId);
 
         establishment.setLastMiningStatus("QUEUED");
         establishment.setLastMiningMessage(job.getMessage());
@@ -98,6 +99,7 @@ public class MiningJobService {
 
     void runMining(String jobId, Long establishmentId, String url) {
         try {
+            logger.info("event=job_running jobId={} establishmentId={}", jobId, establishmentId);
             updateJob(jobId, MiningJobState.RUNNING,
                     "Coletando e analisando as avaliações do Google Maps...", 0, false);
             int count = miningService.startMining(url, establishmentId);
@@ -108,6 +110,7 @@ public class MiningJobService {
                     .map(Establishment::getLastMiningMessage).orElse("");
             if (collectionMessage.startsWith("Coleta parcial:")) message = collectionMessage;
             updateJob(jobId, MiningJobState.COMPLETED, message, count, true);
+            logger.info("event=job_completed jobId={} establishmentId={} imported={}", jobId, establishmentId, count);
         } catch (Exception error) {
             logger.error("Falha no job de mineração {} do estabelecimento {}", jobId,
                     establishmentId, error);

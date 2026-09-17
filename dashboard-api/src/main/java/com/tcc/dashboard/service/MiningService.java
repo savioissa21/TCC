@@ -45,6 +45,9 @@ public class MiningService {
     private ReviewRepository reviewRepository;
 
     @Autowired
+    private org.springframework.transaction.PlatformTransactionManager transactionManager;
+
+    @Autowired
     private EstablishmentRepository establishmentRepository;
 
     @Value("${mining.python.executable:python}")
@@ -74,7 +77,7 @@ public class MiningService {
         markRunning(establishment);
 
         try {
-            System.out.println("Iniciando mineração para: " + establishment.getName());
+            logger.info("event=mining_started establishmentId={}", establishmentId);
 
             File script = new File(scriptPath);
             if (!script.isFile()) {
@@ -101,11 +104,15 @@ public class MiningService {
             List<Review> reviews = payload.reviews();
             ensureReviewsFound(reviews);
 
-            int imported = importNewReviews(establishment, reviews);
+            int imported = new org.springframework.transaction.support.TransactionTemplate(transactionManager)
+                    .execute(status -> {
+                        int count = importNewReviews(establishment, reviews);
+                        markCompleted(establishment, count, reviews.size() - count, payload.partial());
+                        return count;
+                    });
             int skipped = reviews.size() - imported;
-            markCompleted(establishment, imported, skipped, payload.partial());
-            System.out.println("Sucesso: " + imported + " avaliações novas e " + skipped
-                    + " já conhecidas para: " + establishment.getName());
+            logger.info("event=mining_completed establishmentId={} imported={} skipped={} partial={}",
+                    establishmentId, imported, skipped, payload.partial());
             return imported;
 
         } catch (Exception e) {

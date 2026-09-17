@@ -179,6 +179,20 @@ class AuthControllerTest {
     }
 
     @Test
+    void normalizesEmailBeforeValidationAndLookup() throws Exception {
+        when(repository.findByEmail("ana@example.com")).thenReturn(Optional.empty());
+        mvc.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content(registration("email", "  Ana@EXAMPLE.com  "))).andExpect(status().isOk());
+        var saved = ArgumentCaptor.forClass(User.class);
+        verify(repository).save(saved.capture());
+        assertEquals("ana@example.com", saved.getValue().getEmail());
+        var user = new User("Ana", "ana@example.com", encoder.encode("123456"));
+        when(repository.findByEmail("ana@example.com")).thenReturn(Optional.of(user));
+        mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(login("email", "  ANA@example.COM  "))).andExpect(status().isOk());
+    }
+
+    @Test
     void duplicateEmailDoesNotSaveOrGenerateToken() throws Exception {
         when(repository.findByEmail("ana@example.com"))
                 .thenReturn(Optional.of(new User("Ana", "ana@example.com", "hash")));

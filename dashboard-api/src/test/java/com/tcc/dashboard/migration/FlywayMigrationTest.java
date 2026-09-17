@@ -37,8 +37,8 @@ class FlywayMigrationTest {
     @Test
     void migratesEmptyDatabaseAndDoesNotReapplyVersions() {
         Flyway flyway = flyway();
-        assertEquals(4, flyway.migrate().migrationsExecuted);
-        assertEquals("4", flyway.info().current().getVersion().getVersion());
+        assertEquals(7, flyway.migrate().migrationsExecuted);
+        assertEquals("7", flyway.info().current().getVersion().getVersion());
         flyway.validate();
         seedLegacyData();
         jdbc.update("update review set google_review_id = 'google-1' where id = 'legacy'");
@@ -62,7 +62,7 @@ class FlywayMigrationTest {
         seedLegacyData();
         Flyway flyway = flyway();
         flyway.baseline();
-        assertEquals(3, flyway.migrate().migrationsExecuted);
+        assertEquals(6, flyway.migrate().migrationsExecuted);
         assertLegacyDataPreserved();
         assertNull(jdbc.queryForObject("select google_review_id from review where id = 'legacy'", String.class));
         flyway.validate();
@@ -79,7 +79,7 @@ class FlywayMigrationTest {
         jdbc.update("update review set google_review_id = 'original-google-id' where id = 'legacy'");
         Flyway flyway = flyway();
         flyway.baseline();
-        assertEquals(3, flyway.migrate().migrationsExecuted);
+        assertEquals(6, flyway.migrate().migrationsExecuted);
         assertLegacyDataPreserved();
         assertEquals("original-google-id", jdbc.queryForObject(
                 "select google_review_id from review where id = 'legacy'", String.class));
@@ -94,7 +94,7 @@ class FlywayMigrationTest {
         jdbc.update("update review set google_review_id = 'google-1' where id = 'legacy'");
         assertThrows(DuplicateKeyException.class, () -> jdbc.update(
                 "insert into review (id, establishment_id, google_review_id) values ('duplicate', ?, 'google-1')", store));
-        jdbc.update("insert into establishment (name, owner_id) select 'Other', id from users");
+        jdbc.update("insert into establishment (name, maps_url, owner_id) select 'Other', 'https://maps.app.goo.gl/other', id from users");
         Long other = jdbc.queryForObject("select id from establishment where name = 'Other'", Long.class);
         jdbc.update("insert into review (id, establishment_id, google_review_id) values ('other', ?, 'google-1')", other);
         assertEquals(3, jdbc.queryForObject("select count(*) from review", Integer.class));
@@ -104,7 +104,7 @@ class FlywayMigrationTest {
     void persistsMiningJobsAndDeletesThemWithTheirEstablishment() {
         flyway().migrate();
         seedLegacyData();
-        jdbc.update("insert into establishment (name, owner_id) select 'Job Store', id from users");
+        jdbc.update("insert into establishment (name, maps_url, owner_id) select 'Job Store', 'https://maps.app.goo.gl/job', id from users");
         Long store = jdbc.queryForObject(
                 "select id from establishment where name = 'Job Store'", Long.class);
         UUID jobId = UUID.randomUUID();
@@ -144,7 +144,7 @@ class FlywayMigrationTest {
     private void seedLegacyData() {
         UUID owner = UUID.randomUUID();
         jdbc.update("insert into users (id, email, password, name) values (?, 'owner@test.example', 'hash', 'Owner')", owner);
-        jdbc.update("insert into establishment (name, owner_id, last_mining_status) values ('Original', ?, 'COMPLETED')", owner);
+        jdbc.update("insert into establishment (name, maps_url, owner_id, last_mining_status) values ('Original', 'https://maps.app.goo.gl/original', ?, 'COMPLETED')", owner);
         Long store = jdbc.queryForObject("select id from establishment", Long.class);
         jdbc.update("insert into review (id, author, text, rating, establishment_id) values ('legacy', 'Ana', 'Original text', 5.0, ?)", store);
         jdbc.update("insert into aspect (name, review_id) values ('Comida', 'legacy')");

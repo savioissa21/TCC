@@ -9,4 +9,7 @@ public record LoginRequestDTO(
         @NotBlank @Email @Size(max = 254) String email,
         @NotBlank @Size(max = 72) @Utf8Size(max = 72) String password) {
     public static final String INVALID_CREDENTIALS = "E-mail ou senha inválidos";
+    public LoginRequestDTO {
+        email = email == null ? null : email.strip().toLowerCase(java.util.Locale.ROOT);
+    }
 }

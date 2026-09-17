@@ -24,7 +24,7 @@ public class Review {
 
     private String author;
 
-    @Column(length = 5000)
+    @Column(columnDefinition = "text")
     private String text;
 
     private Double rating;
@@ -43,7 +43,7 @@ public class Review {
     private List<Aspect> aspects = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "establishment_id") // Cria a coluna de chave estrangeira
+    @JoinColumn(name = "establishment_id", nullable = false)
     @JsonBackReference // Evita loop infinito no JSON
     private Establishment establishment;
 

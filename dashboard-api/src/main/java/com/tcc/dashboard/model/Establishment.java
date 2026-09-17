@@ -14,10 +14,10 @@ public class Establishment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(length = 100)
+    @Column(length = 100, nullable = false)
     private String name;
 
-    @Column(length = 2000)
+    @Column(length = 2000, nullable = false)
     private String mapsUrl; // O link que o Python vai usar
 
     private Boolean automaticUpdatesEnabled = true;

@@ -21,5 +21,6 @@ public record RegisterRequestDTO(
         String password) {
     public RegisterRequestDTO {
         name = name == null ? null : name.strip();
+        email = email == null ? null : email.strip().toLowerCase(java.util.Locale.ROOT);
     }
 }

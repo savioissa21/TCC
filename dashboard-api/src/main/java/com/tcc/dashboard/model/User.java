@@ -19,6 +19,7 @@ public class User {
     @Column(nullable = false)
     private String password; // Aqui vamos salvar a senha criptografada
 
+    @Column(nullable = false)
     private String name;
 
     // Um usuário pode ser dono de VÁRIOS estabelecimentos (franquia, por exemplo)

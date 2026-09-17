@@ -21,15 +21,16 @@ public class Aspect {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private String name;
     private String sentiment;
 
-    @Column(length = 1000)
+    @Column(columnDefinition = "text")
     private String excerpt;
 
     // Relacionamento: Vários aspectos pertencem a Uma review
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "review_id")
+    @JoinColumn(name = "review_id", nullable = false)
     @JsonBackReference // Evita loop infinito no JSON
     private Review review;
 
