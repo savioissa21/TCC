@@ -1,4 +1,7 @@
 import unittest
+from pathlib import Path
+
+FIXTURES = Path(__file__).parent / "fixtures"
 from unittest.mock import AsyncMock, patch
 from maps_collector import collect_reviews, expand_review, open_reviews_panel, sort_by_newest, prepare_reviews
 
@@ -22,39 +25,19 @@ class MapsCollectorTest(unittest.IsolatedAsyncioTestCase):
     async def test_expands_customer_text_not_options_or_owner_response(self):
         for label in ['Ler mais', 'Ver mais', 'Mais', 'Read more', 'More']:
             with self.subTest(label=label):
-                await self.page.set_content('''<div class="jftiEf" data-review-id="a">
-                  <button onclick="window.wrong=true">Mais opções</button>
-                  <span class="wiI7pd">Curto</span>
-                  <button onclick="this.previousElementSibling.textContent='Comentário completo do cliente';this.remove()">LABEL</button>
-                  <span class="wiI7pd">Resposta da empresa</span>
-                  <button onclick="window.wrong=true">Ler mais</button></div>'''.replace('LABEL', label))
+                await self.page.set_content((FIXTURES / "review_expansion.html").read_text(encoding="utf-8").replace('LABEL', label))
                 await expand_review(await self.page.query_selector('.jftiEf'))
                 self.assertEqual(await self.page.locator('.wiI7pd').first.inner_text(), 'Comentário completo do cliente')
                 self.assertFalse(await self.page.evaluate('Boolean(window.wrong)'))
 
     async def test_scrolls_reviews_panel_past_five_with_virtualized_batches(self):
-        await self.page.set_content('''<div style="overflow:auto;height:50px"><div style="height:500px">Outro painel</div></div>
-          <div id="reviews" style="overflow-y:auto;height:200px;overflow-anchor:none"></div>
-          <script>
-          let start = 0;
-          const panel = document.getElementById('reviews');
-          function fill() {
-            panel.innerHTML = Array.from({length:5}, (_,i) => `<div class="jftiEf" data-review-id="${start+i}" style="height:80px">
-              <span class="d4r55">Autor ${start+i}</span><span class="kvMYJc" aria-label="5 estrelas"></span>
-              <span class="wiI7pd">Texto ${start+i}</span></div>`).join('');
-          }
-          fill(); panel.addEventListener('scroll', () => {
-            if(panel.scrollTop >= 150 && start < 10) {
-              start += 5; fill(); requestAnimationFrame(() => panel.scrollTop=0);
-            }
-          });</script>''')
+        await self.page.set_content((FIXTURES / "virtualized_reviews.html").read_text(encoding="utf-8"))
         result = await collect_reviews(self.page, 15, expected=15, wait_ms=250, stall_limit=8)
         self.assertEqual(len(result), 15)
         self.assertEqual(len({r['review_id'] for r in result}), 15)
 
     async def test_does_not_expand_details_on_star_only_reviews(self):
-        await self.page.set_content('''<div class="jftiEf"><span class="kvMYJc" aria-label="5 estrelas"></span>
-          <button onclick="window.wrong=true">Mais</button></div>''')
+        await self.page.set_content((FIXTURES / "star_only.html").read_text(encoding="utf-8"))
         await expand_review(await self.page.query_selector('.jftiEf'))
         self.assertFalse(await self.page.evaluate('Boolean(window.wrong)'))
 

@@ -64,6 +64,16 @@ expirado, usuário removido, prefixos malformados, chave fraca, CORS e e-mail.
 PostgreSQL real e E2E integrado são a próxima camada, ainda não comprovados
 por esse resultado. Baseline Python após instalar navegador: 37/37, sem skips.
 
+### Fases 3 e 4 — IA e DOM determinístico
+
+43 testes Python aprovados, sem skips, incluindo lotes, texto longo, candidatos
+dos quatro aspectos, ausência de comentário, falha atômica e vazamento de
+splits. Fixtures HTML versionadas cobrem expansão, resposta da empresa,
+avaliação sem texto e lista virtualizada; não dependem da rede. Os scripts de
+produção, treino e benchmark passaram em `py_compile`. Inferência real,
+benchmark e reprodução das métricas não foram executados: falta checkpoint.
+O protocolo de dois anotadores está documentado, mas não há amostra anotada.
+
 Validação executada em 9 de setembro de 2026, em um ambiente Docker isolado,
 com PostgreSQL 15, Java 21, Python 3.11, Chromium, frontend Nginx e o checkpoint
 BERTimbau ABSA local.

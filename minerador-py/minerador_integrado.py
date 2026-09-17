@@ -6,9 +6,8 @@ import os
 from pathlib import Path
 from transformers import pipeline
 
-from review_identity import review_identity
+from inference_batch import analyze_reviews
 from maps_collector import prepare_reviews, collect_reviews
-from aspect_extractor import extract_aspect_candidates
 from absa_model_validation import (
     AbsaModelError,
     DEFAULT_MODEL_DIR,
@@ -50,24 +49,8 @@ def get_aspect_sentiment_analyzer():
         aspect_sentiment_analyzer = AspectSentimentAnalyzer(ABSA_MODEL_PATH)
     return aspect_sentiment_analyzer
 
-def analyze_aspects(text):
-    detected_aspects = []
-    analyzer = get_aspect_sentiment_analyzer()
-    for candidate in extract_aspect_candidates(text):
-        prediction = analyzer.predict(
-            candidate["excerpt"],
-            candidate["name"],
-            candidate["target"],
-        )
-        detected_aspects.append({
-            "name": candidate["name"],
-            "sentiment": prediction["sentiment"],
-            "excerpt": candidate["excerpt"],
-        })
-    return detected_aspects
-
 async def run():
-    print(f"[INFO] Iniciando Mineracao para: {TARGET_URL}")
+    print("[INFO] Iniciando minera??o", flush=True)
 
     try:
         require_absa_model(
@@ -129,54 +112,10 @@ async def run():
             collected_reviews = await collect_reviews(page, TARGET_REVIEWS, expected=expected, warnings=collection_warnings)
             print(f"[PROCESSANDO] {len(collected_reviews)} reviews para analisar...", flush=True)
 
-            processed_data = []
-            for i, review in enumerate(collected_reviews):
-                if len(processed_data) >= TARGET_REVIEWS:
-                    break
-                try:
-                    author = review["author"]
-                    original_text = review["text"]
-                    rating = review["rating"]
-                    date = review["date"]
-
-                    if original_text:
-                        # Respect the tokenizer's token limit (characters are not tokens).
-                        # Keep the complete text for storage and aspect extraction.
-                        overall = get_sentiment_pipeline()(original_text, truncation=True)[0]
-                        sentiment_map = {'POS': 'Positivo', 'NEG': 'Negativo', 'NEU': 'Neutro'}
-                        overall_sentiment = sentiment_map.get(overall['label'], 'Neutro')
-                        sentiment_score = round(overall['score'], 4)
-                        aspects = analyze_aspects(original_text)
-                        display_text = original_text
-                    else:
-                        # Sem comentário, a nota é o único sinal disponível.
-                        overall_sentiment = 'Positivo' if rating >= 4 else 'Negativo' if rating <= 2 else 'Neutro'
-                        sentiment_score = 1.0
-                        aspects = []
-                        display_text = "Avaliação sem comentário."
-
-                    processed_data.append({
-                        **review_identity(
-                            review.get("review_id"), author, rating, original_text
-                        ),
-                        "author": author,
-                        "text": display_text,
-                        "rating": rating,
-                        "date": date,
-                        "source": "Google Maps",
-                        "sentimentScore": sentiment_score,
-                        "overallSentiment": overall_sentiment,
-                        "aspects": aspects
-                    })
-
-                    if len(processed_data) % 10 == 0:
-                        print(f"[PROGRESSO] {len(processed_data)} analisadas...")
-
-                except AbsaModelError:
-                    raise
-                except Exception as e:
-                    print(f"[ERRO review {i}]: {e}")
-                    raise RuntimeError("A análise de sentimentos falhou; esta execução não será importada.") from e
+            processed_data = analyze_reviews(
+                collected_reviews[:TARGET_REVIEWS],
+                get_sentiment_pipeline(), get_aspect_sentiment_analyzer(),
+            )
 
             # 7. Salvar
             with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:

@@ -1,0 +1,15 @@
+<div style="overflow:auto;height:50px"><div style="height:500px">Outro painel</div></div>
+          <div id="reviews" style="overflow-y:auto;height:200px;overflow-anchor:none"></div>
+          <script>
+          let start = 0;
+          const panel = document.getElementById('reviews');
+          function fill() {
+            panel.innerHTML = Array.from({length:5}, (_,i) => `<div class="jftiEf" data-review-id="${start+i}" style="height:80px">
+              <span class="d4r55">Autor ${start+i}</span><span class="kvMYJc" aria-label="5 estrelas"></span>
+              <span class="wiI7pd">Texto ${start+i}</span></div>`).join('');
+          }
+          fill(); panel.addEventListener('scroll', () => {
+            if(panel.scrollTop >= 150 && start < 10) {
+              start += 5; fill(); requestAnimationFrame(() => panel.scrollTop=0);
+            }
+          });</script>

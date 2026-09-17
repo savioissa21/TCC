@@ -12,6 +12,8 @@ import ast
 import json
 import math
 import random
+import platform
+from dataset_integrity import assert_disjoint_splits, dataset_checksums
 import time
 import urllib.request
 from collections import Counter, defaultdict
@@ -274,15 +276,11 @@ def main() -> None:
         )
 
     download_dataset(args.data_dir, args.domains)
-    train_examples = limit_examples(
-        parse_split(args.data_dir, args.domains, "train"), args.max_train_samples, args.seed
-    )
-    dev_examples = limit_examples(
-        parse_split(args.data_dir, args.domains, "dev"), args.max_eval_samples, args.seed
-    )
-    test_examples = limit_examples(
-        parse_split(args.data_dir, args.domains, "test"), args.max_eval_samples, args.seed
-    )
+    splits = {split: parse_split(args.data_dir, args.domains, split) for split in ("train", "dev", "test")}
+    assert_disjoint_splits(splits)
+    train_examples = limit_examples(splits["train"], args.max_train_samples, args.seed)
+    dev_examples = limit_examples(splits["dev"], args.max_eval_samples, args.seed)
+    test_examples = limit_examples(splits["test"], args.max_eval_samples, args.seed)
 
     print("[DADOS] Treino por classe:", dict(Counter(item.label for item in train_examples)))
     print("[DADOS] Treino por aspecto:", dict(Counter(item.aspect for item in train_examples)))
@@ -392,8 +390,15 @@ def main() -> None:
 
     best_model = AutoModelForSequenceClassification.from_pretrained(args.output_dir).to(device)
     test_metrics = evaluate(best_model, test_loader, device, use_amp=use_amp)
+    per_aspect = {}
+    for aspect in sorted({example.aspect for example in test_examples}):
+        subset = [example for example in test_examples if example.aspect == aspect]
+        loader = DataLoader(AspectDataset(subset, tokenizer, args.max_length), batch_size=args.batch_size)
+        per_aspect[aspect] = evaluate(best_model, loader, device, use_amp=use_amp)
     report = {
         "model_name": args.model_name,
+        "dataset_sha256": dataset_checksums(args.data_dir),
+        "hardware": {"platform": platform.platform(), "device": str(device), "gpu": torch.cuda.get_device_name(0) if device.type == "cuda" else None},
         "domains": args.domains,
         "seed": args.seed,
         "training_examples": len(train_examples),
@@ -403,6 +408,7 @@ def main() -> None:
         "aspects": sorted({example.aspect for example in train_examples}),
         "history": history,
         "test": test_metrics,
+        "test_per_aspect": per_aspect,
         "total_seconds": round(time.time() - started_at, 1),
         "dataset_source": "Multilingual-NLP/M-ABSA",
         "dataset_note": "Corpus multilíngue; os textos em português são traduções do corpus original.",

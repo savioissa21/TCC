@@ -4,6 +4,39 @@ O treino classifica a polaridade (`Negativo`, `Neutro` ou `Positivo`) de uma
 avaliação condicionada a um dos quatro aspectos do projeto: `Atendimento`,
 `Comida`, `Ambiente` e `Preço`.
 
+O método implementado é híbrido: regras lexicais contextualizadas identificam
+candidatos aos quatro aspectos; o BERTimbau ajustado classifica a polaridade de
+cada candidato usando trecho, categoria e termo-alvo. O modelo não descobre
+sozinho os aspectos. Ironia, gíria e regionalismo não têm eficácia comprovada.
+`inference_batch.py` reúne os candidatos e usa `predict_many`; o truncamento
+ocorre somente no tokenizer, preservando o comentário integral.
+
+O treino agora bloqueia textos normalizados presentes em splits distintos,
+antes de limitar amostras, e registra SHA-256 dos arquivos do dataset,
+hardware, seed e métricas por aspecto. Se o corpus oficial tiver sobreposição,
+a execução falha: prepare uma versão deduplicada documentada, preservando o
+teste reservado, e não compare seus resultados como se fossem o experimento
+histórico. Não há novo treino ou nova métrica implícitos nessa alteração.
+
+Benchmark real no ambiente Linux com checkpoint e SHA configurados:
+
+```bash
+python benchmark_inference.py > benchmark.json
+```
+
+Registra inicialização, tempo por 100 avaliações sintéticas, RSS máximo nativo,
+dispositivo e previsões. Os testes unitários usam classificadores falsos apenas
+para verificar associação e falha atômica; não comprovam polaridade real.
+
+Para a avaliação final, reservar 150–300 pares do domínio, desidentificados,
+sem sobreposição com treino, e obter anotações independentes de dois avaliadores.
+Calcular Cohen kappa antes da adjudicação, preservar as duas anotações e o
+consenso, e comparar BERTweet e ABSA no mesmo conjunto. Publicar precisão,
+recall, F1 por classe/aspecto, Macro-F1 e matrizes. Fixar tolerância absoluta
+de 0,005 para reproduzir Macro-F1/acurácia do checkpoint e splits idênticos;
+divergências exigem investigação, não alteração retrospectiva da tolerância.
+Essa amostra humana ainda não está disponível no repositório.
+
 ## Treino completo
 
 ```powershell
