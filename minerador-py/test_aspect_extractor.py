@@ -50,6 +50,39 @@ class AspectExtractorTest(unittest.TestCase):
         self.assertTrue(contains_term("O preço está bom", "preço"))
         self.assertFalse(contains_term("A Carol foi atendida", "caro"))
 
+    def test_nonexperience_is_excluded_not_neutral(self):
+        for text in ["Não cheguei a experimentar a comida.", "Não experimentei a comida",
+                     "Ainda não provei a pizza.", "Eu não comi o pastel ainda.",
+                     "Não experimentamos as bebidas da casa.", "Nunca provei a sobremesa.",
+                     "Não cheguei a provar a comida e a bebida."]:
+            with self.subTest(text=text):
+                self.assertEqual(extract_aspect_candidates(text), [])
+
+    def test_nonexperience_keeps_other_aspects_and_consumed_products(self):
+        for text in ["Não experimentei a comida, mas o atendimento foi ótimo.",
+                     "Não experimentei a comida e o atendimento foi ótimo.",
+                     "Não experimentei a comida, atendimento ótimo."]:
+            with self.subTest(text=text):
+                candidates = extract_aspect_candidates(text)
+                self.assertEqual([c["name"] for c in candidates], ["Atendimento"])
+                self.assertNotIn("experimentei", candidates[0]["excerpt"])
+        candidates = extract_aspect_candidates("Não provei a comida, mas a bebida estava ótima.")
+        self.assertEqual([c["name"] for c in candidates], ["Comida"])
+        self.assertEqual(candidates[0]["excerpt"], "a bebida estava ótima")
+        text = "Não experimentei a comida e o ambiente estava ótimo, atendimento excelente."
+        candidates = extract_aspect_candidates(text)
+        self.assertEqual([c["name"] for c in candidates], ["Ambiente", "Atendimento"])
+        self.assertTrue(all(c["excerpt"] in text for c in candidates))
+
+    def test_real_opinions_and_unavailability_are_not_removed(self):
+        for text in ["Não gostei da comida.", "Não tinham a bebida que eu queria.",
+                     "Nunca comi uma pizza tão boa.", "Não comi a pizza porque estava queimada.",
+                     "Não provei a comida, que parecia estragada.", "Não deixei de provar a comida.",
+                     "Não comi a pizza e estava queimada.",
+                     "Não experimentei a pizza cara."]:
+            with self.subTest(text=text):
+                self.assertIn("Comida", aspect_names(text))
+
 
 if __name__ == "__main__":
     unittest.main()

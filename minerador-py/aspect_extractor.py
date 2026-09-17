@@ -181,12 +181,54 @@ def find_target(clause: str, rules: dict[str, object]) -> str | None:
     return None
 
 
+_PRODUCT = (
+    r"(?:comida|comidas|bebida|bebidas|pizza|pizzas|pastel|pasteis|lanche|lanches|"
+    r"prato|pratos|porcao|porcoes|sobremesa|sobremesas|carne|carnes|suco|sucos|"
+    r"chopp|chope|cerveja|cervejas|cardapio|rodizio)"
+)
+_OBJECT = rf"(?:(?:a|o|as|os|um|uma|nenhum|nenhuma)\s+)?{_PRODUCT}(?:\s+(?:da casa|do local|do restaurante|do bar))?"
+_NO_EXPERIENCE = re.compile(
+    rf"^(?:(?:eu|nos)\s+)?(?:ainda\s+)?(?:nao|nunca)\s+(?:ainda\s+)?"
+    rf"(?:experimentei|experimentamos|provei|provamos|comi|comemos|bebi|bebemos|consumi|consumimos|"
+    rf"(?:cheguei|chegamos)\s+a\s+(?:experimentar|provar|comer|beber|consumir))\s+"
+    rf"{_OBJECT}(?:\s*(?:,|\be\b|\bnem\b)\s*{_OBJECT})*(?:\s+ainda)?$"
+)
+
+
+def eligible_experience_segments(clause: str) -> list[str]:
+    """Remove apenas declarações simples de não consumo, sem apagar opiniões.
+
+    Não é uma regra de sentimento: o segmento sai antes da detecção/classificação.
+    Frases causais, comparativas ou qualificadas ficam intactas por segurança.
+    O texto original da avaliação não é modificado.
+    """
+    def excluded(segment: str) -> bool:
+        return bool(_NO_EXPERIENCE.fullmatch(normalize_text(segment.strip(" ,\t"))))
+
+    if excluded(clause):
+        return []
+    # Conservar evidências independentes: "não provei a comida, atendimento ótimo".
+    # Não dividir as orações normais: só recortar quando uma parte é excluída.
+    parts = re.split(r"\s*,\s*|\s+e\s+", clause, flags=re.IGNORECASE)
+    exclusions = [excluded(part) for part in parts]
+    if not any(exclusions):
+        return [clause]
+    # Não apagar o antecedente de "que parecia ruim" ou "e estava queimada".
+    for index, remove in enumerate(exclusions[:-1]):
+        following = normalize_text(parts[index + 1])
+        if remove and re.match(r"(?:que|pois|porque|estava|estavam|parecia|pareciam|achei|era|eram)\b", following):
+            return [clause]
+    # Retornar substrings literais, nunca reconstruir um trecho artificial.
+    return [part for part, remove in zip(parts, exclusions) if not remove]
+
+
 def extract_aspect_candidates(text: str) -> list[dict[str, str]]:
     """Retorna no máximo um candidato de cada aspecto por oração."""
     candidates: list[dict[str, str]] = []
     seen: set[tuple[str, str]] = set()
 
-    for clause in split_clauses(text):
+    clauses = [segment for clause in split_clauses(text) for segment in eligible_experience_segments(clause)]
+    for clause in clauses:
         for aspect, rules in ASPECT_RULES.items():
             target = find_target(clause, rules)
             if not target:
