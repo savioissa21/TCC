@@ -21,6 +21,7 @@ export function MinhasLojas() {
     [],
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -33,7 +34,9 @@ export function MinhasLojas() {
     try {
       const data = await establishmentService.getAll();
       setEstablishments(data);
+      setLoadError(false);
     } catch {
+      setLoadError(true);
       toast.error("Não foi possível carregar os estabelecimentos.");
     } finally {
       setIsLoading(false);
@@ -43,6 +46,24 @@ export function MinhasLojas() {
   useEffect(() => {
     loadEstablishments();
   }, [loadEstablishments]);
+
+  const hasActiveJobs = establishments.some(est => ["QUEUED", "RUNNING"].includes(est.lastMiningStatus || ""));
+  useEffect(() => {
+    if (!hasActiveJobs) return;
+    const timer = setInterval(() => void loadEstablishments(), 5000);
+    return () => clearInterval(timer);
+  }, [hasActiveJobs, loadEstablishments]);
+
+  async function handleTrack(est: EstablishmentSummary) {
+    try {
+      const { jobId } = await establishmentService.latestJob(est.id);
+      if (!jobId) { toast.info("Esta loja ainda não possui uma mineração registrada."); return; }
+      setMiningEstName(est.name);
+      setMiningJobId(jobId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível consultar o job.");
+    }
+  }
 
   async function handleCreate(data: { name: string; url: string }) {
     setIsCreating(true);
@@ -113,9 +134,12 @@ export function MinhasLojas() {
       setMiningEstName(est.name);
       setMiningJobId(jobId);
       toast.info(`Buscando novas avaliações de "${est.name}".`);
+      await loadEstablishments();
     } catch (err) {
       setRefreshingId(null);
       toast.error(err instanceof Error ? err.message : "Não foi possível atualizar a loja.");
+    } finally {
+      setRefreshingId(null);
     }
   }
 
@@ -154,7 +178,7 @@ export function MinhasLojas() {
     <>
       <div className="space-y-6 animate-in fade-in duration-500 pb-12">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-6">
+        <div className="flex flex-wrap gap-3 items-center justify-between border-b border-slate-200 pb-6">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
               Minhas Lojas
@@ -174,6 +198,8 @@ export function MinhasLojas() {
         </div>
 
         {/* Grid */}
+        <button type="button" onClick={() => void loadEstablishments()} className="text-sm underline">Recarregar status</button>
+        {loadError && <p role="alert">Não foi possível carregar as lojas. Use Recarregar status para tentar novamente.</p>}
         {isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
@@ -183,7 +209,7 @@ export function MinhasLojas() {
               />
             ))}
           </div>
-        ) : establishments.length === 0 ? (
+        ) : establishments.length === 0 && !loadError ? (
           <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 py-20 text-center">
             <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center mb-4">
               <Store size={22} className="text-slate-400" />
@@ -210,12 +236,12 @@ export function MinhasLojas() {
               >
                 {/* Nome */}
                 <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
                     <div className="h-10 w-10 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
                       <Store size={18} className="text-white" />
                     </div>
-                    <div>
-                      <p className="font-bold text-slate-900 leading-tight">
+                    <div className="min-w-0">
+                      <p className="font-bold text-slate-900 leading-tight break-words">
                         {est.name}
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5 truncate max-w-[140px]">
@@ -224,18 +250,28 @@ export function MinhasLojas() {
                     </div>
                   </div>
                   <a
+                    aria-label={`Abrir ${est.name} no Google Maps`}
                     href={est.mapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-slate-300 hover:text-slate-600 transition-colors opacity-0 group-hover:opacity-100"
+                    className="text-slate-600 hover:text-slate-900 transition-colors p-2"
                   >
                     <ExternalLink size={14} />
                   </a>
                 </div>
 
                 {/* Métricas */}
-                {est.lastMiningMessage?.startsWith("Coleta parcial:") &&
-                  <p role="status" className="mb-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">{est.lastMiningMessage}</p>}
+                <div role="status" className={cn("mb-3 rounded-lg p-3 text-xs space-y-1",
+                  est.lastMiningStatus === "FAILED" ? "bg-red-50 text-red-800" :
+                  est.lastMiningMessage?.startsWith("Coleta parcial:") ? "bg-amber-50 text-amber-800" : "bg-slate-50 text-slate-700")}>
+                  <p className="font-semibold">{est.lastMiningMessage?.startsWith("Coleta parcial:") ? "Coleta parcial" :
+                    ({ QUEUED: "Aguardando na fila", RUNNING: "Em execução", COMPLETED: "Concluída", FAILED: "Falha na mineração" }[est.lastMiningStatus || "COMPLETED"] || "Ainda não iniciada")}</p>
+                  <p>{est.lastMiningMessage}</p>
+                  <p>Última tentativa: {formatUpdateDate(est.lastMiningAt)}</p>
+                  <p>Último sucesso: {formatUpdateDate(est.lastMiningSuccessAt)}</p>
+                  <p>Novas avaliações: {est.lastNewReviews}</p>
+                  <p>Próxima atualização: {est.automaticUpdatesEnabled ? formatUpdateDate(est.nextMiningAt) : "Pausada"}</p>
+                </div>
                 <div className="grid grid-cols-3 gap-2 mb-4">
                   <div className="rounded-lg bg-slate-50 p-2.5 text-center">
                     <p className="text-lg font-bold text-slate-900">
@@ -317,7 +353,7 @@ export function MinhasLojas() {
                 {/* Ações */}
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleRefresh(est)}
+                    onClick={() => ["QUEUED", "RUNNING"].includes(est.lastMiningStatus || "") ? handleTrack(est) : handleRefresh(est)}
                     disabled={refreshingId === est.id}
                     className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                     title="Buscar avaliações novas agora"
@@ -326,9 +362,10 @@ export function MinhasLojas() {
                       size={12}
                       className={refreshingId === est.id ? "animate-spin" : ""}
                     />
-                    Atualizar agora
+                    {["QUEUED", "RUNNING"].includes(est.lastMiningStatus || "") ? "Acompanhar mineração" : "Atualizar agora"}
                   </button>
                   <button
+                    aria-label={`Excluir ${est.name}`}
                     onClick={() => handleDelete(est)}
                     disabled={deletingId === est.id}
                     className="rounded-lg border border-red-100 bg-red-50 p-1.5 text-red-400 hover:bg-red-100 hover:text-red-600 transition disabled:opacity-50"
@@ -354,6 +391,7 @@ export function MinhasLojas() {
         jobId={miningJobId}
         establishmentName={miningEstName}
         onComplete={handleMiningComplete}
+        onClose={() => { setMiningJobId(null); setRefreshingId(null); void loadEstablishments(); }}
         onError={(message) => {
           setMiningJobId(null);
           setRefreshingId(null);

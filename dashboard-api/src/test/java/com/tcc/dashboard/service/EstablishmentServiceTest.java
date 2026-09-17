@@ -25,6 +25,20 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class EstablishmentServiceTest {
 
+        @Test
+        void rejectsInvalidNamesProtocolsAndIncompleteIdentifiers() {
+                for (String name : new String[]{"A", " A ", "a".repeat(101)}) {
+                        assertThrows(RuntimeException.class, () -> establishmentService.createEstablishment(
+                                name, "https://maps.app.goo.gl/test", "test@example.com"));
+                }
+                for (String url : new String[]{"ftp://maps.app.goo.gl/test", "https://maps.app.goo.gl/",
+                        "https://www.google.com/maps?cid=", "https://www.google.com/maps?notcid=123",
+                        "https://maps.app.goo.gl/" + "a".repeat(2000)}) {
+                        assertThrows(RuntimeException.class, () -> EstablishmentService.normalizeAndValidateMapsUrl(url));
+                }
+                verifyNoInteractions(userRepository, establishmentRepository);
+        }
+
         @Mock
         private EstablishmentRepository establishmentRepository;
 

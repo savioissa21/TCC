@@ -24,10 +24,21 @@ class FlywayMigrationTest {
     }
 
     @Test
+    void widensMapsUrlAndPreservesExistingData() {
+        Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").target("3").load().migrate();
+        seedLegacyData();
+        flyway().migrate();
+        assertLegacyDataPreserved();
+        String url = "https://maps.app.goo.gl/" + "x".repeat(1976);
+        jdbc.update("update establishment set maps_url = ?", url);
+        assertEquals(url, jdbc.queryForObject("select maps_url from establishment", String.class));
+    }
+
+    @Test
     void migratesEmptyDatabaseAndDoesNotReapplyVersions() {
         Flyway flyway = flyway();
-        assertEquals(3, flyway.migrate().migrationsExecuted);
-        assertEquals("3", flyway.info().current().getVersion().getVersion());
+        assertEquals(4, flyway.migrate().migrationsExecuted);
+        assertEquals("4", flyway.info().current().getVersion().getVersion());
         flyway.validate();
         seedLegacyData();
         jdbc.update("update review set google_review_id = 'google-1' where id = 'legacy'");
@@ -51,7 +62,7 @@ class FlywayMigrationTest {
         seedLegacyData();
         Flyway flyway = flyway();
         flyway.baseline();
-        assertEquals(2, flyway.migrate().migrationsExecuted);
+        assertEquals(3, flyway.migrate().migrationsExecuted);
         assertLegacyDataPreserved();
         assertNull(jdbc.queryForObject("select google_review_id from review where id = 'legacy'", String.class));
         flyway.validate();
@@ -68,7 +79,7 @@ class FlywayMigrationTest {
         jdbc.update("update review set google_review_id = 'original-google-id' where id = 'legacy'");
         Flyway flyway = flyway();
         flyway.baseline();
-        assertEquals(2, flyway.migrate().migrationsExecuted);
+        assertEquals(3, flyway.migrate().migrationsExecuted);
         assertLegacyDataPreserved();
         assertEquals("original-google-id", jdbc.queryForObject(
                 "select google_review_id from review where id = 'legacy'", String.class));

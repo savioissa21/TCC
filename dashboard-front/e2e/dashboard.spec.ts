@@ -8,9 +8,10 @@ const token = [
 
 async function mockApi(page: Page) {
   let statusCalls = 0;
-  await page.route("http://localhost:8085/**", async (route: Route) => {
+  await page.route("**/api/**", async (route: Route) => {
     const request = route.request();
     const url = new URL(request.url());
+    url.pathname = url.pathname.replace(/^\/api/, "");
     const json = (body: unknown, status = 200) => route.fulfill({
       status,
       contentType: "application/json",
@@ -53,6 +54,28 @@ async function mockApi(page: Page) {
   });
 }
 
+test("menu móvel navega, marca a rota e encerra a sessão", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await mockApi(page);
+  await page.goto("/login");
+  await expect(page.getByText("Esqueceu sua senha?")).toHaveCount(0);
+  await page.locator('input[type="email"]').fill("mobile@example.com");
+  await page.locator('input[type="password"]').fill("123456");
+  await page.getByRole("button", { name: /Entrar na Plataforma/ }).click();
+  await page.getByRole("button", { name: "Abrir menu" }).click();
+  const nav = page.getByRole("navigation", { name: "Menu principal móvel" });
+  await nav.getByRole("link", { name: "Minhas Lojas" }).click();
+  await expect(page).toHaveURL(/\/minhas-lojas$/);
+  await page.getByRole("button", { name: "Abrir menu" }).click();
+  await expect(nav.getByRole("link", { name: "Minhas Lojas" })).toHaveAttribute("aria-current", "page");
+  await expect(nav.getByRole("link")).toHaveCount(2);
+  await nav.getByRole("link", { name: "Dashboard" }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.getByRole("button", { name: "Abrir menu" }).click();
+  await page.locator("#mobile-menu").getByRole("button", { name: "Sair" }).click();
+  await expect(page).toHaveURL(/\/login$/);
+});
+
 test("login e mineração percorrem o fluxo principal", async ({ page }) => {
   await mockApi(page);
   await page.goto("/login");
@@ -81,8 +104,9 @@ test("filtro de loja mantém avaliações, paginação e indicadores no mesmo es
   const stores = [1, 2].map(id => ({ id, name: `Loja ${id}`, mapsUrl: "https://maps.google.com",
     reviewCount: id === 1 ? 9 : 1, avgRating: id === 1 ? 5 : 1, satisfactionScore: id === 1 ? 100 : 0,
     lastMiningMessage: id === 1 ? "Coleta parcial: ordenação não confirmada." : "Concluída" }));
-  await page.route("http://localhost:8085/**", async route => {
+  await page.route("**/api/**", async route => {
     const url = new URL(route.request().url());
+    url.pathname = url.pathname.replace(/^\/api/, "");
     const json = (body: unknown) => route.fulfill({ json: body });
     if (url.pathname === "/establishments") return json(stores);
     if (url.pathname === "/api/reviews/stats") {

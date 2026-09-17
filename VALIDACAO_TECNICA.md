@@ -25,6 +25,22 @@ aleatórios e ignorado pelo Git. Checkpoint oficial ainda não localizado.
 Logs locais `baseline-*.log` são ignorados pelo Git. Os números abaixo são
 históricos e não substituem esta validação.
 
+### Fase 1 — contratos
+
+Base relativa `/api` e proxy Vite com a mesma remoção de prefixo do Nginx.
+O endpoint histórico `/api/reviews` é preservado no backend: externamente passa
+por `/api/api/reviews`, coberto por teste de contrato. Menu móvel agora navega
+e encerra sessão; o controle de recuperação fictícia foi removido. Nome é
+aparado e validado, protocolo HTTP/HTTPS obrigatório, identificadores vazios
+rejeitados e URL limitada a 2.000. V4 amplia URL e limita nome sem truncamento
+silencioso de registros antigos. Status persistido pode ser reaberto, atualizado
+e acompanhado em segundo plano, com falha e coleta parcial distintas.
+
+Validação: 112 testes Java em Java 21.0.2; 6 React, lint e build aprovados;
+3 E2E de interface com API simulada aprovados (incluindo menu em 360 px).
+O teste do contexto precisou atualizar a versão esperada de V3 para V4.
+Após instalar Chromium, baseline de navegador: 2/2 aprovados.
+
 Validação executada em 9 de setembro de 2026, em um ambiente Docker isolado,
 com PostgreSQL 15, Java 21, Python 3.11, Chromium, frontend Nginx e o checkpoint
 BERTimbau ABSA local.

@@ -21,6 +21,11 @@ export const establishmentService = {
     return response.data;
   },
 
+  async latestJob(id: number): Promise<{ jobId: string | null }> {
+    const response = await api.get<{ jobId: string | null }>(`/establishments/${id}/mining-job`);
+    return response.data;
+  },
+
   async setAutomaticUpdates(id: number, enabled: boolean): Promise<void> {
     await api.patch(`/establishments/${id}/automatic-updates`, { enabled });
   },

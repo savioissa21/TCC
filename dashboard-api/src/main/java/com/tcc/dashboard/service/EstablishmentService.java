@@ -34,6 +34,10 @@ public class EstablishmentService {
     private UserRepository userRepository;
 
     public Establishment createEstablishment(String name, String url, String userEmail) {
+        name = name == null ? "" : name.strip();
+        if (name.length() < 2 || name.length() > 100) {
+            throw new BadRequestException("O nome deve ter entre 2 e 100 caracteres.");
+        }
         String normalizedUrl = normalizeAndValidateMapsUrl(url);
 
         User owner = userRepository.findByEmail(userEmail)
@@ -54,6 +58,9 @@ public class EstablishmentService {
         }
 
         String normalizedUrl = normalizeMapsUrlInput(url);
+        if (normalizedUrl.length() > 2000) {
+            throw new BadRequestException("A URL do Google Maps é muito longa.");
+        }
         final URI uri;
         try {
             uri = URI.create(normalizedUrl);
@@ -62,6 +69,9 @@ public class EstablishmentService {
         }
 
         String scheme = uri.getScheme();
+        if (uri.getUserInfo() != null || (uri.getPort() != -1 && uri.getPort() != 80 && uri.getPort() != 443)) {
+            throw new BadRequestException("O link informado não é uma URL válida do Google Maps.");
+        }
         if (scheme == null || !(scheme.equalsIgnoreCase("https") || scheme.equalsIgnoreCase("http"))) {
             throw new BadRequestException("O link informado não é uma URL válida do Google Maps.");
         }
@@ -96,10 +106,9 @@ public class EstablishmentService {
                 && !normalizedPath.endsWith("/maps/place/");
         String query = uri.getRawQuery();
         String normalizedQuery = query == null ? "" : query.toLowerCase(Locale.ROOT);
-        boolean hasPlaceIdentifier = normalizedQuery.contains("cid=")
-                || normalizedQuery.contains("query_place_id=")
-                || normalizedQuery.contains("q=place_id%3a")
-                || normalizedQuery.contains("q=place_id:");
+        boolean hasPlaceIdentifier = Pattern.compile(
+                "(?:^|&)(?:cid=[0-9]+|query_place_id=[a-z0-9_-]+|q=place_id(?:%3a|:)[a-z0-9_-]+)(?:&|$)")
+                .matcher(normalizedQuery).find();
 
         if (!hasNamedPlace && !hasPlaceIdentifier) {
             throw new BadRequestException(

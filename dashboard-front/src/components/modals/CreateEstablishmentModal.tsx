@@ -36,9 +36,13 @@ function getMapsUrlError(value: string) {
 
   const trimmed = normalizeMapsUrlInput(value);
   if (!trimmed) return "";
+  if (trimmed.length > 2000) return "A URL do Google Maps é muito longa.";
 
   try {
     const parsedUrl = new URL(trimmed);
+    if (!["http:", "https:"].includes(parsedUrl.protocol) || parsedUrl.username || parsedUrl.password
+        || (parsedUrl.port && !["80", "443"].includes(parsedUrl.port)))
+      return "O link informado não é uma URL válida do Google Maps.";
     const host = parsedUrl.hostname.toLowerCase();
     const path = parsedUrl.pathname.toLowerCase();
     const isModernShortLink = host === "maps.app.goo.gl";
@@ -59,9 +63,9 @@ function getMapsUrlError(value: string) {
       path.includes("/maps/place/") && !path.endsWith("/maps/place/");
     const placeQuery = parsedUrl.searchParams.get("q")?.toLowerCase() || "";
     const hasPlaceIdentifier =
-      parsedUrl.searchParams.has("cid") ||
-      parsedUrl.searchParams.has("query_place_id") ||
-      placeQuery.startsWith("place_id:");
+      /^\d+$/.test(parsedUrl.searchParams.get("cid") || "") ||
+      /^[a-z0-9_-]+$/i.test(parsedUrl.searchParams.get("query_place_id") || "") ||
+      /^place_id:[a-z0-9_-]+$/i.test(placeQuery);
 
     if (!hasNamedPlace && !hasPlaceIdentifier)
       return SPECIFIC_PLACE_URL_ERROR;
@@ -93,7 +97,7 @@ export function CreateEstablishmentModal({
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !url.trim()) return;
+    if (name.trim().length < 2 || name.trim().length > 100 || !url.trim()) return;
 
     const validationError = getMapsUrlError(url.trim());
     if (validationError) {
@@ -123,6 +127,7 @@ export function CreateEstablishmentModal({
             </p>
           </div>
           <button
+            aria-label="Fechar cadastro de estabelecimento"
             onClick={onClose}
             disabled={isLoading}
             className="text-slate-400 hover:text-slate-600 transition-colors"
@@ -134,11 +139,14 @@ export function CreateEstablishmentModal({
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+            <label htmlFor="establishment-name" className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
               <Store size={14} />
               Nome do Estabelecimento
             </label>
             <input
+              id="establishment-name"
+              minLength={2}
+              maxLength={100}
               type="text"
               placeholder="Ex: Pizzaria do João"
               value={name}
@@ -150,11 +158,13 @@ export function CreateEstablishmentModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+            <label htmlFor="establishment-url" className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
               <Link size={14} />
               URL do Google Maps
             </label>
             <input
+              id="establishment-url"
+              maxLength={2000}
               type="text"
               inputMode="url"
               placeholder="https://maps.app.goo.gl/..."
@@ -198,7 +208,7 @@ export function CreateEstablishmentModal({
             <button
               type="submit"
               disabled={
-                isLoading || !name.trim() || !url.trim() || Boolean(urlError)
+                isLoading || name.trim().length < 2 || !url.trim() || Boolean(urlError)
               }
               className="flex-1 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >

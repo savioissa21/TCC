@@ -121,6 +121,11 @@ public class MiningJobService {
         return MiningStatus.from(job);
     }
 
+    public String getLatestJobId(Long establishmentId) {
+        return miningJobRepository.findFirstByEstablishmentIdOrderByCreatedAtDesc(establishmentId)
+                .map(MiningJob::getId).orElse(null);
+    }
+
     @EventListener(ApplicationReadyEvent.class)
     public synchronized void recoverInterruptedJobs() {
         var unfinished = miningJobRepository.findByStateInOrderByCreatedAtAsc(ACTIVE_STATES);

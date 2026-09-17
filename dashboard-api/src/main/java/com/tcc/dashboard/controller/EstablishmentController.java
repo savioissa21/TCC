@@ -36,6 +36,9 @@ public class EstablishmentController {
             @NotBlank(message = "A URL do Google Maps é obrigatória.")
             @Size(max = 2000, message = "A URL do Google Maps é muito longa.")
             String url) {
+        public CreateEstablishmentDTO {
+            name = name == null ? null : name.strip();
+        }
     }
 
     public record AutomaticUpdatesDTO(@NotNull(message = "Informe se a atualização automática deve ficar ativa.")
@@ -70,6 +73,14 @@ public class EstablishmentController {
         Establishment establishment = establishmentService.getOwnedEstablishment(id, userEmail);
         String jobId = miningJobService.startJob(establishment.getId(), establishment.getMapsUrl());
         return ResponseEntity.ok(Map.of("jobId", jobId));
+    }
+
+    public record LatestJobDTO(String jobId) {}
+
+    @GetMapping("/{id}/mining-job")
+    public LatestJobDTO latestJob(@PathVariable Long id) {
+        establishmentService.getOwnedEstablishment(id, getCurrentUserEmail());
+        return new LatestJobDTO(miningJobService.getLatestJobId(id));
     }
 
     @PatchMapping("/{id}/automatic-updates")

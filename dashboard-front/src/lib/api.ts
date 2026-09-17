@@ -1,7 +1,7 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { STORAGE_KEYS } from "./storage";
 
-const baseURL = import.meta.env.VITE_API_URL || "http://localhost:8085";
+const baseURL = import.meta.env.VITE_API_URL || "/api";
 
 export const api = axios.create({
   baseURL,

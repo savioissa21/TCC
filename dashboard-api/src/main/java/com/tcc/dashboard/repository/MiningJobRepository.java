@@ -13,6 +13,8 @@ import java.util.Optional;
 
 public interface MiningJobRepository extends JpaRepository<MiningJob, String> {
 
+    Optional<MiningJob> findFirstByEstablishmentIdOrderByCreatedAtDesc(Long establishmentId);
+
     Optional<MiningJob> findFirstByEstablishmentIdAndStateInOrderByCreatedAtDesc(
             Long establishmentId, Collection<MiningJobState> states);
 

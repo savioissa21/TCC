@@ -8,13 +8,14 @@ interface Props {
   establishmentName: string;
   onComplete: (message?: string) => void;
   onError: (message?: string) => void;
+  onClose?: () => void;
 }
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_NETWORK_FAILURES = 5;
 const MAX_TRACKING_MS = 30 * 60 * 1000;
 
-export function MiningProgressModal({ jobId, establishmentName, onComplete, onError }: Props) {
+export function MiningProgressModal({ jobId, establishmentName, onComplete, onError, onClose }: Props) {
   if (!jobId) return null;
 
   return (
@@ -24,11 +25,12 @@ export function MiningProgressModal({ jobId, establishmentName, onComplete, onEr
       establishmentName={establishmentName}
       onComplete={onComplete}
       onError={onError}
+      onClose={onClose}
     />
   );
 }
 
-function MiningProgressSession({ jobId, establishmentName, onComplete, onError }: Omit<Props, "jobId"> & { jobId: string }) {
+function MiningProgressSession({ jobId, establishmentName, onComplete, onError, onClose }: Omit<Props, "jobId"> & { jobId: string }) {
   const [status, setStatus] = useState<MiningStatus | null>(null);
   const [networkFailures, setNetworkFailures] = useState(0);
   const onCompleteRef = useRef(onComplete);
@@ -146,6 +148,10 @@ function MiningProgressSession({ jobId, establishmentName, onComplete, onError }
             <p className="text-xs text-slate-400 mt-4">
               O trabalho fica salvo. Você pode sair desta tela e consultar a loja depois.
             </p>
+            {onClose && <button type="button" onClick={onClose}
+              className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white">
+              Continuar em segundo plano
+            </button>}
           </>
         )}
       </div>
