@@ -1,5 +1,30 @@
 # Validação técnica de fechamento
 
+## Baseline da correção — 17/09/2026
+
+Branch `fix/integracao-tcc-nexo`, origem `18eb485`, árvore inicialmente limpa.
+Nenhum AGENTS.md encontrado nos diretórios aplicáveis. README principal,
+READMEs internos, relatório de treino e configurações foram lidos. PDF da
+proposta e fonte editável ausentes; matriz inicial em MATRIZ_VALIDACAO.md.
+
+| Comando / ambiente | Resultado nesta sessão |
+|---|---|
+| `mvnw.cmd test` (Java 22.0.1 inicial) | 110 testes, 0 falhas, 0 erros, 0 skips; 47,986 s |
+| Python 3.12.6, `python -m unittest discover -s minerador-py -p 'test_*.py'` | 37 testes; 12 erros DOM por subprocessos bloqueados; fora do sandbox: Chromium ausente |
+| Node 22.12.0, `npm ci` | cache restrito falhou; repetição com rede: 392 pacotes, audit 0 vulnerabilidades |
+| `npm run lint` | aprovado |
+| `npm test` | 2 arquivos, 5 testes aprovados |
+| `npm run build` | aprovado, aviso de chunk >500 kB |
+| `npm run test:e2e` | 2 falhas: executável Chromium ausente |
+| Docker 29.2.0 / Compose 5.0.2 | daemon inicialmente parado; iniciado durante preparação |
+
+Java 21.0.2 também está instalado e será selecionado explicitamente. O jsdom
+29.1.1 exige Node >=22.13 na série 22; houve aviso de engine com 22.12.
+Python 3.11 será usado nos contêineres. `.env` criado localmente com segredos
+aleatórios e ignorado pelo Git. Checkpoint oficial ainda não localizado.
+Logs locais `baseline-*.log` são ignorados pelo Git. Os números abaixo são
+históricos e não substituem esta validação.
+
 Validação executada em 9 de setembro de 2026, em um ambiente Docker isolado,
 com PostgreSQL 15, Java 21, Python 3.11, Chromium, frontend Nginx e o checkpoint
 BERTimbau ABSA local.
