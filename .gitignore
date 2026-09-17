@@ -49,5 +49,8 @@ logs/
 .env.*
 !.env.example
 
+# Dados reais e rascunhos de anotação científica: somente armazenamento local.
+cientifico/dados_locais/
+
 # ─── Docker volumes ─────────────────────────────────────
 # (volumes são gerenciados pelo Docker, não precisa trackear)

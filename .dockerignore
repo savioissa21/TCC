@@ -32,6 +32,8 @@ dashboard-api/target/*.original
 minerador-py/*.json
 # O checkpoint ABSA é fornecido em runtime por um volume somente leitura.
 minerador-py/artifacts/
+# Avaliações reais e anotações científicas permanecem somente locais.
+cientifico/dados_locais/
 
 # Logs e temporários
 **/*.log
