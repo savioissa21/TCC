@@ -14,7 +14,7 @@ from absa_model_validation import (
     DEFAULT_MODEL_DIR,
     require_absa_model,
 )
-from aspect_extractor import extract_aspect_candidates
+from aspect_analysis import analyze_aspects_with
 from bertimbau_absa import AspectSentimentAnalyzer
 
 
@@ -32,21 +32,7 @@ def analyze_aspects(
     text: str,
     analyzer: AspectSentimentAnalyzer,
 ) -> list[dict[str, str]]:
-    detected_aspects = []
-    for candidate in extract_aspect_candidates(text):
-        prediction = analyzer.predict(
-            candidate["excerpt"],
-            candidate["name"],
-            candidate["target"],
-        )
-        detected_aspects.append(
-            {
-                "name": candidate["name"],
-                "sentiment": str(prediction["sentiment"]),
-                "excerpt": candidate["excerpt"],
-            }
-        )
-    return detected_aspects
+    return analyze_aspects_with(text, analyzer)
 
 
 def process_reviews() -> int:
@@ -77,7 +63,7 @@ def process_reviews() -> int:
             if not text:
                 continue
 
-            overall_result = overall_analyzer(text[:512])[0]
+            overall_result = overall_analyzer(text, truncation=True)[0]
             label = overall_result.get("label")
             if label not in SENTIMENT_MAP:
                 raise RuntimeError(f"BERTweet retornou uma classe desconhecida: {label}")

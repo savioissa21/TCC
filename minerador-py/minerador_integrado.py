@@ -8,7 +8,7 @@ from transformers import pipeline
 
 from review_identity import review_identity
 from maps_collector import prepare_reviews, collect_reviews
-from aspect_extractor import extract_aspect_candidates
+from aspect_analysis import analyze_aspects_with
 from absa_model_validation import (
     AbsaModelError,
     DEFAULT_MODEL_DIR,
@@ -16,11 +16,7 @@ from absa_model_validation import (
 )
 from bertimbau_absa import AspectSentimentAnalyzer
 
-if len(sys.argv) < 2:
-    print("[ERRO] Faltou a URL do Maps.")
-    sys.exit(1)
-
-TARGET_URL = sys.argv[1]
+TARGET_URL = sys.argv[1] if len(sys.argv) >= 2 else None
 OUTPUT_FILE = os.getenv('MINING_OUTPUT_FILE', 'dados_temp.json')
 TARGET_REVIEWS = int(os.getenv('TARGET_REVIEWS', '100'))
 
@@ -51,22 +47,11 @@ def get_aspect_sentiment_analyzer():
     return aspect_sentiment_analyzer
 
 def analyze_aspects(text):
-    detected_aspects = []
-    analyzer = get_aspect_sentiment_analyzer()
-    for candidate in extract_aspect_candidates(text):
-        prediction = analyzer.predict(
-            candidate["excerpt"],
-            candidate["name"],
-            candidate["target"],
-        )
-        detected_aspects.append({
-            "name": candidate["name"],
-            "sentiment": prediction["sentiment"],
-            "excerpt": candidate["excerpt"],
-        })
-    return detected_aspects
+    return analyze_aspects_with(text, get_aspect_sentiment_analyzer())
 
 async def run():
+    if TARGET_URL is None:
+        raise RuntimeError("Faltou a URL do Maps.")
     print(f"[INFO] Iniciando Mineracao para: {TARGET_URL}")
 
     try:
@@ -196,6 +181,9 @@ async def run():
             await browser.close()
 
 if __name__ == "__main__":
+    if TARGET_URL is None:
+        print("[ERRO] Faltou a URL do Maps.")
+        raise SystemExit(1)
     try:
         asyncio.run(run())
     except AbsaModelError:
