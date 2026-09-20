@@ -17,21 +17,18 @@ interface RegisterRequest {
 
 interface LoginResponse {
   token: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-  };
+  name: string;
 }
 
 export const authService = {
   async login(credentials: LoginRequest) {
-    const { data } = await api.post<LoginResponse>("/auth/login", credentials);
+    const { data } = await api.post<LoginResponse>("/auth/login", {
+      email: credentials.email,
+      password: credentials.pass,
+    });
     
     // Salvar token automaticamente ao logar
     localStorage.setItem(STORAGE_KEYS.TOKEN, data.token);
-    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(data.user));
-    
     return data;
   },
 

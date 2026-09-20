@@ -9,7 +9,6 @@ import {
   CardTitle,
   CardContent,
   CardDescription,
-  CardFooter,
 } from "../components/ui/card";
 import { Sparkles, ArrowRight, Lock, Mail } from "lucide-react";
 
@@ -109,15 +108,6 @@ export function Login() {
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="flex flex-col gap-4 justify-center">
-            <Button
-              variant="link"
-              size="sm"
-              className="text-muted-foreground hover:text-primary"
-            >
-              Esqueceu sua senha?
-            </Button>
-          </CardFooter>
         </Card>
 
         <p className="text-center text-sm text-muted-foreground">

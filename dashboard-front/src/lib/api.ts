@@ -1,11 +1,11 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { STORAGE_KEYS } from "./storage";
 
-const baseURL = import.meta.env.VITE_API_URL || "http://localhost:8085";
+const baseURL = import.meta.env.VITE_API_URL || "/api";
 
 export const api = axios.create({
   baseURL,
-  timeout: 600000, // 10 minutos — mineração pode demorar
+  timeout: 15000, // A mineração é assíncrona; requisições HTTP não aguardam o processo.
   headers: { "Content-Type": "application/json" },
 });
 

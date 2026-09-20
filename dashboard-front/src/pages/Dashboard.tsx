@@ -182,6 +182,7 @@ export function Dashboard() {
         establishmentName={miningEstName}
         onComplete={handleMiningComplete}
         onError={handleMiningError}
+        onDismiss={() => { setMiningJobId(null); }}
       />
     </>
   );

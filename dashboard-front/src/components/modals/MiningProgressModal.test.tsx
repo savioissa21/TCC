@@ -10,6 +10,18 @@ vi.mock("../../services/miningService", () => ({
 const getStatus = vi.mocked(miningService.getStatus);
 
 describe("MiningProgressModal", () => {
+  it("sair do acompanhamento aborta apenas a consulta e não cancela o job", async () => {
+    getStatus.mockResolvedValue({ state: "RUNNING", message: "Coletando", reviewsImported: 0, updatedAt: "" });
+    const dismiss = vi.fn();
+    const { unmount } = render(<MiningProgressModal jobId="background" establishmentName="Loja"
+      onComplete={vi.fn()} onError={vi.fn()} onDismiss={dismiss} />);
+    expect(await screen.findByText("Coletando")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Continuar em segundo plano" }));
+    expect(dismiss).toHaveBeenCalledOnce();
+    const signal = getStatus.mock.calls[0][1];
+    unmount();
+    expect(signal?.aborted).toBe(true);
+  });
   beforeEach(() => {
     vi.clearAllMocks();
   });

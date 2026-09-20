@@ -20,7 +20,7 @@ export function ToastContainer() {
   const { toasts, remove } = useToast();
 
   return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 w-80">
+    <div aria-live="polite" aria-relevant="additions" className="fixed top-4 right-4 z-50 flex flex-col gap-2 w-80 max-w-[calc(100vw-2rem)]">
       {toasts.map((t) => (
         <div
           key={t.id}
@@ -31,7 +31,7 @@ export function ToastContainer() {
         >
           {icons[t.type]}
           <span className="flex-1 leading-snug">{t.message}</span>
-          <button onClick={() => remove(t.id)} className="opacity-60 hover:opacity-100 transition-opacity">
+          <button aria-label="Fechar notificação" onClick={() => remove(t.id)} className="opacity-60 hover:opacity-100 transition-opacity">
             <X size={14} />
           </button>
         </div>

@@ -2,6 +2,10 @@ import { api } from "../lib/api";
 import { type CreateEstablishmentDTO, type Establishment, type EstablishmentSummary } from "../types";
 
 export const establishmentService = {
+  async getLatestJob(id: number): Promise<{ jobId: string }> {
+    const response = await api.get<{ jobId: string }>(`/establishments/${id}/latest-job`, { timeout: 15000 });
+    return response.data;
+  },
   async create(data: CreateEstablishmentDTO): Promise<{ establishment: Establishment; jobId: string }> {
     const response = await api.post<{ establishment: Establishment; jobId: string }>("/establishments", data);
     return response.data;

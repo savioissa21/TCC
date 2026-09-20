@@ -8,7 +8,7 @@ const token = [
 
 async function mockApi(page: Page) {
   let statusCalls = 0;
-  await page.route("http://localhost:8085/**", async (route: Route) => {
+  await page.route("**/api/**", async (route: Route) => {
     const request = route.request();
     const url = new URL(request.url());
     const json = (body: unknown, status = 200) => route.fulfill({
@@ -17,18 +17,18 @@ async function mockApi(page: Page) {
       body: JSON.stringify(body),
     });
 
-    if (url.pathname === "/auth/login" && request.method() === "POST") {
+    if (url.pathname === "/api/auth/login" && request.method() === "POST") {
       await json({ name: "Gestor Teste", token });
       return;
     }
-    if (url.pathname === "/establishments" && request.method() === "POST") {
+    if (url.pathname === "/api/establishments" && request.method() === "POST") {
       await json({
         establishment: { id: 7, name: "Pizzaria Teste", mapsUrl: "https://maps.app.goo.gl/teste" },
         jobId: "job-1",
       });
       return;
     }
-    if (url.pathname === "/mining/status/job-1") {
+    if (url.pathname === "/api/mining/status/job-1") {
       statusCalls += 1;
       await json(statusCalls === 1
         ? { state: "QUEUED", message: "Aguardando na fila de mineração...", reviewsImported: 0,
@@ -45,13 +45,30 @@ async function mockApi(page: Page) {
       await json({ content: [], number: 0, size: 8, totalElements: 0, totalPages: 0, last: true });
       return;
     }
-    if (url.pathname === "/establishments" && request.method() === "GET") {
+    if (url.pathname === "/api/establishments" && request.method() === "GET") {
       await json([]);
       return;
     }
     await json({ error: `Rota não simulada: ${url.pathname}` }, 404);
   });
 }
+
+test("menu móvel navega por rotas reais e permite sair", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await mockApi(page);
+  await page.goto("/login");
+  await page.getByLabel("Email", { exact: true }).fill("gestor@example.com");
+  await page.getByLabel("Senha", { exact: true }).fill("123456");
+  await page.getByRole("button", { name: /Entrar na Plataforma/i }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.getByRole("button", { name: "Abrir menu" }).click();
+  await page.getByRole("navigation", { name: "Navegação móvel" }).getByRole("link", { name: "Minhas Lojas" }).click();
+  await expect(page).toHaveURL(/\/minhas-lojas$/);
+  await page.getByRole("button", { name: "Abrir menu" }).click();
+  await expect(page.getByRole("link", { name: "Configurações" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Sair", exact: true }).filter({ visible: true }).click();
+  await expect(page).toHaveURL(/\/login$/);
+});
 
 test("login e mineração percorrem o fluxo principal", async ({ page }) => {
   await mockApi(page);
@@ -81,10 +98,10 @@ test("filtro de loja mantém avaliações, paginação e indicadores no mesmo es
   const stores = [1, 2].map(id => ({ id, name: `Loja ${id}`, mapsUrl: "https://maps.google.com",
     reviewCount: id === 1 ? 9 : 1, avgRating: id === 1 ? 5 : 1, satisfactionScore: id === 1 ? 100 : 0,
     lastMiningMessage: id === 1 ? "Coleta parcial: ordenação não confirmada." : "Concluída" }));
-  await page.route("http://localhost:8085/**", async route => {
+  await page.route("**/api/**", async route => {
     const url = new URL(route.request().url());
     const json = (body: unknown) => route.fulfill({ json: body });
-    if (url.pathname === "/establishments") return json(stores);
+    if (url.pathname === "/api/establishments") return json(stores);
     if (url.pathname === "/api/reviews/stats") {
       const id = url.searchParams.get("establishmentId");
       return json({ total: id === "1" ? 9 : id === "2" ? 1 : 10,

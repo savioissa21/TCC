@@ -14,19 +14,19 @@ export const EMPTY_REVIEW_STATS: ReviewStats = {
 
 export const reviewService = {
   async getAll(params: ReviewQuery = {}, signal?: AbortSignal): Promise<PageResponse<Review>> {
-    const response = await api.get<PageResponse<Review>>("/api/reviews", { params, signal });
+    const response = await api.get<PageResponse<Review>>("/reviews", { params, signal });
     return response.data;
   },
 
   async getByEstablishment(establishmentId: number, params: ReviewQuery = {},
     signal?: AbortSignal): Promise<PageResponse<Review>> {
     const response = await api.get<PageResponse<Review>>(
-      `/api/reviews/establishment/${establishmentId}`, { params, signal });
+      `/reviews/establishment/${establishmentId}`, { params, signal });
     return response.data;
   },
 
   async getStats(establishmentId?: number, signal?: AbortSignal): Promise<ReviewStats> {
-    const response = await api.get<ReviewStats>("/api/reviews/stats", { params: { establishmentId }, signal });
+    const response = await api.get<ReviewStats>("/reviews/stats", { params: { establishmentId }, signal });
     return response.data;
   },
 };

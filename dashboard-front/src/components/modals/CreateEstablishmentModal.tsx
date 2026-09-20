@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { X, Store, Link } from "lucide-react";
+import { useModalFocus } from "../../hooks/useModalFocus";
 
 const SEARCH_URL_ERROR =
   "Links de pesquisa não são aceitos. Selecione um estabelecimento específico no Google Maps e copie o link da página da empresa.";
@@ -36,9 +37,11 @@ function getMapsUrlError(value: string) {
 
   const trimmed = normalizeMapsUrlInput(value);
   if (!trimmed) return "";
+  if (trimmed.length > 2000) return "A URL do Google Maps é muito longa.";
 
   try {
     const parsedUrl = new URL(trimmed);
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) return "O link informado não é uma URL válida do Google Maps.";
     const host = parsedUrl.hostname.toLowerCase();
     const path = parsedUrl.pathname.toLowerCase();
     const isModernShortLink = host === "maps.app.goo.gl";
@@ -88,12 +91,13 @@ export function CreateEstablishmentModal({
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState("");
+  const panel = useModalFocus(isOpen, isLoading ? undefined : onClose);
 
   if (!isOpen) return null;
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !url.trim()) return;
+    if (name.trim().length < 2 || name.trim().length > 100 || !url.trim()) return;
 
     const validationError = getMapsUrlError(url.trim());
     if (validationError) {
@@ -111,11 +115,11 @@ export function CreateEstablishmentModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
+      <div ref={panel} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="create-store-title" className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[95dvh] overflow-y-auto animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">
+            <h2 id="create-store-title" className="text-lg font-bold text-slate-900">
               Adicionar Estabelecimento
             </h2>
             <p className="text-sm text-slate-500 mt-0.5">
@@ -124,6 +128,7 @@ export function CreateEstablishmentModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="Fechar cadastro de estabelecimento"
             disabled={isLoading}
             className="text-slate-400 hover:text-slate-600 transition-colors"
           >
@@ -134,12 +139,15 @@ export function CreateEstablishmentModal({
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+            <label htmlFor="store-name" className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
               <Store size={14} />
               Nome do Estabelecimento
             </label>
             <input
               type="text"
+              id="store-name"
+              minLength={2}
+              maxLength={100}
               placeholder="Ex: Pizzaria do João"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -150,13 +158,27 @@ export function CreateEstablishmentModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+            <label htmlFor="store-url" className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
               <Link size={14} />
               URL do Google Maps
             </label>
             <input
               type="text"
               inputMode="url"
+              id="store-url"
+              maxLength={2000}
+              onPaste={event => {
+                // Normaliza antes do limite HTML para não cortar um link Markdown.
+                const pasted = normalizeMapsUrlInput(event.clipboardData.getData("text"));
+                if (pasted.length > 2000) {
+                  event.preventDefault();
+                  setUrlError("A URL do Google Maps é muito longa.");
+                } else if (event.currentTarget.selectionStart === 0 &&
+                  event.currentTarget.selectionEnd === url.length) {
+                  event.preventDefault();
+                  handleUrlChange(pasted);
+                }
+              }}
               placeholder="https://maps.app.goo.gl/..."
               value={url}
               onChange={(e) => handleUrlChange(e.target.value)}
@@ -198,7 +220,7 @@ export function CreateEstablishmentModal({
             <button
               type="submit"
               disabled={
-                isLoading || !name.trim() || !url.trim() || Boolean(urlError)
+                isLoading || name.trim().length < 2 || name.trim().length > 100 || !url.trim() || Boolean(urlError)
               }
               className="flex-1 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >

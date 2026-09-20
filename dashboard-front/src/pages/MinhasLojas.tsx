@@ -15,6 +15,10 @@ import {
 } from "lucide-react";
 import { cn } from "../lib/utils";
 
+const MINING_LABELS: Record<string, string> = {
+  QUEUED: "Na fila", RUNNING: "Em execução", COMPLETED: "Concluída", FAILED: "Falhou",
+};
+
 export function MinhasLojas() {
   const { toast } = useToast();
   const [establishments, setEstablishments] = useState<EstablishmentSummary[]>(
@@ -28,12 +32,15 @@ export function MinhasLojas() {
   const [togglingId, setTogglingId] = useState<number | null>(null);
   const [miningJobId, setMiningJobId] = useState<string | null>(null);
   const [miningEstName, setMiningEstName] = useState("");
+  const [loadError, setLoadError] = useState(false);
 
   const loadEstablishments = useCallback(async () => {
     try {
       const data = await establishmentService.getAll();
       setEstablishments(data);
+      setLoadError(false);
     } catch {
+      setLoadError(true);
       toast.error("Não foi possível carregar os estabelecimentos.");
     } finally {
       setIsLoading(false);
@@ -109,13 +116,18 @@ export function MinhasLojas() {
   async function handleRefresh(est: EstablishmentSummary) {
     setRefreshingId(est.id);
     try {
-      const { jobId } = await establishmentService.refresh(est.id);
+      const active = est.lastMiningStatus === "QUEUED" || est.lastMiningStatus === "RUNNING";
+      const { jobId } = active
+        ? await establishmentService.getLatestJob(est.id)
+        : await establishmentService.refresh(est.id);
       setMiningEstName(est.name);
       setMiningJobId(jobId);
-      toast.info(`Buscando novas avaliações de "${est.name}".`);
+      if (!active) toast.info(`Buscando novas avaliações de "${est.name}".`);
     } catch (err) {
-      setRefreshingId(null);
       toast.error(err instanceof Error ? err.message : "Não foi possível atualizar a loja.");
+    } finally {
+      setRefreshingId(null);
+      void loadEstablishments();
     }
   }
 
@@ -154,7 +166,7 @@ export function MinhasLojas() {
     <>
       <div className="space-y-6 animate-in fade-in duration-500 pb-12">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-6">
+        <div className="flex flex-wrap gap-3 items-center justify-between border-b border-slate-200 pb-6">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
               Minhas Lojas
@@ -173,6 +185,12 @@ export function MinhasLojas() {
           </button>
         </div>
 
+        <button onClick={() => void loadEstablishments()} className="text-sm underline text-slate-600">
+          Recarregar status das lojas
+        </button>
+        {loadError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+          Não foi possível atualizar as lojas. Recarregue o status para tentar novamente.
+        </p>}
         {/* Grid */}
         {isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -183,7 +201,7 @@ export function MinhasLojas() {
               />
             ))}
           </div>
-        ) : establishments.length === 0 ? (
+        ) : establishments.length === 0 && !loadError ? (
           <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 py-20 text-center">
             <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center mb-4">
               <Store size={22} className="text-slate-400" />
@@ -227,13 +245,21 @@ export function MinhasLojas() {
                     href={est.mapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-slate-300 hover:text-slate-600 transition-colors opacity-0 group-hover:opacity-100"
+                    aria-label={`Abrir ${est.name} no Google Maps`}
+                    className="text-slate-500 hover:text-slate-900 transition-colors"
                   >
                     <ExternalLink size={14} />
                   </a>
                 </div>
 
                 {/* Métricas */}
+                <p role="status" className={cn("mb-2 text-xs font-semibold",
+                  est.lastMiningStatus === "FAILED" ? "text-red-700" : "text-slate-600")}>
+                  {MINING_LABELS[est.lastMiningStatus || ""] || "Ainda não iniciada"}
+                </p>
+                {est.lastMiningStatus === "FAILED" && <p role="alert" className="mb-3 text-xs text-red-700">
+                  {est.lastMiningMessage}
+                </p>}
                 {est.lastMiningMessage?.startsWith("Coleta parcial:") &&
                   <p role="status" className="mb-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">{est.lastMiningMessage}</p>}
                 <div className="grid grid-cols-3 gap-2 mb-4">
@@ -315,6 +341,11 @@ export function MinhasLojas() {
                 </div>
 
                 {/* Ações */}
+                <div className="mb-4 space-y-1 text-xs text-slate-500">
+                  <p>Última tentativa: {formatUpdateDate(est.lastMiningAt)}</p>
+                  <p>Novas na última coleta: {est.lastNewReviews ?? 0}</p>
+                  <p>Próxima: {est.automaticUpdatesEnabled ? (est.nextMiningAt ? formatUpdateDate(est.nextMiningAt) : "Aguardando agendamento") : "Pausada"}</p>
+                </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleRefresh(est)}
@@ -326,13 +357,14 @@ export function MinhasLojas() {
                       size={12}
                       className={refreshingId === est.id ? "animate-spin" : ""}
                     />
-                    Atualizar agora
+                    {est.lastMiningStatus === "QUEUED" || est.lastMiningStatus === "RUNNING" ? "Acompanhar mineração" : "Atualizar agora"}
                   </button>
                   <button
                     onClick={() => handleDelete(est)}
                     disabled={deletingId === est.id}
                     className="rounded-lg border border-red-100 bg-red-50 p-1.5 text-red-400 hover:bg-red-100 hover:text-red-600 transition disabled:opacity-50"
                     title="Excluir estabelecimento"
+                    aria-label={`Excluir ${est.name}`}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -354,6 +386,11 @@ export function MinhasLojas() {
         jobId={miningJobId}
         establishmentName={miningEstName}
         onComplete={handleMiningComplete}
+        onDismiss={() => {
+          setMiningJobId(null);
+          setRefreshingId(null);
+          void loadEstablishments();
+        }}
         onError={(message) => {
           setMiningJobId(null);
           setRefreshingId(null);

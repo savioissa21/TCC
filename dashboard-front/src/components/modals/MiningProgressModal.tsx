@@ -2,19 +2,21 @@ import { useEffect, useRef, useState } from "react";
 import { miningService } from "../../services/miningService";
 import { CheckCircle, XCircle, Brain, Clock3, WifiOff } from "lucide-react";
 import { type MiningStatus } from "../../types";
+import { useModalFocus } from "../../hooks/useModalFocus";
 
 interface Props {
   jobId: string | null;
   establishmentName: string;
   onComplete: (message?: string) => void;
   onError: (message?: string) => void;
+  onDismiss?: () => void;
 }
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_NETWORK_FAILURES = 5;
 const MAX_TRACKING_MS = 30 * 60 * 1000;
 
-export function MiningProgressModal({ jobId, establishmentName, onComplete, onError }: Props) {
+export function MiningProgressModal({ jobId, establishmentName, onComplete, onError, onDismiss }: Props) {
   if (!jobId) return null;
 
   return (
@@ -24,13 +26,15 @@ export function MiningProgressModal({ jobId, establishmentName, onComplete, onEr
       establishmentName={establishmentName}
       onComplete={onComplete}
       onError={onError}
+      onDismiss={onDismiss}
     />
   );
 }
 
-function MiningProgressSession({ jobId, establishmentName, onComplete, onError }: Omit<Props, "jobId"> & { jobId: string }) {
+function MiningProgressSession({ jobId, establishmentName, onComplete, onError, onDismiss }: Omit<Props, "jobId"> & { jobId: string }) {
   const [status, setStatus] = useState<MiningStatus | null>(null);
   const [networkFailures, setNetworkFailures] = useState(0);
+  const panel = useModalFocus(true, onDismiss);
   const onCompleteRef = useRef(onComplete);
   const onErrorRef = useRef(onError);
 
@@ -102,7 +106,7 @@ function MiningProgressSession({ jobId, establishmentName, onComplete, onError }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center animate-in zoom-in-95 duration-200">
+      <div ref={panel} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Acompanhamento da mineração" className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center animate-in zoom-in-95 duration-200">
         {isDone ? (
           <>
             <CheckCircle size={52} className={isPartial ? "text-amber-500 mx-auto mb-4" : "text-green-500 mx-auto mb-4"} />
@@ -146,6 +150,10 @@ function MiningProgressSession({ jobId, establishmentName, onComplete, onError }
             <p className="text-xs text-slate-400 mt-4">
               O trabalho fica salvo. Você pode sair desta tela e consultar a loja depois.
             </p>
+            {onDismiss && <button onClick={onDismiss}
+              className="mt-4 rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700">
+              Continuar em segundo plano
+            </button>}
           </>
         )}
       </div>
