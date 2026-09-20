@@ -77,6 +77,7 @@ public class MiningJobService {
         miningJobRepository.saveAndFlush(job);
 
         establishment.setLastMiningStatus("QUEUED");
+        establishment.setLastMiningAt(now);
         establishment.setLastMiningMessage(job.getMessage());
         establishment.setLastNewReviews(0);
         establishmentRepository.save(establishment);
@@ -119,6 +120,12 @@ public class MiningJobService {
         MiningJob job = miningJobRepository.findOwnedJob(jobId, userEmail)
                 .orElseThrow(() -> new NotFoundException("Job de mineração não encontrado."));
         return MiningStatus.from(job);
+    }
+
+    public String getLatestJobId(Long establishmentId, String userEmail) {
+        return miningJobRepository
+                .findFirstByEstablishmentIdAndEstablishmentOwnerEmailOrderByCreatedAtDesc(establishmentId, userEmail)
+                .orElseThrow(() -> new NotFoundException("Job de mineração não encontrado.")).getId();
     }
 
     @EventListener(ApplicationReadyEvent.class)

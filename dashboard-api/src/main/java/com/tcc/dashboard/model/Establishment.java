@@ -16,7 +16,7 @@ public class Establishment {
 
     private String name;
 
-    @Column(length = 1000)
+    @Column(length = 2000)
     private String mapsUrl; // O link que o Python vai usar
 
     private Boolean automaticUpdatesEnabled = true;

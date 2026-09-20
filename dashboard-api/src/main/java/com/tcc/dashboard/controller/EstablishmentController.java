@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/establishments")
+@RequestMapping({"/establishments", "/api/establishments"})
 public class EstablishmentController {
 
     @Autowired
@@ -36,6 +36,9 @@ public class EstablishmentController {
             @NotBlank(message = "A URL do Google Maps é obrigatória.")
             @Size(max = 2000, message = "A URL do Google Maps é muito longa.")
             String url) {
+        public CreateEstablishmentDTO {
+            name = name == null ? null : name.strip();
+        }
     }
 
     public record AutomaticUpdatesDTO(@NotNull(message = "Informe se a atualização automática deve ficar ativa.")
@@ -70,6 +73,11 @@ public class EstablishmentController {
         Establishment establishment = establishmentService.getOwnedEstablishment(id, userEmail);
         String jobId = miningJobService.startJob(establishment.getId(), establishment.getMapsUrl());
         return ResponseEntity.ok(Map.of("jobId", jobId));
+    }
+
+    @GetMapping("/{id}/latest-job")
+    public ResponseEntity<Map<String, String>> latestJob(@PathVariable Long id) {
+        return ResponseEntity.ok(Map.of("jobId", miningJobService.getLatestJobId(id, getCurrentUserEmail())));
     }
 
     @PatchMapping("/{id}/automatic-updates")

@@ -3,7 +3,7 @@ package com.tcc.dashboard.service;
 import com.tcc.dashboard.dto.EstablishmentSummaryDTO;
 import com.tcc.dashboard.exception.BadRequestException;
 import com.tcc.dashboard.exception.NotFoundException;
-import com.tcc.dashboard.exception.UnauthorizedException;
+import com.tcc.dashboard.exception.ForbiddenException;
 import com.tcc.dashboard.model.Establishment;
 import com.tcc.dashboard.model.User;
 import com.tcc.dashboard.repository.EstablishmentRepository;
@@ -34,6 +34,10 @@ public class EstablishmentService {
     private UserRepository userRepository;
 
     public Establishment createEstablishment(String name, String url, String userEmail) {
+        name = name == null ? "" : name.strip();
+        if (name.length() < 2 || name.length() > 100) {
+            throw new BadRequestException("O nome deve ter entre 2 e 100 caracteres.");
+        }
         String normalizedUrl = normalizeAndValidateMapsUrl(url);
 
         User owner = userRepository.findByEmail(userEmail)
@@ -54,6 +58,9 @@ public class EstablishmentService {
         }
 
         String normalizedUrl = normalizeMapsUrlInput(url);
+        if (normalizedUrl.length() > 2000) {
+            throw new BadRequestException("A URL do Google Maps é muito longa.");
+        }
         final URI uri;
         try {
             uri = URI.create(normalizedUrl);
@@ -148,7 +155,7 @@ public class EstablishmentService {
         Establishment establishment = establishmentRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Estabelecimento não encontrado."));
         if (!establishment.getOwner().getEmail().equals(userEmail)) {
-            throw new UnauthorizedException("Acesso negado: você não é o dono deste estabelecimento.");
+            throw new ForbiddenException("Acesso negado: você não é o dono deste estabelecimento.");
         }
         return establishment;
     }
@@ -167,7 +174,7 @@ public class EstablishmentService {
                 .orElseThrow(() -> new NotFoundException("Estabelecimento não encontrado."));
 
         if (!est.getOwner().getEmail().equals(userEmail)) {
-            throw new UnauthorizedException("Acesso negado: você não é o dono deste estabelecimento.");
+            throw new ForbiddenException("Acesso negado: você não é o dono deste estabelecimento.");
         }
 
         establishmentRepository.delete(est);

@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface MiningJobRepository extends JpaRepository<MiningJob, String> {
+    Optional<MiningJob> findFirstByEstablishmentIdAndEstablishmentOwnerEmailOrderByCreatedAtDesc(
+            Long establishmentId, String email);
 
     Optional<MiningJob> findFirstByEstablishmentIdAndStateInOrderByCreatedAtDesc(
             Long establishmentId, Collection<MiningJobState> states);

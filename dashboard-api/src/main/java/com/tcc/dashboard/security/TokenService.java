@@ -1,7 +1,7 @@
 package com.tcc.dashboard.security;
 
 import com.tcc.dashboard.model.User;
-import io.jsonwebtoken.Claims;
+import jakarta.annotation.PostConstruct;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -19,6 +19,13 @@ public class TokenService {
     @Value("${api.security.token.secret}")
     private String secret;
 
+    @PostConstruct
+    void validateSecret() {
+        if (secret == null || secret.isBlank() || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("JWT_SECRET deve conter pelo menos 32 bytes. Use um segredo aleatório forte.");
+        }
+    }
+
     public String generateToken(User user) {
         return Jwts.builder()
                 .setSubject(user.getEmail()) // O email identifica o usuário
@@ -32,6 +39,7 @@ public class TokenService {
     public String validateToken(String token) {
         try {
             return Jwts.parserBuilder()
+                    .requireIssuer("Dashboard SaaS")
                     .setSigningKey(Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8)))
                     .build()
                     .parseClaimsJws(token)

@@ -1,7 +1,6 @@
 package com.tcc.dashboard.security;
 
 import com.tcc.dashboard.repository.UserRepository;
-import com.tcc.dashboard.model.User;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +13,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Locale;
 
 @Component
 public class SecurityFilter extends OncePerRequestFilter {
@@ -31,13 +31,11 @@ public class SecurityFilter extends OncePerRequestFilter {
         if (token != null) {
             var email = tokenService.validateToken(token);
             
-            if (!email.isEmpty()) {
-                // Aqui podemos lançar exceção se não achar, ou ignorar
-                User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
-                
-                // Passamos lista vazia de permissões (Collections.emptyList()) pois não temos Roles ainda
-                var authentication = new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+            if (email != null && !email.isBlank()) {
+                userRepository.findByEmail(email.strip().toLowerCase(Locale.ROOT)).ifPresent(user -> {
+                    var authentication = new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                });
             }
         }
         filterChain.doFilter(request, response);
@@ -45,7 +43,8 @@ public class SecurityFilter extends OncePerRequestFilter {
 
     private String recoverToken(HttpServletRequest request) {
         var authHeader = request.getHeader("Authorization");
-        if (authHeader == null) return null;
-        return authHeader.replace("Bearer ", "");
+        if (authHeader == null || !authHeader.regionMatches(true, 0, "Bearer ", 0, 7)) return null;
+        String token = authHeader.substring(7).strip();
+        return token.isEmpty() || token.chars().anyMatch(Character::isWhitespace) ? null : token;
     }
 }

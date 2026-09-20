@@ -2,7 +2,7 @@ package com.tcc.dashboard.service;
 
 import com.tcc.dashboard.model.Establishment;
 import com.tcc.dashboard.model.User;
-import com.tcc.dashboard.exception.UnauthorizedException;
+import com.tcc.dashboard.exception.ForbiddenException;
 import com.tcc.dashboard.repository.EstablishmentRepository;
 import com.tcc.dashboard.repository.ReviewRepository;
 import com.tcc.dashboard.repository.UserRepository;
@@ -24,6 +24,18 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EstablishmentServiceTest {
+        @Test
+        void appliesNameAndUrlLimitsBeforePersistence() {
+                for (String name : new String[]{"x", " ".repeat(10), "a".repeat(101)}) {
+                        assertThrows(RuntimeException.class, () -> establishmentService.createEstablishment(
+                                name, "https://maps.app.goo.gl/test", "owner@example.test"));
+                }
+                for (String url : new String[]{"ftp://maps.app.goo.gl/test", "https://maps.app.goo.gl/",
+                        "https://maps.app.goo.gl/" + "a".repeat(2000)}) {
+                        assertThrows(RuntimeException.class, () -> EstablishmentService.normalizeAndValidateMapsUrl(url));
+                }
+                verifyNoInteractions(userRepository, establishmentRepository);
+        }
 
         @Mock
         private EstablishmentRepository establishmentRepository;
@@ -166,8 +178,8 @@ class EstablishmentServiceTest {
                 establishment.setOwner(owner);
                 when(establishmentRepository.findById(7L)).thenReturn(Optional.of(establishment));
 
-                UnauthorizedException exception = assertThrows(
-                                UnauthorizedException.class,
+                ForbiddenException exception = assertThrows(
+                                ForbiddenException.class,
                                 () -> establishmentService.getOwnedEstablishment(
                                                 7L, "intruder@example.com"));
 

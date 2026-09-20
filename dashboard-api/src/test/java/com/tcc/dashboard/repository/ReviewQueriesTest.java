@@ -138,7 +138,7 @@ class ReviewQueriesTest {
         assertEquals(3, reviews.getStats("owner@query.test", store.getId()).total());
         assertEquals(List.of("second-store"), reviews.getByEstablishmentId(empty.getId(), "owner@query.test", "", "",
                 PageRequest.of(0, 8)).map(ReviewDTO::id).getContent());
-        assertThrows(com.tcc.dashboard.exception.UnauthorizedException.class,
+        assertThrows(com.tcc.dashboard.exception.ForbiddenException.class,
                 () -> reviews.getStats("other@query.test", store.getId()));
     }
 

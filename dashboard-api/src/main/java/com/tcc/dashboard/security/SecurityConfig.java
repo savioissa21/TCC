@@ -49,9 +49,9 @@ public class SecurityConfig {
                                 writeSecurityError(response, HttpStatus.FORBIDDEN,
                                         "Acesso negado a este recurso.")))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll() // Libera Login
-                        .requestMatchers(HttpMethod.POST, "/auth/register").permitAll() // Libera Cadastro
-                        .requestMatchers(HttpMethod.GET, "/health").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/login", "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/register", "/api/auth/register").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/health", "/api/health").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Libera pro Front (CORS)
                         .anyRequest().authenticated() // O resto tem que ter token
                 )
@@ -91,7 +91,7 @@ public class SecurityConfig {
         response.setStatus(status.value());
         response.setCharacterEncoding("UTF-8");
         response.setContentType("application/json");
-        response.getWriter().write("{\"error\":\"" + message + "\",\"timestamp\":\""
+        response.getWriter().write("{\"status\":" + status.value() + ",\"error\":\"" + message + "\",\"timestamp\":\""
                 + LocalDateTime.now() + "\"}");
     }
 }

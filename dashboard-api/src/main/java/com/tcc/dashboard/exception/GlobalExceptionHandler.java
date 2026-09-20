@@ -32,25 +32,28 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(Map.of(
                 "error", String.join(" ", errors.values()),
                 "errors", errors,
+                "status", 400,
                 "timestamp", LocalDateTime.now().toString()));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidBody(
             HttpMessageNotReadableException ex, HttpServletRequest request) {
-        return invalidBody((request.getContextPath() + "/auth/login").equals(request.getRequestURI())
+        String path = request.getRequestURI().substring(request.getContextPath().length());
+        return invalidBody(("/auth/login".equals(path) || "/api/auth/login".equals(path))
                 ? LoginRequestDTO.INVALID_CREDENTIALS : "Corpo da requisição inválido.");
     }
 
     private ResponseEntity<Map<String, Object>> invalidBody(String message) {
         return ResponseEntity.badRequest().body(Map.of(
-                "error", message, "timestamp", LocalDateTime.now().toString()));
+                "error", message, "status", 400, "timestamp", LocalDateTime.now().toString()));
     }
 
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<Map<String, Object>> handleApiException(ApiException ex) {
         return ResponseEntity.status(ex.getStatus()).body(Map.of(
                 "error", ex.getMessage(),
+                "status", ex.getStatus().value(),
                 "timestamp", LocalDateTime.now().toString()));
     }
 
@@ -58,6 +61,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
         logger.error("Erro interno não tratado", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "status", 500,
                 "error", "Erro interno no servidor. Tente novamente.",
                 "timestamp", LocalDateTime.now().toString()));
     }
@@ -66,6 +70,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException ex) {
         logger.warn("Conflito de integridade ao processar requisição", ex);
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "status", 409,
                 "error", "Os dados informados entram em conflito com um registro existente.",
                 "timestamp", LocalDateTime.now().toString()));
     }
@@ -74,6 +79,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
         logger.error("Erro interno não tratado", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "status", 500,
                 "error", "Erro interno no servidor. Tente novamente.",
                 "timestamp", LocalDateTime.now().toString()));
     }

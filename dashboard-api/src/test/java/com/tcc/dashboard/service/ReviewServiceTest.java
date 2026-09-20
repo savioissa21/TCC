@@ -3,7 +3,7 @@ package com.tcc.dashboard.service;
 import com.tcc.dashboard.dto.ReviewDTO;
 import com.tcc.dashboard.model.Review;
 import com.tcc.dashboard.repository.ReviewRepository;
-import com.tcc.dashboard.exception.UnauthorizedException;
+import com.tcc.dashboard.exception.ForbiddenException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -52,9 +52,9 @@ class ReviewServiceTest {
 
     @Test
     void doesNotReturnReviewsWhenEstablishmentBelongsToAnotherUser() {
-        doThrow(new UnauthorizedException("Acesso negado."))
+        doThrow(new ForbiddenException("Acesso negado."))
                 .when(establishmentService).getOwnedEstablishment(7L, "intruder@example.com");
-        assertThrows(UnauthorizedException.class, () -> reviewService.getByEstablishmentId(
+        assertThrows(ForbiddenException.class, () -> reviewService.getByEstablishmentId(
                 7L, "intruder@example.com", "", "", PageRequest.of(0, 8)));
         verifyNoInteractions(reviewRepository);
     }

@@ -4,6 +4,7 @@ import com.tcc.dashboard.validation.Utf8Size;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.util.Locale;
 
 public record RegisterRequestDTO(
         @NotBlank(message = "O nome é obrigatório.")
@@ -21,5 +22,6 @@ public record RegisterRequestDTO(
         String password) {
     public RegisterRequestDTO {
         name = name == null ? null : name.strip();
+        email = email == null ? null : email.strip().toLowerCase(Locale.ROOT);
     }
 }
