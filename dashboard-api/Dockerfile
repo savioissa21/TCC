@@ -1,8 +1,11 @@
-# =============================================================
-# Runtime — Python + Playwright + JRE 21
-# O JAR já é construído localmente antes do docker compose up
-# =============================================================
-FROM python:3.11-slim
+FROM maven:3.9.9-eclipse-temurin-21 AS java-build
+WORKDIR /build
+COPY dashboard-api/pom.xml .
+COPY dashboard-api/src ./src
+RUN --mount=type=cache,target=/root/.m2 mvn -B -Dmaven.test.skip=true package
+
+# Base comum: o JAR sempre é compilado a partir do código do contexto.
+FROM python:3.11-slim-trixie AS runtime-base
 
 # Nota: Debian Trixie usa openjdk-21 e libasound2t64
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -32,6 +35,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+COPY --from=java-build /build/target/dashboard-0.0.1-SNAPSHOT.jar /app/app.jar
+
+# Apenas compose.e2e.yml seleciona este alvo. Não é fallback de produção.
+FROM runtime-base AS e2e
+COPY tests/fixtures/miner_fixture.py /app/fixtures/miner_fixture.py
+ENV MINING_PYTHON_EXECUTABLE=python3
+ENV MINING_PYTHON_SCRIPT_PATH=/app/fixtures/miner_fixture.py
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+
+# Alvo padrão: checkpoint e validação de SHA continuam obrigatórios.
+FROM runtime-base AS production
 
 # Copiar requirements e instalar dependências Python
 COPY minerador-py/requirements.txt /app/minerador-py/requirements.txt
@@ -42,9 +56,6 @@ RUN playwright install chromium
 
 # Copiar script Python do minerador
 COPY minerador-py/ /app/minerador-py/
-
-# Copiar JAR pré-compilado localmente
-COPY dashboard-api/target/dashboard-0.0.1-SNAPSHOT.jar app.jar
 
 # Variáveis de ambiente
 ENV SPRING_PROFILES_ACTIVE=prod

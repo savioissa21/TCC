@@ -162,3 +162,44 @@ coleta parcial. Esse teste gerou um arquivo temporário para validar coleta e
 inferência; não inseriu registros na conta do usuário. A leitura/importação do
 novo formato foi coberta pelos testes Java. A imagem final da API foi
 reconstruída e aplicada com a mesma correção testada.
+
+## Fechamento de integração — 20/09/2026
+
+O contrato público do frontend foi unificado sob `/api`, mantendo aliases
+temporários no backend para compatibilidade. Cadastro e login canonicalizam
+e-mail; Bearer, emissor e tamanho mínimo do segredo JWT foram endurecidos. A V4
+normaliza os e-mails existentes, recusa colisões sem unir contas e amplia a URL
+do Maps para 2.000 caracteres. Autorização de recurso alheio retorna 403 e erros
+internos deixam de expor exceções ao cliente.
+
+O frontend passou a ter navegação móvel funcional, controles acessíveis, foco
+preso nos modais, validação de estabelecimento coerente com a API e acompanhamento
+persistido dos estados reais da mineração. É possível continuar em segundo
+plano, recarregar a página e reabrir o último job. Loading, vazio, parcial,
+falha externa e conclusão são estados distintos.
+
+Validações executadas nesta versão:
+
+- Maven `-Ppostgres verify`: 116 testes rápidos e 11 testes de integração em
+  PostgreSQL 15 real, sem falhas;
+- minerador Python: 43 testes, incluindo inferência de aspectos em lote;
+- ferramentas científicas: 17 testes;
+- React/Vitest: 8 testes; ESLint e build de produção aprovados;
+- Playwright com API simulada: 3 cenários aprovados;
+- E2E full-stack determinístico: 2 cenários aprovados em 50,2 s, usando React,
+  Nginx, API e PostgreSQL reais e somente o fornecedor externo substituído;
+- Docker Compose E2E: banco, API e frontend saudáveis;
+- imagem `production` da API construída integralmente pelo Docker, sem JAR do
+  host; o checkpoint montado read-only passou no preflight real dentro da imagem.
+
+O E2E comprovou cadastro, logout/login com variação de caixa no e-mail, criação
+de loja, estados da fila, execução em segundo plano e após reload, 12 avaliações,
+paginação, busca, filtro, pausa do agendamento, segunda coleta com zero novas,
+isolamento entre duas contas, exclusão em cascata, coleta parcial, falha externa
+e ausência de overflow em 360, 768, 1024 e 1440 pixels.
+
+O build React ainda informa um aviso de bundle principal com aproximadamente
+739 kB (230 kB gzip). É uma otimização de desempenho pendente, não um bloqueio
+funcional. Não foi feita nova chamada pública ao Google Maps nesta rodada: a
+evidência real mais recente continua sendo o smoke documentado em 13/09/2026.
+Como a fonte é externa e instável, ele permanece manual antes da entrega final.

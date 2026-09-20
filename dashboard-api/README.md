@@ -4,12 +4,12 @@ Os endpoints exigem autenticação e retornam somente dados do usuário autentic
 
 ## Login e cadastro
 
-`POST /auth/register` exige nome de 2 a 100 caracteres, e-mail válido com até
+`POST /api/auth/register` exige nome de 2 a 100 caracteres, e-mail válido com até
 254 caracteres e senha de 6 a 72 caracteres. Campos vazios ou em branco são
 rejeitados. A senha também é limitada a 72 bytes UTF-8, limite do BCrypt,
 incluindo senhas com acentos e emojis. A senha não é aparada nem normalizada.
 
-`POST /auth/login` valida e-mail e senha com os mesmos limites máximos,
+`POST /api/auth/login` valida e-mail e senha com os mesmos limites máximos,
 sem impor o novo mínimo a senhas antigas. Conta inexistente e senha incorreta
 retornam HTTP 401 com `error: "E-mail ou senha inválidos"`. O hash também é
 verificado para contas inexistentes. Entradas inválidas e JSON malformado
@@ -52,7 +52,7 @@ Backend e frontend precisam ser atualizados juntos para usar esse contrato.
 o histórico do usuário, independentemente da página ou filtro da listagem.
 Notas nulas continuam contando como zero na média, preservando o cálculo anterior.
 
-`GET /establishments` mantém o contrato de resumo, incluindo lojas sem avaliações.
+`GET /api/establishments` mantém o contrato de resumo, incluindo lojas sem avaliações.
 
 As consultas JPQL geram agregações SQL executadas no PostgreSQL: uma consulta
 para os resumos e duas para as estatísticas. A listagem pagina os IDs no banco
@@ -79,12 +79,15 @@ O esquema é atualizado pelas migrations versionadas do Flyway. O Hibernate usa
 
 ## Testes
 
-Execute `./mvnw test` (ou `mvnw.cmd test` no Windows) com Java 21.
+Execute `./mvnw test` (ou `mvnw.cmd test` no Windows) com Java 21 para a suíte
+rápida. Execute `./mvnw -Ppostgres verify` para incluir os testes de integração
+com PostgreSQL real via Testcontainers; Docker precisa estar ativo.
 O perfil `test` usa H2 em modo PostgreSQL, executa as mesmas migrations da aplicação,
 valida as entidades com `ddl-auto=validate` e desativa a mineração agendada.
 Os testes verificam contagem de consultas, entidades carregadas, isolamento
 por usuário, filtros, paginação, valores nulos, lojas vazias e deduplicação.
-Essa suíte não substitui a validação em uma instância PostgreSQL real.
+Os testes PostgreSQL repetem as migrations e consultas críticas, incluindo
+isolamento entre proprietários e exclusão em cascata.
 
 ## Evolução do banco com Flyway
 
@@ -99,11 +102,15 @@ O Hibernate não cria nem altera tabelas.
   e campos existentes antes da adoção do Flyway.
 - `V2__add_google_identity_and_review_indexes.sql`: adiciona o ID original Google
   e os índices. As adições toleram colunas/índices já criados pelo antigo `update`.
+- `V3__persist_mining_jobs.sql`: persiste os trabalhos de coleta, seus estados e
+  dados de tentativa/recuperação.
+- `V4__normalize_email_and_expand_maps_url.sql`: canonicaliza e-mails e exige
+  lowercase/trim no banco, além de ampliar a URL do Maps para 2.000 caracteres.
 
-Em banco vazio, basta iniciar a aplicação: V1 e V2 serão aplicadas.
+Em banco vazio, basta iniciar a aplicação: V1 a V4 serão aplicadas.
 O histórico fica em `flyway_schema_history`. Inicializações posteriores aplicam
 somente versões pendentes e verificam os checksums das versões existentes.
-Crie uma nova `V3__descricao.sql` para a próxima alteração; não edite migrations
+Crie uma nova `V5__descricao.sql` para a próxima alteração; não edite migrations
 já aplicadas. `baseline-on-migrate=false` e `clean-disabled=true` ficam explícitos.
 
 ### Adoção de um banco existente
@@ -126,12 +133,25 @@ flyway -locations=filesystem:src/main/resources/db/migration migrate
 flyway -locations=filesystem:src/main/resources/db/migration validate
 ```
 
-O baseline 1 evita executar V1 sobre tabelas existentes; V2 mantém os dados e
-completa as adições recentes. Depois, inicie a nova aplicação com o perfil
+O baseline 1 evita executar V1 sobre tabelas existentes; as versões seguintes
+mantêm os dados e completam as adições recentes. Antes da V4, confira colisões
+que surgiriam ao normalizar e-mails:
+
+```sql
+SELECT LOWER(TRIM(email)) AS email_canonico, COUNT(*)
+FROM users
+GROUP BY LOWER(TRIM(email))
+HAVING COUNT(*) > 1;
+```
+
+Se houver resultado, resolva manualmente as contas em uma cópia restaurada e
+somente então migre o banco real. A V4 falha e reverte a transação em vez de
+mesclar ou excluir usuários. Depois, inicie a aplicação com o perfil
 `prod`. Não habilite baseline automático permanentemente e não use baseline 2
 para ignorar a execução de V2.
 
 Os testes cobrem banco vazio, reaplicação sem alterações, baseline explícito,
-preservação dos dados e identidades, esquema já atualizado, unicidade do ID Google
-e detecção de checksum alterado. A suíte local usa H2; valide também em uma cópia
-PostgreSQL antes de implantar em um banco existente.
+preservação dos dados e identidades, esquema já atualizado, unicidade do ID Google,
+normalização de e-mail, limite da URL e detecção de checksum alterado. O perfil
+`postgres` valida o conjunto também em PostgreSQL real; para produção, mantenha
+o ensaio prévio em uma cópia restaurada do backup.

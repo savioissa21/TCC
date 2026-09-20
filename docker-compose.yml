@@ -41,9 +41,11 @@ services:
       MINING_PYTHON_SCRIPT_PATH: /app/minerador-py/minerador_integrado.py
       ABSA_MODEL_PATH: /models/bertimbau-absa
       ABSA_MODEL_SHA256: "${ABSA_MODEL_SHA256:?Defina ABSA_MODEL_SHA256 no arquivo .env}"
-      MINING_SCHEDULE_ENABLED: "true"
-      MINING_SCHEDULE_INTERVAL: PT168H
-      MINING_SCHEDULE_RETRY_INTERVAL: PT24H
+      MINING_SCHEDULE_ENABLED: "${MINING_SCHEDULE_ENABLED:-true}"
+      MINING_SCHEDULE_INTERVAL: ${MINING_SCHEDULE_INTERVAL:-PT168H}
+      MINING_SCHEDULE_RETRY_INTERVAL: ${MINING_SCHEDULE_RETRY_INTERVAL:-PT24H}
+      MINING_SCHEDULE_POLL_DELAY_MS: ${MINING_SCHEDULE_POLL_DELAY_MS:-3600000}
+      MINING_SCHEDULE_INITIAL_DELAY_MS: ${MINING_SCHEDULE_INITIAL_DELAY_MS:-60000}
     ports:
       - "${API_PORT:-8080}:8080"
     depends_on:
@@ -59,7 +61,7 @@ services:
         bind:
           create_host_path: false
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=5)"]
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/health', timeout=5)"]
       interval: 10s
       timeout: 5s
       retries: 12

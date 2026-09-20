@@ -1,73 +1,40 @@
-# React + TypeScript + Vite
+# Frontend NEXO
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interface React 19, TypeScript e Vite do dashboard de avaliações.
 
-Currently, two official plugins are available:
+## Desenvolvimento local
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Com a API em `http://localhost:8080`:
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm ci
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+O navegador chama somente caminhos `/api`. Em desenvolvimento o Vite encaminha
+esses caminhos para a API; no Docker, o Nginx faz o mesmo encaminhamento. Não é
+necessário editar uma URL no código ao alternar entre os ambientes.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Verificação
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run lint
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
 ```
+
+`test:e2e` mantém testes rápidos de interface com a API simulada. A prova de
+integração real usa o ambiente descartável da raiz:
+
+```bash
+docker compose -f compose.e2e.yml up -d --build --wait --wait-timeout 180
+cd dashboard-front
+npm run test:e2e:fullstack
+cd ..
+docker compose -f compose.e2e.yml down -v
+```
+
+Nesse segundo fluxo, frontend, Nginx, API e PostgreSQL são reais; somente o
+fornecedor externo de avaliações e a inferência são substituídos por fixture.

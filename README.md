@@ -23,7 +23,6 @@ siga o procedimento de baseline em [dashboard-api/README.md](dashboard-api/READM
 
 ### Pré-requisitos
 - Docker Desktop
-- Java 21 (para buildar o JAR localmente)
 
 ### 1. Configurar os segredos
 
@@ -105,16 +104,15 @@ O primeiro processamento baixa o BERTweet usado no sentimento geral. Esse
 download fica no volume `huggingface_cache`, portanto recriar o contêiner da API
 não exige baixar o modelo novamente.
 
-### 3. Compilar a API
-```bash
-cd dashboard-api
-bash ./mvnw clean package -DskipTests
-```
-
-### 4. Subir todos os serviços
+### 3. Subir todos os serviços
 ```bash
 docker compose up -d --build
+docker compose ps
 ```
+
+O Dockerfile da API é multi-stage: ele compila o JAR e monta o ambiente Python
+dentro da própria imagem. Não é necessário instalar Java, Maven, Node ou Python
+no host para iniciar o produto.
 
 ### Acesso
 | Serviço   | URL                   |
@@ -151,6 +149,10 @@ Configurações da API:
 | `mining.schedule.poll-delay-ms` | `3600000` | Frequência de verificação |
 | `mining.process.timeout` | `PT15M` | Limite total de execução do Python; configurável por `MINING_PROCESS_TIMEOUT` |
 
+Esses valores podem ser alterados no `.env` pelas variáveis
+`MINING_SCHEDULE_*`. Use `MINING_SCHEDULE_ENABLED=false` durante manutenção ou
+testes controlados para impedir coletas automáticas.
+
 Ao exceder o limite, a API encerra o Python e seus subprocessos, registra a
 coleta como falha e libera a fila para o próximo trabalho. O limite inclui
 carregamento dos modelos, coleta, análise e leitura dos logs. O Playwright
@@ -169,11 +171,14 @@ usuário proprietário do estabelecimento em todas as requisições.
 ## Verificação automatizada
 
 ```bash
-# Backend (migrations, autorização, fila, recuperação e consultas)
-cd dashboard-api && bash ./mvnw test
+# Backend rápido e integração em PostgreSQL real via Testcontainers
+cd dashboard-api && bash ./mvnw -Ppostgres verify
 
 # Minerador (checkpoint, aspectos e identidade/deduplicação)
 python -m unittest discover -s minerador-py -p 'test_*.py'
+
+# Ferramentas e regressões do experimento científico
+python -m unittest discover -s cientifico -p 'test_*.py'
 
 # Frontend (lint, testes, build e fluxo no Chromium)
 cd dashboard-front
@@ -183,8 +188,20 @@ npm test
 npm run build
 npx playwright install chromium
 npm run test:e2e
+
+# E2E full-stack determinístico: React + API + PostgreSQL reais
+cd ..
+docker compose -f compose.e2e.yml up -d --build --wait --wait-timeout 180
+cd dashboard-front && npm run test:e2e:fullstack
+cd .. && docker compose -f compose.e2e.yml down -v
 ```
+
+O E2E full-stack troca somente Google Maps e os modelos por um minerador fixture;
+API, autenticação, fila, banco, Nginx e interface continuam reais. Operação,
+backup, restauração, migration e rollback estão em [`docs/OPERACAO.md`](docs/OPERACAO.md).
 
 O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) executa essas
 verificações em pushes para `main` e em pull requests. A evidência da validação
-integrada em Docker está em [`VALIDACAO_TECNICA.md`](VALIDACAO_TECNICA.md).
+integrada em Docker está em [`VALIDACAO_TECNICA.md`](VALIDACAO_TECNICA.md). A
+rastreabilidade entre requisitos, código e testes está em
+[`docs/MATRIZ_REQUISITOS.md`](docs/MATRIZ_REQUISITOS.md).

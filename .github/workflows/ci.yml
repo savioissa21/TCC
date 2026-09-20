@@ -15,7 +15,7 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - run: bash ./mvnw test -q
+      - run: bash ./mvnw -Ppostgres verify -q
         working-directory: dashboard-api
 
   python:
@@ -28,6 +28,7 @@ jobs:
       - run: pip install playwright==1.62.0
       - run: python -m playwright install --with-deps chromium
       - run: python -m unittest discover -s minerador-py -p 'test_*.py'
+      - run: python -m unittest discover -s cientifico -p 'test_*.py'
 
   frontend:
     runs-on: ubuntu-latest
@@ -50,3 +51,32 @@ jobs:
         working-directory: dashboard-front
       - run: npm run test:e2e
         working-directory: dashboard-front
+
+  fullstack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard-front/package-lock.json
+      - run: npm ci
+        working-directory: dashboard-front
+      - run: npx playwright install --with-deps chromium
+        working-directory: dashboard-front
+      - run: docker compose -f compose.e2e.yml up -d --build --wait --wait-timeout 180
+      - run: npm run test:e2e:fullstack
+        working-directory: dashboard-front
+      - if: always()
+        run: docker compose -f compose.e2e.yml logs --no-color
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fullstack-report
+          path: |
+            dashboard-front/playwright-report/
+            dashboard-front/test-results/
+      - if: always()
+        run: docker compose -f compose.e2e.yml down -v
