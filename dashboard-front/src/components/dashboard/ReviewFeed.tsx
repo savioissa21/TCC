@@ -23,13 +23,13 @@ export function ReviewFeed({ feed, stats, onAddStore }: ReviewFeedProps) {
 
   const filterColors: Record<Filter, string> = {
     Todos: "bg-slate-900 text-white",
-    Positivo: "bg-green-500 text-white",
-    Negativo: "bg-red-500 text-white",
-    Neutro: "bg-slate-400 text-white",
+    Positivo: "bg-green-700 text-white",
+    Negativo: "bg-red-700 text-white",
+    Neutro: "bg-slate-600 text-white",
   };
 
   return (
-    <div className="col-span-4 space-y-4">
+    <div className="min-w-0 lg:col-span-4 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2">
@@ -44,6 +44,7 @@ export function ReviewFeed({ feed, stats, onAddStore }: ReviewFeedProps) {
         {FILTERS.map((f) => (
           <button
             key={f}
+            aria-pressed={filter === f}
             onClick={() => changeFilter(f)}
             className={cn(
               "rounded-full px-3 py-1 text-xs font-semibold transition-all border",
@@ -64,6 +65,7 @@ export function ReviewFeed({ feed, stats, onAddStore }: ReviewFeedProps) {
       <div className="relative">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
         <input
+          aria-label="Buscar avaliações por autor ou texto"
           type="text"
           placeholder="Buscar por autor ou texto..."
           value={search}

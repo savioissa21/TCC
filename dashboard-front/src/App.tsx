@@ -1,14 +1,15 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import { ToastContainer } from "./components/ui/ToastContainer";
 import { PrivateRoute } from "./routes/PrivateRoute";
 import { AppLayout } from "./components/layout/AppLayout";
 
-import { Login } from "./pages/Login";
-import { Register } from "./pages/Register";
-import { Dashboard } from "./pages/Dashboard";
-import { MinhasLojas } from "./pages/MinhasLojas";
+const Login = lazy(() => import("./pages/Login").then(module => ({ default: module.Login })));
+const Register = lazy(() => import("./pages/Register").then(module => ({ default: module.Register })));
+const Dashboard = lazy(() => import("./pages/Dashboard").then(module => ({ default: module.Dashboard })));
+const MinhasLojas = lazy(() => import("./pages/MinhasLojas").then(module => ({ default: module.MinhasLojas })));
 
 export default function App() {
   return (
@@ -16,7 +17,7 @@ export default function App() {
       <ToastProvider>
         <BrowserRouter>
           <ToastContainer />
-          <Routes>
+          <Suspense fallback={<p role="status" className="p-6">Carregando página...</p>}><Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
@@ -29,7 +30,7 @@ export default function App() {
             </Route>
 
             <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
+          </Routes></Suspense>
         </BrowserRouter>
       </ToastProvider>
     </AuthProvider>

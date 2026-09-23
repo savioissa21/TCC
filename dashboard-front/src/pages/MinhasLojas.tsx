@@ -265,7 +265,7 @@ export function MinhasLojas() {
                   est.lastMiningStatus === "FAILED" ? "bg-red-50 text-red-800" :
                   est.lastMiningMessage?.startsWith("Coleta parcial:") ? "bg-amber-50 text-amber-800" : "bg-slate-50 text-slate-700")}>
                   <p className="font-semibold">{est.lastMiningMessage?.startsWith("Coleta parcial:") ? "Coleta parcial" :
-                    ({ QUEUED: "Aguardando na fila", RUNNING: "Em execução", COMPLETED: "Concluída", FAILED: "Falha na mineração" }[est.lastMiningStatus || "COMPLETED"] || "Ainda não iniciada")}</p>
+                    ({ QUEUED: "Aguardando na fila", RUNNING: "Em execução", COMPLETED: "Concluída", FAILED: "Falha na mineração" }[est.lastMiningStatus || ""] || "Ainda não iniciada")}</p>
                   <p>{est.lastMiningMessage}</p>
                   <p>Última tentativa: {formatUpdateDate(est.lastMiningAt)}</p>
                   <p>Último sucesso: {formatUpdateDate(est.lastMiningSuccessAt)}</p>

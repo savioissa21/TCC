@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useReviews } from "../hooks/useReviews";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/useToast";
@@ -9,7 +9,7 @@ import { type ReviewStats, type EstablishmentSummary } from "../types";
 import { DashboardHeader } from "../components/dashboard/DashboardHeader";
 import { StatsGrid } from "../components/dashboard/StatsGrid";
 import { ReviewFeed } from "../components/dashboard/ReviewFeed";
-import { InsightsSidebar } from "../components/dashboard/InsightsSidebar";
+const InsightsSidebar = lazy(() => import("../components/dashboard/InsightsSidebar").then(module => ({ default: module.InsightsSidebar })));
 import { CreateEstablishmentModal } from "../components/modals/CreateEstablishmentModal";
 import { MiningProgressModal } from "../components/modals/MiningProgressModal";
 
@@ -146,7 +146,7 @@ export function Dashboard() {
             setStats(EMPTY_REVIEW_STATS);
             setSelectedStore(event.target.value === "all" ? undefined : Number(event.target.value));
             fetchReviews();
-          }} className="ml-3 rounded-lg border border-slate-300 bg-white p-2">
+          }} className="mt-2 block w-full max-w-full rounded-lg border border-slate-300 bg-white p-2">
             <option value="all">Todas as lojas (visão consolidada)</option>
             {establishments.map(store => <option key={store.id} value={store.id}>{store.name}</option>)}
           </select>
@@ -166,7 +166,7 @@ export function Dashboard() {
             stats={stats}
             onAddStore={() => setIsCreateOpen(true)}
           />
-          {!isLoading && <InsightsSidebar stats={stats} />}
+          {!isLoading && <Suspense fallback={<p role="status">Carregando gr?ficos...</p>}><InsightsSidebar stats={stats} /></Suspense>}
         </div>
       </div>
 

@@ -76,6 +76,32 @@ test("menu móvel navega, marca a rota e encerra a sessão", async ({ page }) =>
   await expect(page).toHaveURL(/\/login$/);
 });
 
+for (const width of [360, 768, 1024, 1440]) {
+  test(`layout e foco de teclado em ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await mockApi(page);
+    await page.goto("/login");
+    await page.getByLabel("Email", { exact: true }).fill("keyboard@example.com");
+    await page.keyboard.press("Tab");
+    await page.keyboard.type("123456");
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.getByRole("button", { name: "Nova Loja" }).focus();
+    await page.keyboard.press("Enter");
+    const dialog = page.getByRole("dialog", { name: "Adicionar Estabelecimento" });
+    await expect(dialog).toBeVisible();
+    await page.getByLabel("Nome do Estabelecimento").fill("Loja Teste");
+    await page.getByLabel("URL do Google Maps").fill("ftp://maps.app.goo.gl/teste");
+    await expect(page.getByRole("button", { name: "Criar e Minerar" })).toBeDisabled();
+    await page.getByLabel("URL do Google Maps").fill("[Maps](https://maps.app.goo.gl/teste)");
+    await expect(page.getByRole("button", { name: "Criar e Minerar" })).toBeEnabled();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Nova Loja" })).toBeFocused();
+  });
+}
+
 test("login e mineração percorrem o fluxo principal", async ({ page }) => {
   await mockApi(page);
   await page.goto("/login");

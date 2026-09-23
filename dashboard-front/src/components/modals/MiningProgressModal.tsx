@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ModalFrame } from "../ui/ModalFrame";
 import { miningService } from "../../services/miningService";
 import { CheckCircle, XCircle, Brain, Clock3, WifiOff } from "lucide-react";
 import { type MiningStatus } from "../../types";
@@ -103,8 +104,8 @@ function MiningProgressSession({ jobId, establishmentName, onComplete, onError, 
   const isQueued = status?.state === "QUEUED";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center animate-in zoom-in-95 duration-200">
+    <ModalFrame label="Acompanhamento da minera??o" onClose={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center animate-in zoom-in-95 duration-200">
         {isDone ? (
           <>
             <CheckCircle size={52} className={isPartial ? "text-amber-500 mx-auto mb-4" : "text-green-500 mx-auto mb-4"} />
@@ -155,6 +156,6 @@ function MiningProgressSession({ jobId, establishmentName, onComplete, onError, 
           </>
         )}
       </div>
-    </div>
+    </ModalFrame>
   );
 }

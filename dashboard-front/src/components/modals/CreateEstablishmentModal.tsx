@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { ModalFrame } from "../ui/ModalFrame";
 import { X, Store, Link } from "lucide-react";
 
 const SEARCH_URL_ERROR =
@@ -114,8 +115,8 @@ export function CreateEstablishmentModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
+    <ModalFrame label="Adicionar Estabelecimento" onClose={isLoading ? undefined : onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b">
           <div>
@@ -217,6 +218,6 @@ export function CreateEstablishmentModal({
           </div>
         </form>
       </div>
-    </div>
+    </ModalFrame>
   );
 }

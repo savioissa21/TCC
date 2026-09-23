@@ -9,10 +9,12 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, label, error, icon, ...props }, ref) => {
+    const generatedId = React.useId();
+    const inputId = props.id || generatedId;
     return (
       <div className="w-full space-y-2">
         {label && (
-          <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-foreground">
+          <label htmlFor={inputId} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-foreground">
             {label}
           </label>
         )}
@@ -40,6 +42,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             )}
             ref={ref}
             {...props}
+            id={inputId}
+            aria-invalid={Boolean(error) || props["aria-invalid"]}
+            aria-describedby={error ? `${inputId}-error` : props["aria-describedby"]}
           />
           {icon && (
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
@@ -47,7 +52,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             </div>
           )}
         </div>
-        {error && <p className="text-xs text-destructive font-medium animate-in slide-in-from-top-1">{error}</p>}
+        {error && <p id={`${inputId}-error`} role="alert" className="text-xs text-destructive font-medium animate-in slide-in-from-top-1">{error}</p>}
       </div>
     )
   }

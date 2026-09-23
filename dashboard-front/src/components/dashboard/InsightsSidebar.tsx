@@ -33,7 +33,7 @@ export function InsightsSidebar({ stats }: Props) {
 
   if (stats.total === 0) {
     return (
-      <div className="col-span-4 md:col-span-3 space-y-4">
+      <div className="min-w-0 lg:col-span-3 space-y-4">
         <h2 className="text-xl font-semibold tracking-tight">Insights da IA</h2>
         <div className="rounded-xl border-2 border-dashed border-slate-200 p-8 text-center">
           <p className="text-slate-400 text-sm">Adicione avaliações para ver os insights.</p>
@@ -43,7 +43,7 @@ export function InsightsSidebar({ stats }: Props) {
   }
 
   return (
-    <div className="col-span-4 md:col-span-3 space-y-4">
+    <div className="min-w-0 lg:col-span-3 space-y-4">
       <h2 className="text-xl font-semibold tracking-tight">Insights da IA</h2>
 
       {/* Donut de Sentimento */}
