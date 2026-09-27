@@ -91,11 +91,14 @@ test("login e mineração percorrem o fluxo principal", async ({ page }) => {
 });
 
 test("filtro de loja mantém avaliações, paginação e indicadores no mesmo escopo", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
   await page.addInitScript(({ token }) => {
     localStorage.setItem("@saas-tcc:token", token);
     localStorage.setItem("@saas-tcc:user", JSON.stringify({ id: "u", name: "Gestor", email: "gestor@example.com" }));
   }, { token });
-  const stores = [1, 2].map(id => ({ id, name: `Loja ${id}`, mapsUrl: "https://maps.google.com",
+  const stores = [1, 2].map(id => ({ id,
+    name: id === 1 ? "Restaurante com um nome muito comprido para o seletor" : `Loja ${id}`,
+    mapsUrl: "https://maps.google.com",
     reviewCount: id === 1 ? 9 : 1, avgRating: id === 1 ? 5 : 1, satisfactionScore: id === 1 ? 100 : 0,
     lastMiningMessage: id === 1 ? "Coleta parcial: ordenação não confirmada." : "Concluída" }));
   await page.route("**/api/**", async route => {
@@ -113,7 +116,10 @@ test("filtro de loja mantém avaliações, paginação e indicadores no mesmo es
       const id = url.pathname.endsWith("/1") ? 1 : url.pathname.endsWith("/2") ? 2 : undefined;
       const number = Number(url.searchParams.get("page") || 0);
       const ids = id ? [id] : [1, 2];
-      return json({ content: ids.map(i => ({ id: `r${i}-${number}`, author: `Cliente ${i}`, text: `Avaliação exclusiva ${i}`,
+      return json({ content: ids.map(i => ({ id: `r${i}-${number}`, author: `Cliente ${i}`,
+        text: i === 1
+          ? "Avaliação exclusiva 1. O atendimento foi muito atencioso durante toda a visita, a comida chegou rapidamente e todos os pratos estavam excelentes. O ambiente também estava limpo e confortável para toda a família."
+          : "Avaliação exclusiva 2",
         establishmentName: `Loja ${i}`, establishmentId: i, rating: i === 1 ? 5 : 1,
         overallSentiment: i === 1 ? "Positivo" : "Negativo", aspects: [] })),
         number, size: 8, totalElements: id === 1 ? 9 : id === 2 ? 1 : 10,
@@ -122,21 +128,28 @@ test("filtro de loja mantém avaliações, paginação e indicadores no mesmo es
     return route.fulfill({ status: 404, json: {} });
   });
   await page.goto("/dashboard");
-  await expect(page.getByText('"Avaliação exclusiva 1"')).toBeVisible();
+  const storeSelect = page.getByLabel("Estabelecimento", { exact: true });
+  const selectBox = await storeSelect.boundingBox();
+  expect(selectBox).not.toBeNull();
+  expect((selectBox?.x || 0) + (selectBox?.width || 0)).toBeLessThanOrEqual(360);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  await expect(page.getByText(/Avaliação exclusiva 1/)).toBeVisible();
   await expect(page.getByText('"Avaliação exclusiva 2"')).toBeVisible();
-  await page.getByLabel("Estabelecimento", { exact: true }).selectOption("1");
+  await expect(page.getByRole("button", { name: "Ler avaliação completa" })).toHaveCount(1);
+  await storeSelect.selectOption("1");
   await expect(page.getByText("9 avaliações analisadas")).toBeVisible();
   await expect(page.getByText(/Coleta parcial: ordenação/)).toBeVisible();
   await expect(page.getByText('"Avaliação exclusiva 2"')).toHaveCount(0);
   await page.getByRole("button", { name: "Próxima" }).click();
   await expect(page.getByText("Página 2 de 2")).toBeVisible();
-  await page.getByLabel("Estabelecimento", { exact: true }).selectOption("2");
+  await storeSelect.selectOption("2");
   await expect(page.getByText("1 avaliações analisadas")).toBeVisible();
   await expect(page.getByText(/Coleta parcial: ordenação/)).toHaveCount(0);
-  await expect(page.getByText("Página 1 de 1")).toBeVisible();
-  await expect(page.getByText('"Avaliação exclusiva 1"')).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Paginação das avaliações" })).toHaveCount(0);
+  await expect(page.getByText(/Avaliação exclusiva 1/)).toHaveCount(0);
   await expect(page.getByText('"Avaliação exclusiva 2"')).toBeVisible();
-  await page.getByLabel("Estabelecimento", { exact: true }).selectOption("all");
+  await expect(page.getByRole("button", { name: "Ler avaliação completa" })).toHaveCount(0);
+  await storeSelect.selectOption("all");
   await expect(page.getByText("10 avaliações analisadas")).toBeVisible();
-  await expect(page.getByText('"Avaliação exclusiva 1"')).toBeVisible();
+  await expect(page.getByText(/Avaliação exclusiva 1/)).toBeVisible();
 });

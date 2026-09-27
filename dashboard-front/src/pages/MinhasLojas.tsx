@@ -12,12 +12,29 @@ import {
   ExternalLink,
   RefreshCw,
   Clock3,
+  CircleAlert,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 
 const MINING_LABELS: Record<string, string> = {
   QUEUED: "Na fila", RUNNING: "Em execução", COMPLETED: "Concluída", FAILED: "Falhou",
 };
+
+const MINING_STYLES: Record<string, { badge: string; dot: string }> = {
+  QUEUED: { badge: "bg-amber-50 text-amber-700 ring-amber-200", dot: "bg-amber-500" },
+  RUNNING: { badge: "bg-blue-50 text-blue-700 ring-blue-200", dot: "animate-pulse bg-blue-500" },
+  COMPLETED: { badge: "bg-emerald-50 text-emerald-700 ring-emerald-200", dot: "bg-emerald-500" },
+  FAILED: { badge: "bg-red-50 text-red-700 ring-red-200", dot: "bg-red-500" },
+};
+
+function getMapsHostname(mapsUrl: string) {
+  try {
+    return new URL(mapsUrl).hostname.replace(/^www\./, "");
+  } catch {
+    return "Google Maps";
+  }
+}
 
 export function MinhasLojas() {
   const { toast } = useToast();
@@ -35,6 +52,7 @@ export function MinhasLojas() {
   const [loadError, setLoadError] = useState(false);
 
   const loadEstablishments = useCallback(async () => {
+    setIsLoading(true);
     try {
       const data = await establishmentService.getAll();
       setEstablishments(data);
@@ -165,13 +183,16 @@ export function MinhasLojas() {
   return (
     <>
       <div className="space-y-6 animate-in fade-in duration-500 pb-12">
-        {/* Header */}
-        <div className="flex flex-wrap gap-3 items-center justify-between border-b border-slate-200 pb-6">
+        <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            <div className="mb-2 flex w-fit items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500 shadow-sm">
+              <Sparkles size={12} aria-hidden="true" />
+              Monitoramento contínuo
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-950">
               Minhas Lojas
             </h1>
-            <p className="text-slate-500 mt-0.5 text-sm">
+            <p className="mt-1 text-sm text-slate-500">
               {establishments.length} estabelecimento
               {establishments.length !== 1 ? "s" : ""} monitorado
               {establishments.length !== 1 ? "s" : ""}
@@ -179,31 +200,45 @@ export function MinhasLojas() {
           </div>
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 transition shadow-sm"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md sm:w-auto"
           >
-            <Plus size={14} /> Nova Loja
+            <Plus size={16} aria-hidden="true" /> Nova Loja
+          </button>
+        </header>
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-slate-500">
+            Acompanhe coletas, volume de avaliações e atualização semanal.
+          </p>
+          <button
+            type="button"
+            onClick={() => void loadEstablishments()}
+            disabled={isLoading}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+          >
+            <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} aria-hidden="true" />
+            Atualizar status
           </button>
         </div>
-
-        <button onClick={() => void loadEstablishments()} className="text-sm underline text-slate-600">
-          Recarregar status das lojas
-        </button>
-        {loadError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
-          Não foi possível atualizar as lojas. Recarregue o status para tentar novamente.
-        </p>}
-        {/* Grid */}
+        {loadError && <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <CircleAlert size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <div>
+            <p className="font-semibold">Não foi possível atualizar as lojas.</p>
+            <p className="mt-0.5 text-red-700">Use “Atualizar status” para tentar novamente.</p>
+          </div>
+        </div>}
         {isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-52 rounded-xl border border-slate-200 bg-slate-50 animate-pulse"
+                className="h-[390px] animate-pulse rounded-2xl border border-slate-200 bg-white shadow-sm"
               />
             ))}
           </div>
         ) : establishments.length === 0 && !loadError ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 py-20 text-center">
-            <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+          <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 px-6 py-20 text-center">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100">
               <Store size={22} className="text-slate-400" />
             </div>
             <p className="font-semibold text-slate-700">
@@ -214,30 +249,29 @@ export function MinhasLojas() {
             </p>
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 transition"
+              className="flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               <Plus size={14} /> Adicionar Loja
             </button>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {establishments.map((est) => (
               <div
                 key={est.id}
-                className="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+                className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-200/60"
               >
-                {/* Nome */}
                 <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-950 shadow-sm">
                       <Store size={18} className="text-white" />
                     </div>
-                    <div>
-                      <p className="font-bold text-slate-900 leading-tight">
+                    <div className="min-w-0">
+                      <p className="truncate font-bold leading-tight text-slate-950" title={est.name}>
                         {est.name}
                       </p>
-                      <p className="text-xs text-slate-400 mt-0.5 truncate max-w-[140px]">
-                        {new URL(est.mapsUrl).hostname}
+                      <p className="mt-1 truncate text-xs text-slate-400">
+                        {getMapsHostname(est.mapsUrl)}
                       </p>
                     </div>
                   </div>
@@ -246,63 +280,96 @@ export function MinhasLojas() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`Abrir ${est.name} no Google Maps`}
-                    className="text-slate-500 hover:text-slate-900 transition-colors"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
                   >
-                    <ExternalLink size={14} />
+                    <ExternalLink size={15} aria-hidden="true" />
                   </a>
                 </div>
 
-                {/* Métricas */}
-                <p role="status" className={cn("mb-2 text-xs font-semibold",
-                  est.lastMiningStatus === "FAILED" ? "text-red-700" : "text-slate-600")}>
-                  {MINING_LABELS[est.lastMiningStatus || ""] || "Ainda não iniciada"}
-                </p>
-                {est.lastMiningStatus === "FAILED" && <p role="alert" className="mb-3 text-xs text-red-700">
-                  {est.lastMiningMessage}
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                  <p
+                    role="status"
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset",
+                      MINING_STYLES[est.lastMiningStatus || ""]?.badge ?? "bg-slate-100 text-slate-600 ring-slate-200",
+                    )}
+                  >
+                    <span className={cn("h-1.5 w-1.5 rounded-full", MINING_STYLES[est.lastMiningStatus || ""]?.dot ?? "bg-slate-400")} />
+                    {MINING_LABELS[est.lastMiningStatus || ""] || "Ainda não iniciada"}
+                  </p>
+                  <button
+                    type="button"
+                    aria-pressed={est.automaticUpdatesEnabled}
+                    onClick={() => handleAutomaticToggle(est)}
+                    disabled={togglingId === est.id}
+                    className={cn(
+                      "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold transition disabled:opacity-50",
+                      est.automaticUpdatesEnabled
+                        ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                        : "bg-slate-100 text-slate-500 hover:bg-slate-200",
+                    )}
+                    title="Ativar ou pausar a atualização semanal"
+                  >
+                    {est.automaticUpdatesEnabled ? "Semanal ativa" : "Pausada"}
+                  </button>
+                </div>
+                {est.lastMiningStatus === "FAILED" && <p role="alert" className="mb-3 flex items-start gap-2 rounded-lg bg-red-50 p-3 text-xs text-red-700">
+                  <CircleAlert size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+                  <span>{est.lastMiningMessage}</span>
                 </p>}
                 {est.lastMiningMessage?.startsWith("Coleta parcial:") &&
-                  <p role="status" className="mb-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">{est.lastMiningMessage}</p>}
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  <div className="rounded-lg bg-slate-50 p-2.5 text-center">
-                    <p className="text-lg font-bold text-slate-900">
+                  <p role="status" className="mb-3 flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+                    <CircleAlert size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+                    <span>{est.lastMiningMessage}</span>
+                  </p>}
+                <div className="mb-4 grid grid-cols-3 gap-2">
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-2.5 text-center">
+                    <p className="text-lg font-bold tabular-nums text-slate-950">
                       {est.reviewCount}
                     </p>
-                    <p className="text-[10px] text-slate-500 leading-tight">
+                    <p className="text-[10px] leading-tight text-slate-500">
                       avaliações
                     </p>
                   </div>
-                  <div className="rounded-lg bg-slate-50 p-2.5 text-center">
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-2.5 text-center">
                     <div className="flex items-center justify-center gap-0.5">
-                      <p className="text-lg font-bold text-slate-900">
-                        {est.avgRating.toFixed(1)}
+                      <p className="text-lg font-bold tabular-nums text-slate-950">
+                        {est.reviewCount > 0 ? est.avgRating.toFixed(1) : "—"}
                       </p>
-                      <Star
+                      {est.reviewCount > 0 && <Star
                         size={10}
-                        className="text-yellow-400 fill-yellow-400 mb-0.5"
-                      />
+                        className="mb-0.5 fill-amber-400 text-amber-400"
+                        aria-hidden="true"
+                      />}
                     </div>
-                    <p className="text-[10px] text-slate-500 leading-tight">
+                    <p className="text-[10px] leading-tight text-slate-500">
                       nota média
                     </p>
                   </div>
-                  <div className="rounded-lg bg-slate-50 p-2.5 text-center">
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-2.5 text-center">
                     <div
                       className={cn(
-                        "text-lg font-bold rounded",
-                        scoreColor(est.satisfactionScore),
+                        "rounded text-lg font-bold tabular-nums",
+                        est.reviewCount > 0 ? scoreColor(est.satisfactionScore) : "text-slate-400",
                       )}
                     >
-                      {est.satisfactionScore.toFixed(0)}%
+                      {est.reviewCount > 0 ? `${est.satisfactionScore.toFixed(0)}%` : "—"}
                     </div>
-                    <p className="text-[10px] text-slate-500 leading-tight">
+                    <p className="text-[10px] leading-tight text-slate-500">
                       satisfação
                     </p>
                   </div>
                 </div>
 
-                {/* Barra de satisfação */}
                 <div className="mb-4">
-                  <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100"
+                    role="progressbar"
+                    aria-label={`Satisfação de ${est.name}`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={est.reviewCount > 0 ? est.satisfactionScore : 0}
+                  >
                     <div
                       className={cn(
                         "h-full rounded-full transition-all",
@@ -312,61 +379,54 @@ export function MinhasLojas() {
                             ? "bg-yellow-500"
                             : "bg-red-500",
                       )}
-                      style={{ width: `${est.satisfactionScore}%` }}
+                      style={{ width: `${est.reviewCount > 0 ? Math.min(100, Math.max(0, est.satisfactionScore)) : 0}%` }}
                     />
                   </div>
                 </div>
 
-                <div className="mb-4 flex items-center justify-between gap-3 text-xs">
-                  <div className="flex min-w-0 items-center gap-1.5 text-slate-500">
-                    <Clock3 size={12} className="shrink-0" />
+                <div className="mb-4 flex min-w-0 items-center gap-1.5 text-xs text-slate-500">
+                    <Clock3 size={13} className="shrink-0" aria-hidden="true" />
                     <span className="truncate">
-                      Última: {formatUpdateDate(est.lastMiningSuccessAt)}
+                      Última atualização: {formatUpdateDate(est.lastMiningSuccessAt)}
                     </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleAutomaticToggle(est)}
-                    disabled={togglingId === est.id}
-                    className={cn(
-                      "shrink-0 rounded-full px-2 py-1 font-medium transition disabled:opacity-50",
-                      est.automaticUpdatesEnabled
-                        ? "bg-green-50 text-green-700 hover:bg-green-100"
-                        : "bg-slate-100 text-slate-500 hover:bg-slate-200",
-                    )}
-                    title="Ativar ou pausar a atualização semanal"
-                  >
-                    {est.automaticUpdatesEnabled ? "Semanal ativa" : "Pausada"}
-                  </button>
                 </div>
 
-                {/* Ações */}
-                <div className="mb-4 space-y-1 text-xs text-slate-500">
-                  <p>Última tentativa: {formatUpdateDate(est.lastMiningAt)}</p>
-                  <p>Novas na última coleta: {est.lastNewReviews ?? 0}</p>
-                  <p>Próxima: {est.automaticUpdatesEnabled ? (est.nextMiningAt ? formatUpdateDate(est.nextMiningAt) : "Aguardando agendamento") : "Pausada"}</p>
+                <div className="mb-4 space-y-2 rounded-xl border border-slate-100 bg-slate-50/80 p-3 text-xs text-slate-500">
+                  <div className="flex justify-between gap-3">
+                    <span>Última tentativa</span>
+                    <span className="text-right font-medium text-slate-700">{formatUpdateDate(est.lastMiningAt)}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span>Novas na coleta</span>
+                    <span className="font-semibold tabular-nums text-slate-700">{est.lastNewReviews ?? 0}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span>Próxima coleta</span>
+                    <span className="text-right font-medium text-slate-700">{est.automaticUpdatesEnabled ? (est.nextMiningAt ? formatUpdateDate(est.nextMiningAt) : "Aguardando") : "Pausada"}</span>
+                  </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="mt-auto flex gap-2">
                   <button
                     onClick={() => handleRefresh(est)}
                     disabled={refreshingId === est.id}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                     title="Buscar avaliações novas agora"
                   >
                     <RefreshCw
-                      size={12}
+                      size={14}
                       className={refreshingId === est.id ? "animate-spin" : ""}
+                      aria-hidden="true"
                     />
                     {est.lastMiningStatus === "QUEUED" || est.lastMiningStatus === "RUNNING" ? "Acompanhar mineração" : "Atualizar agora"}
                   </button>
                   <button
                     onClick={() => handleDelete(est)}
                     disabled={deletingId === est.id}
-                    className="rounded-lg border border-red-100 bg-red-50 p-1.5 text-red-400 hover:bg-red-100 hover:text-red-600 transition disabled:opacity-50"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-500 transition hover:border-red-200 hover:bg-red-100 hover:text-red-700 disabled:opacity-50"
                     title="Excluir estabelecimento"
                     aria-label={`Excluir ${est.name}`}
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={15} aria-hidden="true" />
                   </button>
                 </div>
               </div>

@@ -20,15 +20,15 @@ function StatCard({
   accentColor: string;
 }) {
   return (
-    <div className={`relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow`}>
-      <div className={`absolute top-0 left-0 h-full w-1 ${accentColor}`} />
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium text-slate-500">{title}</p>
-          <p className="mt-1.5 text-3xl font-bold tracking-tight text-slate-900">{value}</p>
-          <div className="mt-1.5 text-xs text-slate-500">{sub}</div>
+    <div className="relative min-h-36 overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+      <div className={`absolute inset-x-0 top-0 h-1 ${accentColor}`} />
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</p>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-slate-950">{value}</p>
+          <div className="mt-2 min-h-8 text-xs leading-relaxed text-slate-500">{sub}</div>
         </div>
-        <div className={`rounded-lg p-2.5 bg-slate-50`}>{icon}</div>
+        <div className="shrink-0 rounded-xl bg-slate-50 p-2.5 ring-1 ring-inset ring-slate-100">{icon}</div>
       </div>
     </div>
   );
@@ -38,7 +38,7 @@ export function StatsGrid({ stats, establishments }: StatsGridProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <StatCard
-        title="Total de Avaliações"
+        title="Avaliações analisadas"
         value={stats.total}
         sub={
           stats.negative > 0 ? (
@@ -46,7 +46,7 @@ export function StatsGrid({ stats, establishments }: StatsGridProps) {
               <TrendingDown size={12} /> {stats.negative} negativas para agir
             </span>
           ) : (
-            "Nenhuma avaliação negativa!"
+            stats.total > 0 ? "Nenhuma avaliação negativa" : "Aguardando a primeira coleta"
           )
         }
         icon={<Activity size={20} className="text-indigo-500" />}
@@ -54,10 +54,10 @@ export function StatsGrid({ stats, establishments }: StatsGridProps) {
       />
       <StatCard
         title="Satisfação (IA)"
-        value={`${stats.score}%`}
+        value={stats.total > 0 ? `${stats.score}%` : "—"}
         sub={
           <span className={stats.score >= 70 ? "text-green-600" : stats.score >= 50 ? "text-yellow-600" : "text-red-500"}>
-            {stats.score >= 70 ? "Excelente" : stats.score >= 50 ? "Regular" : "Precisa melhorar"} · {stats.positive} positivas
+            {stats.total === 0 ? "Sem dados suficientes" : `${stats.positive} positivas de ${stats.total}`}
           </span>
         }
         icon={<TrendingUp size={20} className="text-green-500" />}
@@ -65,7 +65,7 @@ export function StatsGrid({ stats, establishments }: StatsGridProps) {
       />
       <StatCard
         title="Nota Média"
-        value={stats.avgRating.toFixed(1)}
+        value={stats.total > 0 ? stats.avgRating.toFixed(1) : "—"}
         sub="Google Maps · escala de 1 a 5"
         icon={<Star size={20} className="text-yellow-500 fill-yellow-500" />}
         accentColor="bg-yellow-500"
@@ -81,6 +81,21 @@ export function StatsGrid({ stats, establishments }: StatsGridProps) {
         icon={<Store size={20} className="text-blue-500" />}
         accentColor="bg-blue-500"
       />
+    </div>
+  );
+}
+
+export function StatsGridSkeleton() {
+  return (
+    <div role="status" aria-label="Carregando indicadores" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {[1, 2, 3, 4].map(item => (
+        <div key={item} className="h-36 animate-pulse rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="h-3 w-28 rounded bg-slate-200" />
+          <div className="mt-4 h-8 w-20 rounded bg-slate-200" />
+          <div className="mt-3 h-3 w-40 max-w-full rounded bg-slate-100" />
+        </div>
+      ))}
+      <span className="sr-only">Carregando indicadores...</span>
     </div>
   );
 }
