@@ -134,7 +134,7 @@ class MapsCollectorTest(unittest.IsolatedAsyncioTestCase):
         page.wait_for_timeout = AsyncMock()
         warnings = []
         with patch('maps_collector.open_reviews_panel', new=AsyncMock(return_value=100)), \
-             patch('maps_collector.sort_by_newest', new=AsyncMock()):
+             patch('maps_collector.sort_by_newest', new=AsyncMock(side_effect=RuntimeError('Empty panel'))):
             self.assertEqual(await prepare_reviews(page, AsyncMock(), warnings=warnings), 100)
         self.assertEqual(warnings, ['SORT_UNCONFIRMED'])
         self.assertEqual(page.reload.await_count, 3)
@@ -143,9 +143,44 @@ class MapsCollectorTest(unittest.IsolatedAsyncioTestCase):
         await self.page.set_content('''<button aria-label="Classificar" onclick="setTimeout(() => {
           const item=document.createElement('div'); item.setAttribute('role','menuitemradio');
           item.textContent='Mais recentes'; item.onclick=()=>window.sorted=true; document.body.append(item);
-          }, 200)">Classificar</button>''')
+          }, 200)">Classificar</button>
+          <div class="jftiEf"><span class="wiI7pd">Avaliação recente</span></div>''')
         await sort_by_newest(self.page)
         self.assertTrue(await self.page.evaluate('window.sorted'))
+
+    async def test_scrolls_below_filters_to_reveal_sorted_reviews(self):
+        await self.page.set_content('''
+          <div id="panel" style="overflow-y:auto;height:100px">
+            <button aria-label="Classificar" onclick="
+              const item=document.createElement('div'); item.setAttribute('role','menuitemradio');
+              item.textContent='Mais recentes'; document.body.append(item)">Classificar</button>
+            <div style="height:400px">Filtros</div>
+          </div>
+          <script>
+            const panel=document.getElementById('panel');
+            panel.addEventListener('scroll', () => {
+              if (!document.querySelector('.jftiEf')) {
+                const review=document.createElement('div'); review.className='jftiEf';
+                review.innerHTML='<span class="wiI7pd">18 horas atrás</span>'; panel.append(review);
+              }
+            });
+          </script>''')
+        await sort_by_newest(self.page)
+        self.assertEqual(await self.page.locator('.jftiEf').count(), 1)
+
+    async def test_dismisses_login_prompt_and_retries_sort_on_same_page(self):
+        await self.page.set_content('''
+          <button aria-label="Classificar" onclick="
+            if (!window.promptDismissed) {
+              const prompt=document.createElement('button'); prompt.textContent='Dispensar';
+              prompt.onclick=()=>{window.promptDismissed=true; prompt.remove()}; document.body.append(prompt);
+            } else {
+              const item=document.createElement('div'); item.setAttribute('role','menuitemradio');
+              item.textContent='Mais recentes'; item.onclick=()=>window.sorted=true; document.body.append(item);
+            }">Classificar</button>
+          <div class="jftiEf"><span class="wiI7pd">Avaliação recente</span></div>''')
+        await sort_by_newest(self.page)
+        self.assertTrue(await self.page.evaluate('window.promptDismissed && window.sorted'))
 
     async def test_real_five_review_store_succeeds_but_partial_five_fails(self):
         await self.page.set_content(''.join(f'<div class="jftiEf" data-review-id="{i}"><span class="wiI7pd">Texto</span></div>' for i in range(5)))

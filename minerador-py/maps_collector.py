@@ -13,6 +13,9 @@ ENTRY_SELECTOR = (
     'button:has-text("Mais avaliações"), button:has-text("More reviews")'
 )
 
+DISMISS_PROMPT_PATTERN = re.compile(r'^(Dispensar|Dismiss|Agora não|Not now)$', re.I)
+NEWEST_PATTERN = re.compile(r'mais recentes|newest', re.I)
+
 
 async def open_reviews_panel(page, accept_consent):
     """Cartões da prévia não comprovam acesso à lista completa."""
@@ -46,14 +49,61 @@ async def open_reviews_panel(page, accept_consent):
     raise RuntimeError('Não foi possível abrir a lista completa de avaliações do Google Maps; a prévia não será importada.')
 
 
+async def dismiss_optional_prompt(page):
+    """Fecha o convite de login que o Maps exibe ao abrir a ordenação."""
+    dismiss = page.get_by_role('button', name=DISMISS_PROMPT_PATTERN)
+    if await dismiss.count() and await dismiss.first.is_visible():
+        await dismiss.first.click(timeout=2500)
+        await page.wait_for_timeout(350)
+        return True
+    return False
+
+
+async def reveal_sorted_reviews(page, sort_button, *, max_rounds=8):
+    """A lista é virtualizada e só cria os cartões após rolar abaixo dos filtros."""
+    reviews = page.locator(REVIEW_SELECTOR)
+    for _ in range(max_rounds):
+        if await reviews.count() and await reviews.first.is_visible():
+            return
+        scrolled = await sort_button.evaluate('''button => {
+            let panel = button.parentElement;
+            while (panel) {
+                const style = getComputedStyle(panel);
+                if (/auto|scroll/.test(style.overflowY) && panel.scrollHeight > panel.clientHeight + 5) {
+                    const before = panel.scrollTop;
+                    panel.scrollBy(0, Math.max(300, panel.clientHeight * 0.75));
+                    return panel.scrollTop !== before || panel.scrollTop > 0;
+                }
+                panel = panel.parentElement;
+            }
+            return false;
+        }''')
+        if not scrolled:
+            await page.mouse.wheel(0, 600)
+        await page.wait_for_timeout(500)
+    raise RuntimeError('O Maps aceitou a ordenação, mas não carregou os cartões mais recentes.')
+
+
 async def sort_by_newest(page):
     button = page.locator(SORT_SELECTOR).first
-    await button.click(timeout=5000)
-    option = page.locator('[role="menuitemradio"], [role="menuitem"]').filter(
-        has_text=re.compile(r'mais recentes|newest', re.I))
-    await option.first.click(timeout=5000)
-    await page.wait_for_timeout(1500)
-    print('[INFO] Lista completa ordenada por mais recentes.', flush=True)
+    last_error = None
+    for attempt in range(2):
+        try:
+            await button.click(timeout=5000)
+            option = page.locator('[role="menuitemradio"], [role="menuitem"]').filter(
+                has_text=NEWEST_PATTERN).first
+            await option.wait_for(state='visible', timeout=3000)
+            await option.click(timeout=5000)
+            await page.wait_for_timeout(750)
+            await reveal_sorted_reviews(page, button)
+            print('[INFO] Lista completa ordenada por mais recentes.', flush=True)
+            return
+        except Exception as error:
+            last_error = error
+            if attempt == 0 and await dismiss_optional_prompt(page):
+                continue
+            break
+    raise RuntimeError('Não foi possível ordenar e carregar as avaliações mais recentes.') from last_error
 
 
 async def prepare_reviews(page, accept_consent, *, warnings=None):
@@ -65,13 +115,10 @@ async def prepare_reviews(page, accept_consent, *, warnings=None):
             if counts:
                 expected = int(re.sub(r'\D', '', counts[0]))
             await sort_by_newest(page)
-            # A successful click can still lead to an empty/failed Maps panel.
-            await page.locator(REVIEW_SELECTOR).first.wait_for(state='visible', timeout=10000)
+            # sort_by_newest também confirma que a lista virtualizada foi carregada.
             return expected
         except Exception as error:
-            dismiss = page.get_by_role('button', name=re.compile(r'^(Dispensar|Dismiss|Agora não|Not now)$', re.I))
-            if await dismiss.count() and await dismiss.first.is_visible():
-                await dismiss.first.click(timeout=2500)
+            await dismiss_optional_prompt(page)
             await page.keyboard.press('Escape')
             if attempt == 2:
                 if warnings is not None and not await page.locator(REVIEW_SELECTOR).first.is_visible():
