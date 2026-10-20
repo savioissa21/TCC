@@ -143,3 +143,20 @@ O JSON registra hashes dos inputs/checkpoints/extrator/script, revisão do
 BERTweet, versões das bibliotecas, dispositivo e limites de tokenização. A página
 recusa misturar um relatório com um rascunho ou amostra que tenha sido alterado.
 Nenhuma polaridade do rascunho é passada como entrada aos classificadores.
+
+## Comparação principal no teste M-ABSA
+
+A comparação quantitativa usada na monografia não toma o rascunho do piloto
+como gabarito. Ela utiliza os 1.040 pares rotulados da partição oficial de teste
+dos domínios **restaurant** e **food** do M-ABSA. O comando abaixo reutiliza o
+checkpoint local selecionado do BERTimbau, executa os dois modelos sobre as
+mesmas instâncias e calcula métricas globais, por classe e por aspecto:
+
+    python cientifico/avaliar_mabsa_por_aspecto.py
+
+O relatório reproduzível é salvo em
+**cientifico/resultados/comparacao_mabsa.json**. O BERTimbau alcançou acurácia
+0,8202 e F1 macro 0,6427; o BERTweet, usado como linha de base geral, alcançou
+0,6337 e 0,5306. A comparação mede as abordagens completas: o BERTweet recebe
+somente o texto, enquanto o BERTimbau recebe também aspecto e termo-alvo. Ela
+não isola exclusivamente o efeito da arquitetura.

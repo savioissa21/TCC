@@ -1,0 +1,1545 @@
+
+---PAGE 1---
+INSTITUTO FEDERAL GOIANO
+CAMPUS URUTAÍ
+NÚCLEO DE INFORMÁTICA
+CURSO DE SISTEMAS DE INFORMAÇÃO
+ARTHUR FARIA ESTRELA E SÁVIO ISSA DE SOUSA
+[TODO: CRIAR TÍTULO]
+Urutaí, 14 de outubro de 2026
+
+---PAGE 2---
+Ficha de identificação da obra elaborada pelo autor, através do
+Programa de Geração Automática do Sistema Integrado de Bibliotecas do IF Goiano - SIBi
+A663d
+Araújo, Diego Ribeiro
+ Desenvolvimento de uma API para gerenciamento de tickets de 
+serviços / Diego Ribeiro Araújo. Urutaí 2025.
+ 60f. il. 
+Orientadora: Profª. Dra. Cristiane de Fatima dos Santos Cardoso.
+Tcc (Bacharel) - Instituto Federal Goiano, curso de 0120201 - 
+Bacharelado em Sistemas de Informação - Urutaí (Campus 
+Urutaí).
+ 1. Spring Boot, API REST, Gerenciamento de Tickets, JSON 
+Web Token (JWT). I. Título.
+
+
+---PAGE 3---
+
+
+---PAGE 4---
+
+
+---PAGE 5---
+AGRADECIMENTOS
+Agradecemos primeiramente a Deus, pela força, saúde e sabedoria concedidas ao longo
+de nossa caminhada acadêmica. Aos nossos pais e familiares, pelo amor, apoio incondicional
+e incentivo contínuo em todas as etapas de nossas vidas. Aos colegas de turma e amigos que
+estiveram presentes durante essa jornada, pelas trocas de experiências, pelas conversas e pelas
+colaborações que tornaram essa caminhada mais leve e signiﬁcativa.
+Agradecemos à professora orientadora, Dra. Cristiane de Fátima dos Santos Cardoso,
+pela orientação, disponibilidade e contribuições para o desenvolvimento deste trabalho. Por ﬁm,
+agradecemos ao Instituto Federal Goiano – Campus Urutaí, pela estrutura e pelas oportunidades
+de aprendizagem proporcionadas ao longo da graduação.
+
+---PAGE 6---
+RESUMO
+Avaliações publicadas em plataformas digitais contêm informações relevantes sobre
+a experiência dos consumidores, mas seu volume e sua natureza textual diﬁcultam a análise
+manual contínua. Este trabalho apresenta o desenvolvimento e a avaliação de uma plataforma
+de Inteligência de Negócios para coleta, processamento e visualização de avaliações online de
+estabelecimentos do setor de alimentação. A solução integra uma interface web em React e
+TypeScript, uma API em Java e Spring Boot, banco de dados PostgreSQL e um módulo de
+mineração e Processamento de Linguagem Natural em Python. A identiﬁcação inicial de menções
+aos aspectos Atendimento, Comida, Ambiente e Preço é realizada por vocabulários e regras
+contextuais; a polaridade de cada menção é classiﬁcada por um BERTimbau ajustado para Análise
+de Sentimentos Baseada em Aspectos. O modelo foi treinado com 2.125 pares e selecionado
+em 569 pares de validação do M-ABSA. Em 1.040 pares de teste mantidos separados, obteve
+acurácia de 82,02% e F1 macro de 0,6427, enquanto o BERTweet utilizado como linha de base
+obteve 63,37% e 0,5306, respectivamente. A plataforma também implementa coleta incremental,
+deduplicação, atualização periódica, isolamento de dados por usuário, persistência dos trabalhos
+de mineração e apresentação de indicadores. Os testes automatizados e as veriﬁcações integradas
+demonstraram a viabilidade do ﬂuxo completo. Os resultados indicam que a especialização do
+BERTimbau para a tarefa por aspecto melhora o desempenho em relação ao classiﬁcador geral,
+embora a classe neutra, a dependência das regras de extração e a ausência de um conjunto ﬁnal
+de avaliações reais com anotação humana permaneçam como limitações.
+Palavras-chave: análise de sentimentos; análise baseada em aspectos; BERTimbau;
+inteligência de negócios; avaliações online.
+
+---PAGE 7---
+LISTA DE FIGURAS
+vi
+
+---PAGE 8---
+LISTA DE TABELAS
+3.1 Principais tecnologias utilizadas no desenvolvimento da plataforma . . . . . . . 29
+4.1 Distribuição dos pares por classe de sentimento . . . . . . . . . . . . . . . . . 44
+4.2 Desempenho do BERTimbau durante a validação . . . . . . . . . . . . . . . . 45
+4.3 Comparação geral dos modelos na partição de teste . . . . . . . . . . . . . . . 45
+4.4 Precisão, revocação e F1 por classe no teste . . . . . . . . . . . . . . . . . . . 46
+4.5 Matriz de confusão do BERTweet . . . . . . . . . . . . . . . . . . . . . . . . 46
+4.6 Matriz de confusão do BERTimbau . . . . . . . . . . . . . . . . . . . . . . . . 46
+4.7 Desempenho dos modelos por aspecto . . . . . . . . . . . . . . . . . . . . . . 47
+4.8 Testes automatizados executados na versão avaliada . . . . . . . . . . . . . . . 48
+vii
+
+---PAGE 9---
+SUMÁRIO
+1 Introdução 10
+1.1 Objetivos . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+1.2 Justiﬁcativa e contribuições . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+1.3 Delimitação do trabalho . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+1.4 Organização do trabalho . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 12
+2 Fundamentos 13
+2.1 Inteligência de Negócios . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+2.2 Reputação Online e Avaliações de Consumidores . . . . . . . . . . . . . . . . 14
+2.3 Coleta de Dados na Web e Web Scraping . . . . . . . . . . . . . . . . . . . . . 15
+2.4 Processamento de Linguagem Natural . . . . . . . . . . . . . . . . . . . . . . 16
+2.5 Análise de Sentimentos . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16
+2.6 Análise de Sentimentos Baseada em Aspectos . . . . . . . . . . . . . . . . . . 17
+2.7 Transformers e Mecanismos de Atenção . . . . . . . . . . . . . . . . . . . . . 18
+2.8 BERT, Modelos para o Português e Fine-Tuning . . . . . . . . . . . . . . . . . 19
+2.9 Arquitetura de Aplicações Web e APIs REST . . . . . . . . . . . . . . . . . . 20
+2.10 Persistência de Dados . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+2.11 Autenticação e Autorização . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+2.12 Aplicações de Página Única e React . . . . . . . . . . . . . . . . . . . . . . . 22
+2.13 Visualização de Dados e Dashboards . . . . . . . . . . . . . . . . . . . . . . . 23
+2.14 Containerização e Infraestrutura . . . . . . . . . . . . . . . . . . . . . . . . . 23
+2.15 Integração dos Fundamentos na Solução Proposta . . . . . . . . . . . . . . . . 24
+3 Materiais e Métodos 26
+3.1 Caracterização do desenvolvimento . . . . . . . . . . . . . . . . . . . . . . . 26
+3.2 Arquitetura e organização da plataforma . . . . . . . . . . . . . . . . . . . . . 27
+3.3 Tecnologias e ambiente de desenvolvimento . . . . . . . . . . . . . . . . . . . 28
+3.4 Fonte e aquisição dos dados de avaliações . . . . . . . . . . . . . . . . . . . . 29
+3.5 Procedimento de extração das avaliações . . . . . . . . . . . . . . . . . . . . . 30
+3.6 Processamento e identiﬁcação dos aspectos . . . . . . . . . . . . . . . . . . . 31
+3.7 Modelo de sentimento por aspectos . . . . . . . . . . . . . . . . . . . . . . . . 32
+3.8 Análise de sentimento das avaliações . . . . . . . . . . . . . . . . . . . . . . . 34
+3.9 Protocolo experimental de comparação dos modelos . . . . . . . . . . . . . . . 35
+3.10 Integração entre mineração, API e persistência . . . . . . . . . . . . . . . . . . 36
+viii
+
+---PAGE 10---
+3.11 Persistência e controle de duplicidades . . . . . . . . . . . . . . . . . . . . . . 37
+3.12 Atualização periódica dos estabelecimentos . . . . . . . . . . . . . . . . . . . 38
+3.13 Construção dos indicadores de Inteligência de Negócios . . . . . . . . . . . . . 38
+3.14 Segurança e controle de acesso . . . . . . . . . . . . . . . . . . . . . . . . . . 39
+3.15 Conteinerização e reprodutibilidade do ambiente . . . . . . . . . . . . . . . . 40
+3.16 Procedimentos de teste e validação . . . . . . . . . . . . . . . . . . . . . . . . 41
+3.17 Limitações metodológicas . . . . . . . . . . . . . . . . . . . . . . . . . . . . 42
+4 Resultados e Discussão 44
+4.1 Composição dos dados experimentais . . . . . . . . . . . . . . . . . . . . . . 44
+4.2 Seleção do checkpoint do BERTimbau . . . . . . . . . . . . . . . . . . . . . . 45
+4.3 Comparação entre BERTweet e BERTimbau . . . . . . . . . . . . . . . . . . . 45
+4.3.1 Matrizes de confusão . . . . . . . . . . . . . . . . . . . . . . . . . . . 46
+4.3.2 Desempenho por aspecto . . . . . . . . . . . . . . . . . . . . . . . . . 47
+4.4 Análise dos erros e do piloto com avaliações reais . . . . . . . . . . . . . . . . 47
+4.5 V alidação da plataforma . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 48
+4.6 Discussão geral e ameaças à validade . . . . . . . . . . . . . . . . . . . . . . . 49
+5 Conclusão 50
+ix
+
+---PAGE 11---
+CAPÍTULO 1
+INTRODUÇÃO
+A popularização de plataformas digitais transformou avaliações de consumidores em uma
+fonte contínua de informações sobre produtos, serviços e experiências. Comentários publicados
+online podem revelar elogios, reclamações e expectativas que diﬁcilmente seriam observados
+apenas por indicadores tradicionais. Ao mesmo tempo, acompanhar manualmente um volume
+crescente de textos demanda tempo, apresenta pouca padronização e diﬁculta a comparação entre
+períodos e dimensões do serviço.
+A Análise de Sentimentos, área do Processamento de Linguagem Natural, busca iden-
+tiﬁcar opiniões e suas polaridades em conteúdo textual (Liu, 2012; Medhat; Hassan; Korashy,
+2014). Uma classiﬁcação geral, entretanto, pode ser insuﬁciente quando uma mesma avaliação
+elogia a comida e critica o atendimento. A Análise de Sentimentos Baseada em Aspectos permite
+associar a polaridade a componentes especíﬁcos da experiência (Pontiki et al. , 2016). Essa
+granularidade torna os resultados mais úteis ao gestor, pois indica não apenas se a avaliação é
+positiva ou negativa, mas a que elemento ela se refere.
+Neste contexto, o problema investigado neste trabalho é como coletar, estruturar e
+apresentar avaliações online de modo que seus sentimentos gerais e por aspecto possam apoiar o
+acompanhamento da reputação de estabelecimentos. O recorte inicial concentra-se no setor de
+alimentação e considera quatro aspectos: Atendimento, Comida, Ambiente e Preço.
+1.1 Objetivos
+O objetivo geral é desenvolver e avaliar uma plataforma de Inteligência de Negócios capaz
+de coletar avaliações online, identiﬁcar aspectos relevantes, classiﬁcar a polaridade associada a
+10
+
+---PAGE 12---
+1.2. JUSTIFICATIVA E CONTRIBUIÇÕES 11
+cada um deles e apresentar os resultados em indicadores acessíveis ao gestor.
+Para alcançar esse objetivo, foram deﬁnidos os seguintes objetivos especíﬁcos:
+• implementar a coleta automatizada e incremental de avaliações públicas, com expansão de
+textos, ordenação pelas mais recentes e controle de duplicidade;
+• desenvolver uma arquitetura integrada composta por interface web, API, banco de dados e
+módulo de mineração textual;
+• identiﬁcar menções aos aspectos Atendimento, Comida, Ambiente e Preço por meio de
+vocabulários e regras contextuais;
+• ajustar o BERTimbau para a classiﬁcação de polaridade por aspecto e compará-lo, no
+mesmo conjunto de teste, ao BERTweet utilizado como linha de base de sentimento geral;
+• disponibilizar ﬁltros, distribuições de sentimento, séries de acompanhamento e acesso aos
+textos que originaram os indicadores; e
+• veriﬁcar o comportamento dos componentes com testes automatizados e validações inte-
+gradas do ﬂuxo da aplicação.
+1.2 Justiﬁcativa e contribuições
+O trabalho combina uma investigação experimental em Processamento de Linguagem
+Natural com a construção de um artefato de software. A principal contribuição cientíﬁca é a
+comparação controlada entre um classiﬁcador geral e um modelo ajustado à polaridade por
+aspecto em português. Como contribuição tecnológica, é apresentada uma plataforma que integra
+aquisição, análise, persistência, atualização periódica e visualização das avaliações.
+A solução mantém uma separação explícita entre duas etapas: as regras determinísticas
+localizam candidatos a aspectos no texto, enquanto o BERTimbau classiﬁca a polaridade de cada
+candidato. Essa delimitação evita atribuir ao modelo uma capacidade de extração que ele não
+executa e permite avaliar separadamente os pontos de falha do processo.
+1.3 Delimitação do trabalho
+A versão desenvolvida destina-se inicialmente a estabelecimentos do setor de alimentação.
+A aquisição utiliza a interface pública do Google Maps e, por isso, depende de uma fonte externa
+
+---PAGE 13---
+1.4. ORGANIZAÇÃO DO TRABALHO 12
+cuja estrutura pode sofrer alterações. A plataforma constitui apoio à exploração das avaliações,
+não substituindo a leitura humana em decisões críticas.
+O experimento principal utiliza as divisões em português dos domínios restaurant e food
+do M-ABSA (Wu et al., 2025). Um piloto com avaliações coletadas pela própria plataforma foi
+preparado para examinar o protocolo e casos reais, porém não é tratado como teste ﬁnal, pois
+sua anotação humana de referência não foi concluída.
+1.4 Organização do trabalho
+Além desta introdução, o Capítulo 2 apresenta os fundamentos de Inteligência de Ne-
+gócios, Processamento de Linguagem Natural, Análise de Sentimentos Baseada em Aspectos,
+modelos Transformer e tecnologias utilizadas. O Capítulo 3 descreve a arquitetura, a coleta, o
+processamento, o treinamento, o protocolo experimental e os testes. O Capítulo 4 apresenta e
+discute os resultados dos modelos e da validação da plataforma. Por ﬁm, o Capítulo 5 reúne as
+conclusões, limitações e possibilidades de trabalhos futuros.
+
+---PAGE 14---
+CAPÍTULO 2
+FUNDAMENTOS
+Este capítulo apresenta os fundamentos teóricos e tecnológicos necessários para a compre-
+ensão da solução proposta neste trabalho. São abordados conceitos relacionados à Inteligência de
+Negócios, reputação online, mineração de dados, Processamento de Linguagem Natural, análise
+de sentimentos por aspectos, modelos baseados em Transformers, desenvolvimento de aplicações
+web, persistência de dados, segurança, visualização de informações e containerização.
+A compreensão desses conceitos é necessária devido à natureza multidisciplinar da
+plataforma desenvolvida, que integra técnicas de coleta automatizada de dados, Inteligência
+Artiﬁcial e desenvolvimento Full Stack com o objetivo de transformar avaliações textuais
+publicadas por consumidores em informações relevantes para a tomada de decisão empresarial.
+2.1 Inteligência de Negócios
+A crescente digitalização das organizações ampliou signiﬁcativamente a quantidade
+de dados disponíveis para análise. Informações provenientes de sistemas internos, redes so-
+ciais, plataformas de avaliação e diferentes meios digitais podem representar uma importante
+fonte de conhecimento para empresas, desde que sejam devidamente coletadas, organizadas e
+interpretadas.
+Nesse contexto, a Inteligência de Negócios, também denominada Business Intelligence
+(BI), compreende técnicas, processos e tecnologias empregados na transformação de dados em
+informações capazes de apoiar a tomada de decisão. O objetivo não está apenas no armaze-
+namento de grandes volumes de dados, mas principalmente na capacidade de interpretá-los e
+apresentá-los de forma que possam gerar conhecimento sobre o desempenho e o contexto de
+13
+
+---PAGE 15---
+2.2. REPUTAÇÃO ONLINE E A VALIAÇÕES DE CONSUMIDORES 14
+uma organização.
+Para pequenos e médios negócios, esse processo apresenta particular importância, uma
+vez que decisões relacionadas ao atendimento, preço, qualidade de produtos e experiência
+proporcionada aos consumidores podem ser realizadas a partir da percepção registrada pelos
+próprios clientes. Dessa maneira, informações originalmente dispersas e não estruturadas
+podem ser convertidas em indicadores que auxiliam na identiﬁcação de problemas, tendências e
+oportunidades de melhoria.
+A adoção de tecnologias digitais também modiﬁcou a relação entre empresas e consumi-
+dores. Segundo Kotler, Kartajaya e Setiawan (2017), o ambiente digital ampliou a conectividade
+entre os indivíduos e modiﬁcou signiﬁcativamente a maneira como consumidores interagem com
+marcas e compartilham suas experiências. Assim, a capacidade de analisar dados produzidos
+nesse ambiente torna-se um elemento relevante para a gestão empresarial.
+No contexto deste trabalho, os conceitos de Inteligência de Negócios são aplicados por
+meio de um dashboard responsável por consolidar os resultados obtidos durante a mineração
+e o processamento das avaliações, transformando-os em gráﬁcos, indicadores e informações
+que permitam ao gestor acompanhar a percepção dos clientes sobre diferentes características do
+estabelecimento.
+2.2 Reputação Online e A valiações de Consumidores
+A reputação online pode ser compreendida como a percepção coletiva construída a res-
+peito de uma organização a partir das informações disponíveis em ambientes digitais. Entre essas
+informações estão comentários, avaliações, classiﬁcações por estrelas e relatos de experiências
+publicados pelos consumidores.
+Plataformas digitais de avaliação permitem que clientes compartilhem publicamente
+suas experiências, fazendo com que a opinião individual possa inﬂuenciar outros consumidores.
+Consequentemente, o acompanhamento dessas avaliações constitui uma importante fonte de
+informação para estabelecimentos que desejam compreender a percepção de seu público.
+Entretanto, analisar essas informações manualmente torna-se progressivamente mais
+difícil à medida que o volume de avaliações aumenta. Além disso, utilizar exclusivamente
+a média das classiﬁcações atribuídas pelos usuários pode esconder informações relevantes
+presentes nos comentários textuais.
+Uma avaliação pode, por exemplo, apresentar simultaneamente uma percepção positiva
+
+---PAGE 16---
+2.3. COLETA DE DADOS NA WEB E WEB SCRAPING 15
+sobre a qualidade de um produto e uma percepção negativa sobre o atendimento. Uma classi-
+ﬁcação única não representa adequadamente essa situação. Dessa forma, o processamento do
+conteúdo textual das avaliações possibilita uma compreensão mais detalhada da experiência
+relatada pelo consumidor.
+Neste trabalho, as avaliações disponibilizadas no Google Maps constituem a principal
+fonte de dados da plataforma. Após sua coleta, os textos são processados por modelos de
+Processamento de Linguagem Natural, permitindo que opiniões escritas em linguagem natural
+sejam transformadas em informações estruturadas e posteriormente utilizadas pelo módulo de
+Inteligência de Negócios.
+2.3 Coleta de Dados na Web e Web Scraping
+A mineração de dados envolve processos destinados à obtenção e análise de dados com
+o objetivo de identiﬁcar informações relevantes e padrões que possam ser utilizados posterior-
+mente. No contexto da Web, parte desses dados encontra-se disponível por meio de páginas
+desenvolvidas prioritariamente para interação humana, e não necessariamente para consumo
+automatizado por outros sistemas.
+O web scraping consiste na utilização de técnicas computacionais destinadas à extração
+automatizada de informações presentes em páginas da Web. Por meio desse processo, informa-
+ções apresentadas visualmente ao usuário podem ser coletadas, estruturadas e preparadas para
+utilização por outros componentes de um sistema.
+Aplicações web modernas possuem grande quantidade de conteúdo gerado dinamica-
+mente por JavaScript, o que pode tornar insuﬁciente a realização de simples requisições HTTP
+para obtenção das informações apresentadas ao usuário. Nesses casos, ferramentas de automação
+de navegadores possibilitam reproduzir programaticamente interações normalmente realizadas
+por uma pessoa.
+Para realizar a etapa de mineração deste trabalho é utilizada a biblioteca Playwright em
+conjunto com a linguagem Python. A ferramenta permite controlar navegadores programatica-
+mente, possibilitando acessar as páginas dos estabelecimentos no Google Maps, interagir com
+elementos da interface e coletar as avaliações disponíveis (Microsoft, 2026a).
+A utilização desse mecanismo permite automatizar o processo de aquisição dos dados
+utilizados pela aplicação. Após a coleta, as avaliações são organizadas e encaminhadas para as
+etapas responsáveis pelo processamento e análise de sentimentos.
+
+---PAGE 17---
+2.4. PROCESSAMENTO DE LINGUAGEM NATURAL 16
+Além da coleta inicial, a plataforma utiliza um processo periódico de atualização das
+avaliações, permitindo incorporar novos comentários e evitar a duplicação de registros anterior-
+mente armazenados. Dessa maneira, a base de dados pode acompanhar a evolução da reputação
+dos estabelecimentos ao longo do tempo.
+2.4 Processamento de Linguagem Natural
+O Processamento de Linguagem Natural (PLN) é uma área da Inteligência Artiﬁcial
+dedicada ao desenvolvimento de métodos computacionais capazes de processar, representar e
+interpretar a linguagem humana. Suas aplicações incluem tradução automática, classiﬁcação de
+textos, reconhecimento de entidades, geração de linguagem e análise de sentimentos.
+Diferentemente de informações estruturadas, textos escritos por usuários apresentam
+grande variabilidade. Abreviações, negações, erros ortográﬁcos, expressões informais, diferentes
+formas de escrever uma mesma ideia e dependências contextuais diﬁcultam sua interpretação
+por métodos computacionais tradicionais.
+Esse problema torna-se particularmente relevante na análise de avaliações de consumi-
+dores, nas quais a compreensão de uma expressão depende frequentemente das palavras que a
+acompanham. Uma mesma palavra pode assumir signiﬁcados diferentes dependendo do contexto
+em que está inserida.
+Técnicas modernas de PLN empregam modelos de aprendizado profundo capazes de
+construir representações contextuais das palavras. Esses modelos possibilitam considerar a rela-
+ção entre diferentes partes de uma sentença e contribuíram signiﬁcativamente para o desempenho
+de sistemas voltados à interpretação automática de textos.
+Neste trabalho, o PLN constitui a ligação entre os dados textuais coletados no Google
+Maps e os indicadores apresentados posteriormente ao usuário. Os comentários são submetidos
+a modelos de classiﬁcação capazes de identiﬁcar sentimentos e relacioná-los aos aspectos
+analisados pelo sistema.
+2.5 Análise de Sentimentos
+A análise de sentimentos, também conhecida como opinion mining , corresponde ao
+estudo computacional de opiniões, sentimentos, avaliações e atitudes expressas por indivíduos
+em relação a entidades, produtos, serviços, organizações ou acontecimentos (Liu, 2012).
+
+---PAGE 18---
+2.6. ANÁLISE DE SENTIMENTOS BASEADA EM ASPECTOS 17
+Uma das formas mais comuns de análise consiste na classiﬁcação de determinado texto
+de acordo com sua polaridade. Nesse cenário, uma opinião pode ser classiﬁcada, por exemplo,
+como positiva, negativa ou neutra.
+Segundo Medhat, Hassan e Korashy (2014), a análise de sentimentos constitui uma
+importante área de pesquisa dentro do Processamento de Linguagem Natural, especialmente em
+razão do crescimento de conteúdos opinativos produzidos em ambientes digitais.
+Embora a classiﬁcação geral de sentimentos forneça informações importantes, sua utiliza-
+ção isolada apresenta limitações. Um mesmo comentário pode conter diferentes opiniões sobre
+componentes distintos de um serviço. Dessa maneira, classiﬁcar todo o conteúdo utilizando
+apenas uma polaridade pode eliminar informações relevantes.
+Como exemplo, um consumidor pode considerar a comida excelente e simultaneamente
+criticar o preço ou o tempo necessário para receber o pedido. Nesse caso, caracterizar toda a
+avaliação apenas como positiva ou negativa não representa integralmente a opinião apresentada.
+Essa limitação fundamenta a utilização, neste trabalho, de uma abordagem mais granular
+de análise, denominada análise de sentimentos baseada em aspectos.
+2.6 Análise de Sentimentos Baseada em Aspectos
+A Aspect-Based Sentiment Analysis (ABSA), ou Análise de Sentimentos Baseada em
+Aspectos, é uma abordagem de mineração de opiniões que busca associar a polaridade de um
+sentimento a uma característica especíﬁca mencionada no texto. Diferentemente da análise de
+sentimento geral, que atribui uma única classiﬁcação ao conteúdo completo, a ABSA permite
+representar opiniões distintas existentes em uma mesma avaliação.
+Pontiki et al. (2016) apresentam a análise baseada em aspectos como uma tarefa que
+pode envolver a identiﬁcação dos alvos da opinião, sua associação a categorias de aspectos e a
+determinação da polaridade correspondente. Dessa maneira, uma avaliação pode ser decomposta
+em informações mais especíﬁcas, possibilitando compreender quais características receberam
+opiniões positivas, negativas ou neutras.
+Considere, por exemplo, a avaliação: “O atendimento foi excelente, porém o preço foi
+elevado”. Uma análise geral poderia apresentar diﬁculdades para representar adequadamente
+o conteúdo, pois a mesma avaliação contém opiniões de polaridades diferentes. Por meio da
+ABSA, é possível associar o sentimento positivo ao aspecto Atendimento e o sentimento negativo
+ao aspecto Preço.
+
+---PAGE 19---
+2.7. TRANSFORMERS E MECANISMOS DE ATENÇÃO 18
+No contexto deste trabalho, foram deﬁnidos quatro aspectos relacionados ao domínio de
+restaurantes: Atendimento, Comida, Ambiente e Preço. A identiﬁcação inicial desses aspectos
+é realizada por meio de um vocabulário de termos relacionados a cada categoria. Quando um
+desses termos é encontrado, o trecho correspondente, o aspecto e o termo-alvo são encaminhados
+ao modelo BERTimbau ajustado, que classiﬁca a polaridade como positiva, negativa ou neutra.
+A solução adota, portanto, uma abordagem híbrida. A identiﬁcação dos aspectos candida-
+tos é baseada em regras e palavras-chave, enquanto a classiﬁcação da polaridade condicionada ao
+aspecto é realizada por um modelo de linguagem treinado por meio de ﬁne-tuning. Paralelamente,
+um classiﬁcador do pysentimiento determina o sentimento geral da avaliação.
+Essa granularidade permite que a plataforma apresente não apenas a quantidade de
+avaliações positivas ou negativas, mas também as áreas que concentram maior satisfação ou
+insatisfação. Os resultados podem ser convertidos em indicadores especíﬁcos, auxiliando o gestor
+na identiﬁcação de problemas e na tomada de decisões relacionadas a diferentes componentes da
+experiência do consumidor.
+2.7 Transformers e Mecanismos de Atenção
+Os avanços recentes no Processamento de Linguagem Natural estão fortemente relaci-
+onados ao desenvolvimento da arquitetura Transformer. Proposta por V aswani et al. (2017),
+essa arquitetura introduziu um modelo baseado principalmente em mecanismos de atenção,
+reduzindo a dependência das estruturas recorrentes anteriormente utilizadas em diversas tarefas
+de processamento de sequências.
+O mecanismo de atenção permite que o modelo atribua diferentes níveis de importância
+às palavras de uma sequência durante seu processamento. Assim, para produzir a representação
+de determinado termo, o modelo pode considerar simultaneamente sua relação com outras partes
+do texto (V aswaniet al., 2017).
+Essa característica possui grande relevância para a interpretação da linguagem natural,
+pois o signiﬁcado de palavras e expressões depende frequentemente do contexto. Relações entre
+adjetivos, substantivos, negações e outros componentes da frase podem modiﬁcar completamente
+o signiﬁcado de uma opinião.
+A arquitetura Transformer tornou-se a base para diversos modelos de linguagem desen-
+volvidos posteriormente, incluindo o BERT, empregado como fundamento para os modelos
+utilizados neste trabalho (Devlin et al., 2019).
+
+---PAGE 20---
+2.8. BERT, MODELOS PARA O PORTUGUÊS E FINE-TUNING 19
+2.8 BERT, Modelos para o Português e Fine-Tuning
+O BERT (Bidirectional Encoder Representations from Transformers) é um modelo de
+representação de linguagem proposto por Devlin et al. (2019), fundamentado na arquitetura
+Transformer. Sua principal característica consiste no aprendizado de representações contextuais
+bidirecionais, permitindo considerar simultaneamente os contextos à esquerda e à direita de cada
+elemento textual.
+O modelo é inicialmente pré-treinado em grandes coleções de textos, adquirindo conheci-
+mento geral sobre relações linguísticas e contextuais. Posteriormente, pode ser adaptado para
+tarefas especíﬁcas por meio do processo de ﬁne-tuning. Nesse procedimento, os parâmetros
+previamente aprendidos são ajustados utilizando um conjunto de dados associado à tarefa de inte-
+resse, como classiﬁcação de sentimentos, reconhecimento de entidades ou análise de sentimentos
+baseada em aspectos (Devlin et al., 2019).
+Para o português brasileiro, Souza, Nogueira e Lotufo (2020) desenvolveram o BERTim-
+bau, uma família de modelos baseados no BERT e pré-treinados especiﬁcamente com textos nesse
+idioma. O treinamento prévio em português permite que o modelo represente características
+linguísticas, estruturas gramaticais e relações contextuais próprias da língua portuguesa.
+Neste trabalho, utiliza-se como ponto de partida o modelo BERTimbau Base, identiﬁ-
+cado como neuralmind/bert-base-portuguese-cased. Esse modelo foi submetido a um
+processo de ﬁne-tuning para classiﬁcação da polaridade associada aos aspectos considerados
+pela plataforma.
+Durante essa classiﬁcação, o modelo recebe dois segmentos textuais. O primeiro contém
+o texto da avaliação, enquanto o segundo informa o aspecto e o termo-alvo correspondente,
+seguindo uma estrutura como “Aspecto: Comida; termo-alvo: pizza”. A saída corresponde a
+uma das três classes de polaridade adotadas: positiva, negativa ou neutra.
+A análise implementada possui uma estrutura híbrida. Inicialmente, um vocabulário de
+termos relacionados ao domínio identiﬁca possíveis menções aos aspectos Atendimento, Comida,
+Ambiente e Preço. Posteriormente, o BERTimbau ajustado classiﬁca o sentimento condicionado
+ao aspecto e ao termo encontrado. Portanto, a identiﬁcação inicial dos aspectos não é realizada
+exclusivamente pelo modelo neural.
+Para a classiﬁcação do sentimento geral da avaliação, utiliza-se o modelo BERTweet-
+PT, identiﬁcado como pysentimiento/bertweet-pt-sentiment. Apesar da denominação
+presente em seu identiﬁcador, a documentação do projeto informa que o modelo é voltado à
+
+---PAGE 21---
+2.9. ARQUITETURA DE APLICAÇÕES WEB E APIS REST 20
+classiﬁcação de sentimentos em português. O modelo produz as classes positiva, negativa e
+neutra e é empregado neste trabalho como classiﬁcador de sentimento geral. O pysentimiento
+é um toolkit multilíngue voltado à mineração de opiniões e tarefas de PLN social (Pérez et al.,
+2021).
+Dessa maneira, os modelos possuem funções complementares: o classiﬁcador do pysenti-
+miento fornece a polaridade global da avaliação, enquanto o BERTimbau ajustado determina a
+polaridade relacionada a cada aspecto. A biblioteca Transformers é utilizada para carregar os
+tokenizadores e os modelos (Hugging Face, 2026), enquanto o PyTorch executa as operações
+necessárias ao treinamento e à inferência (PyTorch Foundation, 2026).
+2.9 Arquitetura de Aplicações Web e APIs REST
+A plataforma desenvolvida neste trabalho segue uma organização composta por diferentes
+componentes responsáveis pela interface com o usuário, regras da aplicação, persistência e
+processamento dos dados.
+Essa divisão favorece a separação de responsabilidades. O frontend concentra a apresen-
+tação e a interação com o usuário; o backend centraliza regras de negócio, autenticação, acesso
+aos dados e integração com os demais componentes; e o módulo desenvolvido em Python é
+responsável pelas tarefas relacionadas à mineração e ao Processamento de Linguagem Natural.
+A comunicação entre o frontend e o backend ocorre por meio de uma API REST,
+utilizando o protocolo HTTP . Nesse modelo, diferentes recursos da aplicação são disponibilizados
+por endpoints, permitindo operações de consulta e manipulação de informações.
+O backend da plataforma é desenvolvido utilizando Java 21 e Spring Boot. O ecossistema
+Spring disponibiliza diferentes módulos para o desenvolvimento de aplicações empresariais. O
+Spring Web MVC é utilizado para construção dos endpoints HTTP , enquanto o Spring Data JPA
+oferece mecanismos de abstração para persistência e consulta de entidades no banco de dados
+(Spring, 2026a,b).
+A utilização de uma API também proporciona desacoplamento entre a camada de apre-
+sentação e a lógica de negócio. Dessa forma, a interface React não necessita conhecer detalhes
+relacionados ao armazenamento ou processamento interno das informações, realizando suas
+operações por meio das interfaces disponibilizadas pelo backend.
+
+---PAGE 22---
+2.10. PERSISTÊNCIA DE DADOS 21
+2.10 Persistência de Dados
+A persistência é responsável por garantir que as informações utilizadas pela aplicação
+permaneçam disponíveis independentemente da execução dos diferentes serviços do sistema.
+Neste trabalho, essa função é realizada pelo PostgreSQL, um Sistema Gerenciador de Banco de
+Dados Relacional (PostgreSQL Global Development Group, 2026).
+Bancos de dados relacionais organizam informações por meio de tabelas e relacionamen-
+tos, possibilitando a deﬁnição de regras de integridade e a realização de consultas estruturadas.
+Essas características são adequadas ao domínio deste trabalho, no qual existem relações entre
+usuários, estabelecimentos, avaliações e resultados obtidos durante o processamento.
+A comunicação entre a aplicação Java e o banco de dados ocorre por meio do Spring Data
+JPA. A Java Persistence API possibilita o mapeamento entre objetos utilizados pela aplicação e
+estruturas armazenadas no banco relacional, abordagem conhecida como Mapeamento Objeto-
+Relacional ou ORM (Spring, 2026b).
+Por meio desse mecanismo, as entidades do domínio podem ser manipuladas utilizando
+objetos Java, enquanto as operações necessárias para sua persistência são convertidas para
+comandos direcionados ao banco de dados.
+O PostgreSQL armazena tanto informações administrativas da plataforma quanto as
+avaliações coletadas e os resultados produzidos pelo processamento. A persistência dessas
+informações permite acompanhar historicamente os dados e atualizar os indicadores apresentados
+ao usuário.
+2.11 Autenticação e Autorização
+Aplicações que armazenam informações relacionadas a diferentes usuários necessitam de
+mecanismos destinados ao controle de acesso. Autenticação e autorização representam conceitos
+complementares nesse processo.
+A autenticação tem como ﬁnalidade veriﬁcar a identidade do usuário, enquanto a autoriza-
+ção determina quais recursos e operações podem ser acessados por uma identidade previamente
+autenticada.
+Na plataforma desenvolvida, esses mecanismos são implementados utilizando Spring
+Security em conjunto com JSON Web Tokens (JWT). Após uma autenticação válida, o backend
+pode gerar um token que representa a sessão do usuário. Esse token é posteriormente enviado
+
+---PAGE 23---
+2.12. APLICAÇÕES DE PÁGINA ÚNICA E REACT 22
+pelo cliente durante as requisições realizadas a endpoints protegidos (Spring, 2026c).
+O backend realiza a validação do token antes de permitir o acesso às informações solici-
+tadas. Essa abordagem possibilita a construção de uma API sem a necessidade de manutenção
+de uma sessão convencional no servidor para cada requisição.
+No frontend, o token é utilizado para manter o estado de autenticação e controlar o acesso
+às diferentes áreas da interface. Entretanto, as decisões efetivas de autorização permanecem sob
+responsabilidade do backend, evitando que o controle de segurança dependa exclusivamente da
+aplicação executada no navegador.
+2.12 Aplicações de Página Única e React
+A interface da plataforma é implementada seguindo o modelo de Single Page Application
+(SP A). Nesse tipo de aplicação, grande parte da navegação e das atualizações de interface ocorre
+dinamicamente no navegador, sem que seja necessário recarregar integralmente a página a cada
+interação.
+O React é utilizado como tecnologia principal para desenvolvimento da camada de
+apresentação. Sua abordagem baseada em componentes possibilita dividir a interface em
+unidades reutilizáveis, facilitando a organização e manutenção da aplicação (Meta Platforms,
+2026).
+O TypeScript complementa essa estrutura por meio da introdução de tipagem estática
+ao ecossistema JavaScript. A utilização de tipos permite deﬁnir de maneira mais explícita as
+estruturas dos dados manipulados pela aplicação e auxilia na identiﬁcação de inconsistências
+durante o desenvolvimento (Microsoft, 2026b).
+O Vite é utilizado como ferramenta de desenvolvimento e construção do frontend (Vite,
+2026), enquanto o React Router DOM gerencia a navegação entre as diferentes páginas da SPA
+(React Router, 2026). Para comunicação com a API REST, a aplicação utiliza a biblioteca Axios
+(Axios, 2026).
+A estilização é realizada utilizando Tailwind CSS, que fornece classes utilitárias para
+deﬁnição visual dos elementos da interface (Tailwind Labs, 2026). Lucide React fornece os
+componentes gráﬁcos utilizados como ícones na aplicação (Lucide Contributors, 2026).
+
+---PAGE 24---
+2.13. VISUALIZAÇÃO DE DADOS E DASHBOARDS 23
+2.13 Visualização de Dados e Dashboards
+A apresentação adequada das informações constitui uma etapa fundamental em sistemas
+de Inteligência de Negócios. A existência de dados processados, isoladamente, não garante que
+eles possam ser compreendidos e utilizados durante o processo de tomada de decisão.
+Segundo Tufte (2001), uma visualização de dados eﬁciente deve apresentar informações
+quantitativas de maneira clara, favorecendo sua interpretação sem introduzir elementos que diﬁ-
+cultem a percepção dos dados. Da mesma maneira, princípios de Interação Humano-Computador
+contribuem para a construção de interfaces que auxiliam os usuários na realização de suas tarefas
+(Shneiderman, 2000).
+Nesse sentido, dashboards podem reunir diferentes indicadores em uma mesma interface,
+permitindo observar rapidamente o estado de determinadas variáveis e realizar comparações
+entre diferentes períodos ou categorias.
+No sistema proposto, os resultados gerados pela análise de sentimentos são apresentados
+por meio de elementos visuais como gráﬁcos, indicadores numéricos e distribuições de sentimen-
+tos. A biblioteca Recharts é utilizada para construção dessas visualizações dentro da aplicação
+React (Recharts, 2026).
+A representação visual dos resultados busca reduzir a necessidade de interpretação manual
+das avaliações. Dessa forma, o gestor pode identiﬁcar tendências relacionadas à percepção geral
+dos consumidores e analisar individualmente aspectos relevantes do estabelecimento, como
+atendimento, ambiente, preço e qualidade.
+2.14 Containerização e Infraestrutura
+Sistemas modernos são frequentemente compostos por diferentes serviços e tecnologias,
+cada um possuindo requisitos próprios de execução. No caso deste trabalho, a aplicação combina
+Java, Python, Node.js, Nginx e PostgreSQL, tornando relevante a adoção de mecanismos que
+simpliﬁquem a conﬁguração do ambiente.
+A containerização possibilita empacotar uma aplicação juntamente com os elementos
+necessários para sua execução em um ambiente isolado. Neste projeto, o Docker é utilizado para
+construção e execução dos componentes que formam a plataforma (Docker Inc., 2026b).
+O Docker Compose é responsável por deﬁnir e coordenar os serviços necessários ao
+funcionamento da solução, incluindo o backend, o banco de dados e o frontend. Dessa maneira,
+
+---PAGE 25---
+2.15. INTEGRAÇÃO DOS FUNDAMENTOS NA SOLUÇÃO PROPOSTA 24
+dependências e conﬁgurações de comunicação entre os componentes podem ser descritas de
+maneira centralizada (Docker Inc., 2026a).
+No ambiente de produção, o frontend React é inicialmente convertido em arquivos
+estáticos por meio do processo de build. Esses arquivos são posteriormente disponibilizados pelo
+Nginx, servidor web utilizado para entregar a interface ao navegador e encaminhar as requisições
+necessárias para a API (NGINX, 2026).
+O PostgreSQL é executado em um serviço independente, utilizando mecanismos de
+persistência para preservar os dados mesmo quando o container é reiniciado. A API, por sua vez,
+realiza a comunicação com esse serviço e integra o processamento desenvolvido em Python.
+A utilização de containers contribui para tornar o ambiente de execução mais reproduzível,
+reduzindo diferenças entre as conﬁgurações utilizadas durante desenvolvimento e implantação
+(Docker Inc., 2026b).
+2.15 Integração dos Fundamentos na Solução Proposta
+Os conceitos apresentados ao longo deste capítulo são integrados para formar o ﬂuxo
+de funcionamento da plataforma proposta. Inicialmente, o módulo de mineração acessa as
+avaliações dos estabelecimentos disponibilizadas no Google Maps e coleta os dados textuais
+necessários para análise.
+Após a obtenção das avaliações, técnicas de Processamento de Linguagem Natural são
+utilizadas para interpretar os textos. Modelos baseados na arquitetura Transformer realizam
+a identiﬁcação de sentimentos, enquanto a análise baseada em aspectos busca relacionar as
+opiniões encontradas a características especíﬁcas da experiência do consumidor.
+Os resultados desse processamento são integrados ao backend desenvolvido em Java
+com Spring Boot e armazenados no banco de dados PostgreSQL. A API REST disponibiliza
+essas informações de maneira estruturada para o frontend e aplica os mecanismos necessários de
+autenticação e autorização.
+Por ﬁm, a interface desenvolvida em React transforma os dados processados em indi-
+cadores e visualizações interativas. Dessa maneira, avaliações originalmente constituídas por
+textos não estruturados são convertidas em informações organizadas e acessíveis ao gestor.
+A integração entre mineração de dados, Processamento de Linguagem Natural, análise de
+sentimentos baseada em aspectos, desenvolvimento de software e visualização de dados constitui,
+portanto, a base tecnológica para o desenvolvimento da plataforma de Inteligência de Negócios
+
+---PAGE 26---
+2.15. INTEGRAÇÃO DOS FUNDAMENTOS NA SOLUÇÃO PROPOSTA 25
+proposta neste trabalho.
+
+---PAGE 27---
+CAPÍTULO 3
+MATERIAIS E MÉTODOS
+Este capítulo apresenta os materiais, tecnologias, métodos e procedimentos empregados
+no desenvolvimento da plataforma de Inteligência de Negócios para gestão de reputação online
+baseada em Análise de Sentimentos por Aspectos. São descritos a arquitetura da solução,
+o processo de aquisição das avaliações, o processamento textual, o treinamento e utilização
+dos modelos de linguagem, a integração entre os diferentes componentes, os mecanismos de
+persistência, segurança, atualização dos dados e os procedimentos utilizados para validação do
+sistema.
+O desenvolvimento foi realizado de forma modular, separando as responsabilidades
+relacionadas à interface com o usuário, regras de negócio, persistência, mineração de dados e
+processamento de linguagem natural. Essa organização permitiu utilizar tecnologias adequadas
+às necessidades de cada componente, mantendo a integração entre os módulos por meio de
+interfaces bem deﬁnidas.
+3.1 Caracterização do desenvolvimento
+O presente trabalho caracteriza-se como um projeto de natureza aplicada e de desen-
+volvimento tecnológico, pois envolve a implementação e avaliação de um artefato de software
+voltado à transformação de avaliações textuais de consumidores em informações estruturadas
+que possam auxiliar no acompanhamento da reputação de estabelecimentos comerciais.
+A solução desenvolvida contempla todo o ﬂuxo necessário para que avaliações origi-
+nalmente disponíveis de forma não estruturada sejam coletadas, processadas, armazenadas e
+posteriormente apresentadas ao usuário na forma de indicadores e visualizações. O ﬂuxo com-
+26
+
+---PAGE 28---
+3.2. ARQUITETURA E ORGANIZAÇÃO DA PLATAFORMA 27
+preende desde a aquisição automatizada das avaliações até a identiﬁcação de sentimentos gerais
+e sentimentos relacionados a aspectos especíﬁcos do domínio analisado.
+A implementação foi organizada segundo uma abordagem full stack, composta por uma
+aplicação web para interação com o usuário, uma API responsável pelas regras de negócio
+e persistência e um módulo independente desenvolvido em Python para mineração e análise
+textual.
+O desenvolvimento foi conduzido de maneira incremental. À medida que os componentes
+principais foram implementados, foram realizados testes isolados e integrados para veriﬁcar
+o comportamento da solução. Essa estratégia permitiu validar separadamente o backend, o
+frontend, o módulo de mineração e os modelos de Processamento de Linguagem Natural antes
+da execução do ﬂuxo completo da plataforma.
+3.2 Arquitetura e organização da plataforma
+A arquitetura do sistema foi dividida em três módulos principais: dashboard-api,
+dashboard-front e minerador-py. Além desses componentes, utiliza-se um banco de dados
+PostgreSQL para persistência das informações.
+O módulo dashboard-api corresponde ao backend da aplicação. Esse componente
+foi desenvolvido utilizando Java e Spring Boot e concentra as regras de negócio, autenticação,
+autorização, gerenciamento de usuários, estabelecimentos, avaliações, aspectos identiﬁcados,
+indicadores e trabalhos de mineração.
+O backend foi estruturado de forma a separar as responsabilidades entre as camadas
+responsáveis pela exposição dos endpoints HTTP , execução das regras de negócio e acesso
+às informações persistidas. Essa organização contribui para reduzir o acoplamento entre as
+funcionalidades e facilita a realização de testes e manutenção do código.
+O módulo dashboard-front corresponde à interface utilizada pelo usuário. A aplicação
+foi desenvolvida como uma Single Page Application utilizando React e TypeScript. Esse módulo
+é responsável pelas páginas de autenticação, cadastro e gerenciamento dos estabelecimentos,
+acompanhamento das minerações, exibição das avaliações e apresentação dos indicadores de
+Inteligência de Negócios.
+O módulo minerador-py, implementado em Python, concentra as funcionalidades
+relacionadas à aquisição das avaliações no Google Maps e ao Processamento de Linguagem
+Natural. Esse módulo realiza o controle automatizado do navegador, a extração das avaliações, a
+
+---PAGE 29---
+3.3. TECNOLOGIAS E AMBIENTE DE DESENVOLVIMENTO 28
+classiﬁcação do sentimento geral, a identiﬁcação dos aspectos candidatos e a classiﬁcação da
+polaridade relacionada a cada aspecto.
+A comunicação entre o frontend e o backend ocorre por meio de requisições HTTP
+e respostas no formato JSON. A integração entre o backend Java e o módulo Python ocorre
+por meio da criação controlada de um processo externo. O backend inicia o programa de
+mineração, fornece os parâmetros necessários à execução e posteriormente processa o arquivo
+JSON produzido.
+Dessa forma, a arquitetura possibilita que cada parte da solução utilize o ecossistema
+tecnológico mais adequado à sua ﬁnalidade, mantendo o backend como elemento responsável
+pela coordenação das operações e pela persistência dos resultados.
+3.3 Tecnologias e ambiente de desenvolvimento
+As tecnologias utilizadas foram selecionadas de acordo com as responsabilidades de cada
+módulo da plataforma. O backend utiliza Java 21 em conjunto com Spring Boot 4. A construção
+dos endpoints REST é realizada por meio do Spring Web, enquanto o acesso ao banco de dados
+utiliza Spring Data JPA e Hibernate.
+O PostgreSQL 15 foi adotado como Sistema Gerenciador de Banco de Dados Relacional.
+Para o controle da evolução do esquema do banco são utilizadas migrações versionadas por
+meio do Flyway. A criação e alteração das estruturas persistentes são, portanto, realizadas pelas
+migrações do projeto, enquanto o Hibernate é conﬁgurado para validar a compatibilidade entre
+as entidades e o esquema existente, utilizando a conﬁguração ddl-auto=validate.
+Os mecanismos de autenticação e autorização utilizam Spring Security, JSON Web Token
+(JWT) e BCrypt. A utilização desses componentes permite manter a API sem estado de sessão no
+servidor e armazenar as senhas utilizando funções de hash, em vez de texto em formato aberto.
+O módulo de mineração utiliza Python. Entre as principais bibliotecas utilizadas estão
+Playwright, Transformers, PyTorch, NumPy e pysentimiento. O Playwright é responsável pela
+automação do navegador utilizado durante a aquisição das avaliações, enquanto Transformers e
+PyTorch são empregados no carregamento, treinamento e execução dos modelos de linguagem.
+O frontend foi desenvolvido utilizando React, TypeScript e Vite. O Tailwind CSS é
+utilizado para estilização da interface, Axios para comunicação com a API, React Router para
+gerenciamento da navegação e Recharts para construção dos gráﬁcos utilizados no dashboard.
+A Tabela 3.1 apresenta uma síntese das principais tecnologias empregadas no projeto.
+
+---PAGE 30---
+3.4. FONTE E AQUISIÇÃO DOS DADOS DE A VALIAÇÕES 29
+Tabela 3.1: Principais tecnologias utilizadas no desenvolvimento da plataforma
+Tecnologia Finalidade no projeto
+Java 21 Desenvolvimento das regras de negócio e da API REST.
+Spring Boot 4 Estrutura principal do backend da aplicação.
+Spring Security e JWT Autenticação, autorização e proteção dos endpoints.
+Spring Data JPA / Hibernate Mapeamento e persistência das entidades.
+Flyway V ersionamento e aplicação das migrações do banco de dados.
+PostgreSQL 15 Armazenamento persistente das informações da plataforma.
+Python Desenvolvimento do módulo de mineração e processamento
+textual.
+Playwright Automação do navegador e aquisição das avaliações do Google
+Maps.
+PyTorch / Transformers Treinamento e inferência dos modelos de linguagem.
+pysentimiento Classiﬁcação do sentimento geral das avaliações.
+React e TypeScript Desenvolvimento da interface web da plataforma.
+Recharts Construção dos gráﬁcos e visualizações do dashboard.
+Docker e Docker Compose Padronização e orquestração do ambiente de execução.
+Nginx Disponibilização do frontend no ambiente conteinerizado.
+O ambiente principal da aplicação foi preparado para execução com Python 3.11, Java
+21, Node.js e PostgreSQL. O treinamento do modelo BERTimbau também foi realizado em
+ambiente com suporte à GPU, possibilitando o uso de aceleração por CUDA durante o processo
+de ﬁne-tuning.
+3.4 Fonte e aquisição dos dados de avaliações
+As avaliações utilizadas pela plataforma são obtidas a partir das páginas públicas de
+estabelecimentos disponibilizadas no Google Maps. O endereço do estabelecimento é cadastrado
+pelo usuário da plataforma e posteriormente utilizado pelo módulo de mineração como ponto de
+entrada para a aquisição das informações.
+A utilização das páginas públicas foi escolhida devido à presença de informações rele-
+vantes para o domínio estudado, principalmente comentários textuais, classiﬁcações por estrelas,
+identiﬁcação pública do autor e data apresentada pela plataforma.
+Como as páginas do Google Maps possuem conteúdo carregado dinamicamente, a
+aquisição não é realizada por meio de uma simples requisição HTTP ao documento HTML. Em
+
+---PAGE 31---
+3.5. PROCEDIMENTO DE EXTRAÇÃO DAS A VALIAÇÕES 30
+vez disso, o sistema utiliza um navegador automatizado capaz de executar JavaScript e reproduzir
+interações normalmente realizadas por um usuário.
+Para esse procedimento foram utilizados o Playwright e o navegador Chromium. Durante
+a execução, o navegador é iniciado em modo headless, isto é, sem a necessidade de apresentação
+da janela gráﬁca. A conﬁguração utiliza localidade pt-BR e dimensões de área de visualização
+previamente deﬁnidas, buscando manter maior consistência entre as diferentes execuções.
+Após a abertura do endereço informado, o módulo procura identiﬁcar a área responsável
+pela apresentação das avaliações e, quando disponível, solicita a ordenação dos comentários
+pelos mais recentes.
+Foi deﬁnida como meta operacional a coleta de até 100 avaliações por execução, quando
+essa quantidade estiver publicamente disponível. Entretanto, por se tratar de uma interface
+externa, dinâmica e sujeita a restrições próprias da plataforma, esse número não é considerado
+uma garantia de obtenção em todas as execuções.
+Quando a ordenação ou a quantidade pretendida não podem ser conﬁrmadas, a aplicação
+registra avisos referentes à coleta parcial. Dessa forma, uma coleta que obtenha dados válidos
+não precisa ser descartada exclusivamente por não atingir a quantidade originalmente solicitada.
+3.5 Procedimento de extração das avaliações
+A página de avaliações do Google Maps utiliza carregamento progressivo e virtualização
+de elementos. Isso signiﬁca que parte das avaliações pode ser inserida ou removida da estrutura
+da página de acordo com a rolagem realizada pelo usuário. Por esse motivo, o procedimento de
+coleta foi desenvolvido de forma iterativa.
+Inicialmente, o módulo identiﬁca os cartões correspondentes às avaliações visíveis.
+Para cada cartão encontrado são extraídas, quando disponíveis, informações relacionadas ao
+identiﬁcador da avaliação, autor, texto, classiﬁcação em estrelas e data apresentada pelo Google
+Maps.
+Comentários extensos podem ser apresentados inicialmente de forma abreviada. Nesses
+casos, o coletor tenta acionar o mecanismo de expansão do texto antes da leitura deﬁnitiva do
+conteúdo. Foram adicionadas veriﬁcações para evitar que botões relacionados a outras partes da
+interface, como respostas do estabelecimento ou menus auxiliares, sejam confundidos com o
+controle destinado à expansão da avaliação.
+Após processar os elementos visíveis, o painel de avaliações é deslocado progressiva-
+
+---PAGE 32---
+3.6. PROCESSAMENTO E IDENTIFICAÇÃO DOS ASPECTOS 31
+mente. A coleta continua enquanto novos elementos forem encontrados ou até que seja atingido
+o limite deﬁnido para a execução.
+Para evitar ciclos indeﬁnidos, foram estabelecidos limites para as tentativas de rolagem e
+para situações em que nenhuma nova avaliação é identiﬁcada. Também são utilizados tempos
+máximos de espera para carregamentos e operações do navegador.
+Durante a própria coleta é realizado um primeiro controle de duplicidade. Sempre que
+possível, utiliza-se o identiﬁcador original associado à avaliação. Na ausência desse identiﬁcador,
+é utilizada uma combinação composta por dados como autor, classiﬁcação e conteúdo textual.
+Ao ﬁnal do procedimento, as informações estruturadas são encaminhadas para a etapa
+de processamento textual. Avisos encontrados durante a aquisição, como impossibilidade de
+conﬁrmação da ordenação ou obtenção de quantidade inferior à solicitada, são preservados para
+que a aplicação possa comunicar ao backend que a coleta foi parcial.
+3.6 Processamento e identiﬁcação dos aspectos
+O processamento textual das avaliações foi dividido em duas análises complementares.
+A primeira determina o sentimento geral associado ao comentário. A segunda busca identiﬁcar
+sentimentos relacionados a aspectos especíﬁcos mencionados no texto.
+Foram deﬁnidos quatro aspectos principais relacionados ao domínio de restaurantes:
+Atendimento, Comida, Ambiente e Preço. Esses aspectos foram escolhidos por representarem
+dimensões frequentemente avaliadas pelos consumidores e por apresentarem relação direta com
+características que podem ser acompanhadas pelo gestor.
+A identiﬁcação inicial dos aspectos candidatos é realizada por um mecanismo determinís-
+tico baseado em vocabulários e regras contextuais. Cada aspecto possui um conjunto de termos
+relacionados ao seu signiﬁcado.
+No aspecto Atendimento, por exemplo, são considerados termos relacionados ao serviço,
+funcionários e tempo de atendimento. No aspecto Comida, são considerados termos associados
+a alimentos, bebidas, sabor e características dos produtos. Ambiente considera elementos
+relacionados ao espaço físico, limpeza, conforto, ruído e demais características do local. O
+aspecto Preço engloba termos relacionados a custo, valor, preço e percepção de relação entre
+preço e produto.
+Algumas palavras podem apresentar signiﬁcado ambíguo quando analisadas isoladamente.
+Nesses casos, a identiﬁcação depende da presença de outros elementos do contexto da frase.
+
+---PAGE 33---
+3.7. MODELO DE SENTIMENTO POR ASPECTOS 32
+Antes da comparação, o texto passa por uma etapa de normalização utilizada exclu-
+sivamente para a identiﬁcação das palavras candidatas. São consideradas variações de letras
+maiúsculas e minúsculas e acentuação, preservando-se, entretanto, o conteúdo original para
+armazenamento e apresentação ao usuário.
+Os comentários também são separados em segmentos utilizando pontuação e marcadores
+de contraste. Expressões como “mas”, “porém”, “contudo”, “entretanto”, “só que” e “por outro
+lado” auxiliam na divisão de sentenças que apresentam opiniões diferentes.
+Essa separação é relevante principalmente em avaliações que apresentam polaridades
+distintas para diferentes aspectos. Considere, por exemplo, o comentário “A comida estava
+excelente, porém o atendimento demorou muito”. Nesse caso, os dois trechos não devem
+necessariamente receber a mesma polaridade.
+Para cada ocorrência identiﬁcada, o mecanismo produz o aspecto correspondente, o termo-
+alvo encontrado e o trecho relacionado. Essas informações são posteriormente encaminhadas ao
+modelo de linguagem responsável pela classiﬁcação da polaridade.
+3.7 Modelo de sentimento por aspectos
+Para classiﬁcação do sentimento relacionado aos aspectos foi utilizado o BERTimbau
+Base, identiﬁcado como neuralmind/bert-base-portuguese-cased. O BERTimbau é
+baseado na arquitetura BERT e foi pré-treinado especiﬁcamente para a língua portuguesa (Souza;
+Nogueira; Lotufo, 2020).
+Diferentemente do sentimento geral, a tarefa desta etapa consiste em determinar a
+polaridade levando em consideração não apenas o comentário, mas também o aspecto especíﬁco
+que está sendo analisado.
+Para adequar o modelo a essa tarefa, foi realizado um processo de ﬁne-tuning. A base
+utilizada para o treinamento foi o conjunto M-ABSA, um recurso multilíngue destinado à Análise
+de Sentimentos Baseada em Aspectos (Wu et al., 2025).
+Foram utilizadas as partições em português relacionadas aos domínios de restaurantes
+e alimentos. As categorias originais do conjunto foram transformadas para os quatro aspectos
+utilizados na aplicação. Categorias relacionadas a serviço foram associadas a Atendimento;
+categorias referentes a comida foram associadas a Comida; categorias relacionadas ao ambiente
+e localização foram associadas a Ambiente; e categorias relacionadas a preço foram associadas a
+Preço.
+
+---PAGE 34---
+3.7. MODELO DE SENTIMENTO POR ASPECTOS 33
+As divisões oﬁciais entre treinamento, validação e teste foram preservadas. Após o
+processamento utilizado pelo projeto, foram obtidos 2.125 pares para treinamento, 569 pares
+para validação e 1.040 pares destinados ao teste ﬁnal.
+Cada exemplo utilizado pelo modelo é formado por dois segmentos. O primeiro segmento
+contém o texto original associado à avaliação. O segundo informa ao modelo o aspecto e o
+termo-alvo correspondente, seguindo uma representação semelhante a:
+Aspecto: Comida; termo-alvo: pizza
+A saída do classiﬁcador é formada por três classes de polaridade: Negativo, Neutro e
+Positivo.
+Durante a preparação da base também foi considerado o desbalanceamento existente
+entre as classes. Como avaliações positivas aparecem com frequência consideravelmente superior
+às avaliações neutras, foi utilizada amostragem balanceada durante o treinamento. A estratégia
+atribui maior probabilidade de seleção aos exemplos pertencentes às classes menos representadas.
+A conﬁguração selecionada para o treinamento utilizou duas épocas, tamanho de lote
+físico igual a 2 e acumulação de gradientes durante quatro passos, produzindo um tamanho
+efetivo de lote igual a 8. O tamanho máximo de sequência foi limitado a 128 tokens.
+Foi utilizado o otimizador AdamW com taxa de aprendizado de 2 10 5, aquecimento
+linear correspondente a 10% do treinamento e limitação da norma dos gradientes. Também foi
+deﬁnida uma semente aleatória para aumentar a reprodutibilidade dos experimentos.
+Quando disponível, foi utilizada precisão mista durante o treinamento com GPU. A
+execução utilizada para geração do modelo aplicado no sistema foi realizada em uma GPU
+NVIDIA GeForce GTX 1650 com 4 GB de memória.
+Ao término de cada época, o modelo foi avaliado sobre a partição de validação. Como o
+conjunto possui classes desbalanceadas, a principal métrica utilizada para selecionar o checkpoint
+foi a Macro-F1, pois essa medida atribui a mesma importância às diferentes classes durante o
+cálculo da média.
+Somente após a deﬁnição do melhor checkpoint utilizando a validação foi realizada a
+avaliação sobre a partição reservada para teste. As métricas resultantes desse procedimento são
+apresentadas no capítulo de Resultados e Discussão.
+Após o treinamento, o modelo e seu tokenizador são armazenados localmente. Também
+é gerado um valor SHA-256 associado ao artefato utilizado pelo sistema. Esse valor é posterior-
+
+---PAGE 35---
+3.8. ANÁLISE DE SENTIMENTO DAS A VALIAÇÕES 34
+mente veriﬁcado durante a inicialização da aplicação, reduzindo o risco de utilização acidental
+de um checkpoint diferente daquele validado.
+3.8 Análise de sentimento das avaliações
+Cada avaliação textual coletada é submetida a dois procedimentos de análise: classiﬁcação
+do sentimento geral e classiﬁcação do sentimento relacionado aos aspectos encontrados.
+O sentimento geral é obtido por meio do modelo BERTweet-PT, identiﬁcado como
+pysentimiento/bertweet-pt-sentiment e disponibilizado por meio da biblioteca pysenti-
+miento (Pérez et al., 2021). Esse classiﬁcador produz três possíveis resultados: positivo, negativo
+ou neutro.
+Essa informação é utilizada para representar a percepção predominante do comentário
+completo e alimentar indicadores gerais do dashboard.
+Em paralelo, o mecanismo de identiﬁcação de aspectos apresentado anteriormente analisa
+o texto e produz os candidatos relacionados a Atendimento, Comida, Ambiente e Preço.
+Para cada candidato identiﬁcado, o BERTimbau ajustado recebe o texto da avaliação e um
+segundo segmento contendo o aspecto e o termo-alvo. O resultado da inferência é transformado
+em uma das três classes adotadas pela aplicação, acompanhada da pontuação produzida pelo
+modelo.
+Uma mesma avaliação pode, portanto, possuir um sentimento geral e diferentes sentimen-
+tos relacionados a aspectos especíﬁcos. Essa característica permite representar situações em que
+um consumidor apresenta opiniões distintas em um único comentário.
+Como exemplo, uma avaliação pode apresentar sentimento geral positivo e, simultanea-
+mente, conter classiﬁcação positiva para Comida e negativa para Preço.
+O texto completo da avaliação é preservado para armazenamento. O processo de identi-
+ﬁcação dos aspectos utiliza esse conteúdo para produzir os trechos correspondentes, evitando
+limitar a análise apenas à representação resumida exibida originalmente na página.
+Também podem existir avaliações que contêm somente uma classiﬁcação por estrelas,
+sem comentário textual. Para esses registros foi utilizada uma regra determinística baseada na
+nota atribuída: classiﬁcações iguais ou superiores a quatro estrelas são consideradas positivas;
+classiﬁcações iguais ou inferiores a duas são consideradas negativas; e avaliações de três estrelas
+são consideradas neutras. Como não existe texto nesses casos, não são produzidos aspectos.
+Caso ocorra uma falha inesperada durante a análise necessária à execução, o processo
+
+---PAGE 36---
+3.9. PROTOCOLO EXPERIMENTAL DE COMPARAÇÃO DOS MODELOS 35
+não descarta silenciosamente a avaliação. A mineração é interrompida e o problema é infor-
+mado ao backend, permitindo que a inconsistência seja identiﬁcada em vez de gerar resultados
+parcialmente analisados sem indicação.
+3.9 Protocolo experimental de comparação dos modelos
+Para avaliar a classiﬁcação de polaridade, o BERTimbau ajustado foi comparado ao
+modelo BERTweet-PT. Os dois modelos foram executados sobre exatamente os mesmos 1.040
+pares da partição oﬁcial de teste do M-ABSA, mantida separada durante o treinamento e a
+seleção do checkpoint.
+O BERTweet foi empregado como linha de base: para cada par, recebeu apenas o texto
+e produziu uma classiﬁcação geral, que foi comparada à polaridade do aspecto anotado. O
+BERTimbau recebeu o texto e, no segundo segmento, o aspecto e o termo-alvo. Portanto, o
+experimento compara a adequação das duas abordagens à tarefa operacional do projeto; ele
+não pretende isolar exclusivamente o efeito da arquitetura, pois os modelos recebem entradas
+distintas e foram ajustados para objetivos diferentes.
+Foram calculadas acurácia, precisão, revocação e F1 para cada classe, além das médias
+macro de precisão, revocação e F1. Para uma classe , essas medidas são deﬁnidas por:
+= + , = +
+1 = 2 +
+em que , e representam, respectivamente, verdadeiros positivos, falsos positivos e falsos
+negativos. A F1 macro corresponde à média aritmética da F1 das três classes, atribuindo o mesmo
+peso a Negativo, Neutro e Positivo, independentemente de suas frequências. Também foram
+construídas matrizes de confusão e calculadas métricas separadas para Atendimento, Ambiente,
+Comida e Preço.
+Como veriﬁcação complementar do protocolo, foi selecionada de forma determinística
+uma amostra de conveniência com 30 avaliações reais, sem utilizar estrelas, autoria ou previsões
+dos modelos na seleção. A amostra foi diversiﬁcada por comprimento e proveniente do único
+estabelecimento disponível no snapshot utilizado. Um rascunho assistido foi preparado para
+apoiar a criação das regras de anotação e examinar divergências, mas nenhuma anotação humana
+
+---PAGE 37---
+3.10. INTEGRAÇÃO ENTRE MINERAÇÃO, API E PERSISTÊNCIA 36
+foi concluída. Consequentemente, concordâncias observadas nesse piloto não são reportadas
+como acurácia e não participam da escolha quantitativa do modelo.
+3.10 Integração entre mineração, API e persistência
+A execução do módulo Python é coordenada pelo backend da aplicação. Quando um
+usuário solicita a atualização de um estabelecimento, o backend registra um trabalho de mineração
+e encaminha sua execução para uma ﬁla.
+Os trabalhos possuem estados persistentes que permitem identiﬁcar a etapa em que a
+operação se encontra. Os principais estados utilizados são QUEUED, RUNNING, COMPLETED e
+FAILED.
+O primeiro representa uma mineração aguardando processamento; o segundo indica que
+a operação está em execução; o terceiro representa sua conclusão; e o último é utilizado quando
+ocorre uma falha que impede a ﬁnalização normal do processo.
+Antes da criação de uma nova operação, o backend veriﬁca a existência de um trabalho
+ativo para o mesmo estabelecimento. Caso exista uma mineração ainda na ﬁla ou em execução,
+seu identiﬁcador é reutilizado, evitando que múltiplos processos sejam iniciados simultaneamente
+sobre o mesmo estabelecimento.
+Quando a execução é iniciada, o backend utiliza um processo do sistema operacional
+para executar o módulo Python. O endereço do estabelecimento e as conﬁgurações necessárias
+são fornecidos ao minerador.
+O módulo Python realiza a aquisição, análise e estruturação das informações e produz um
+arquivo JSON temporário exclusivo para aquela execução. Esse arquivo contém as avaliações
+coletadas, seus sentimentos, aspectos e os possíveis avisos produzidos durante a coleta.
+O backend aguarda a conclusão do processo por um período máximo conﬁgurado,
+estabelecido em 15 minutos no ambiente da aplicação. Caso esse limite seja ultrapassado, o
+processo pode ser ﬁnalizado e o trabalho é tratado como uma execução que não foi concluída
+normalmente.
+Quando a execução termina, o arquivo produzido é interpretado pelo backend. As
+avaliações válidas são convertidas para as entidades utilizadas pelo sistema, submetidas aos
+mecanismos de controle de duplicidade e posteriormente persistidas.
+Os trabalhos de mineração também são armazenados no banco de dados. Essa persistência
+permite recuperar operações que estavam aguardando execução ou foram interrompidas devido
+
+---PAGE 38---
+3.11. PERSISTÊNCIA E CONTROLE DE DUPLICIDADES 37
+a uma reinicialização do backend. Durante a inicialização da aplicação, operações pendentes
+podem ser novamente encaminhadas para processamento.
+O frontend consulta o estado real dessas operações por meio da API, permitindo que
+o usuário acompanhe o andamento da mineração sem depender exclusivamente de um estado
+temporário mantido no navegador.
+3.11 Persistência e controle de duplicidades
+O PostgreSQL foi utilizado como banco de dados principal da plataforma. O modelo
+persistente contempla informações relacionadas aos usuários, estabelecimentos cadastrados,
+avaliações coletadas, aspectos identiﬁcados e trabalhos de mineração.
+As avaliações mantêm relacionamento com o estabelecimento ao qual pertencem e
+armazenam informações como autor, texto, nota, data apresentada pela fonte, sentimento geral,
+pontuação da classiﬁcação e data de coleta.
+Os aspectos são persistidos separadamente e associados à avaliação de origem. Cada
+registro pode armazenar o nome do aspecto, sentimento identiﬁcado e trecho da avaliação
+correspondente.
+Como as atualizações periódicas podem retornar avaliações já armazenadas, foi necessário
+implementar mecanismos de deduplicação.
+Sempre que o Google Maps disponibiliza um identiﬁcador associado à avaliação, esse
+valor é utilizado como base para criação de uma identidade estável em conjunto com o estabe-
+lecimento. A aplicação utiliza SHA-256 para a formação da chave determinística utilizada no
+controle interno.
+Para registros nos quais o identiﬁcador original não está disponível, é utilizada uma
+impressão derivada da combinação normalizada de autor, classiﬁcação e conteúdo textual.
+Esse procedimento permite importar apenas avaliações consideradas novas, mantendo as
+informações já persistidas anteriormente. A atualização não depende, portanto, da exclusão e
+reinserção de todo o histórico a cada mineração.
+O projeto utiliza Flyway para versionar as alterações do esquema do banco de dados.
+As migrações são executadas de forma ordenada e permanecem registradas, permitindo que
+diferentes ambientes mantenham a mesma estrutura de persistência.
+O Hibernate não é utilizado para modiﬁcar automaticamente as tabelas do ambiente de
+execução. Sua conﬁguração valida a correspondência entre as entidades Java e o esquema criado
+
+---PAGE 39---
+3.12. ATUALIZAÇÃO PERIÓDICA DOS ESTABELECIMENTOS 38
+pelo Flyway, contribuindo para maior previsibilidade durante a implantação da aplicação.
+3.12 Atualização periódica dos estabelecimentos
+Além da mineração iniciada manualmente pelo usuário, foi desenvolvido um mecanismo
+para atualização automática das avaliações dos estabelecimentos.
+O intervalo padrão deﬁnido para a atualização é de sete dias. Periodicamente, o backend
+veriﬁca quais estabelecimentos possuem atualização automática habilitada e cuja data prevista
+para nova mineração já tenha sido alcançada.
+Quando um estabelecimento atende a essas condições, um novo trabalho é encaminhado
+para a ﬁla de processamento. O mesmo controle utilizado nas operações manuais impede a
+existência de trabalhos simultâneos para o mesmo estabelecimento.
+Durante a aquisição são buscadas as avaliações mais recentes disponíveis. Após a
+conclusão, o mecanismo de deduplicação garante que apenas registros ainda não armazenados
+sejam adicionados ao banco.
+Caso uma execução apresente uma condição parcial ou uma falha que justiﬁque uma
+nova tentativa, a aplicação utiliza um intervalo menor para repetição do processo. A conﬁguração
+adotada estabelece uma nova tentativa após aproximadamente 24 horas.
+O usuário também pode desabilitar a atualização automática para determinado estabeleci-
+mento e solicitar uma atualização manual quando necessário.
+Esse mecanismo permite manter os indicadores do dashboard atualizados sem exigir que
+toda a base seja reconstruída a cada nova execução.
+3.13 Construção dos indicadores de Inteligência de Negócios
+Após a persistência das avaliações e dos resultados produzidos pelos modelos, o backend
+realiza operações de agregação para disponibilizar informações ao dashboard.
+Entre os dados consolidados estão a quantidade total de avaliações, distribuição entre
+sentimentos positivos, negativos e neutros, média das classiﬁcações por estrelas e distribuição
+dos sentimentos relacionada aos diferentes aspectos.
+Para representar a proporção de avaliações positivas foi adotado um índice calculado pela
+relação entre a quantidade de registros positivos e o total considerado:
+
+---PAGE 40---
+3.14. SEGURANÇA E CONTROLE DE ACESSO 39
+= positivo
+total
+100
+em que positivo representa a quantidade de avaliações classiﬁcadas como positivas e total
+representa a quantidade total considerada no cálculo.
+De maneira semelhante, para cada aspecto é calculada a proporção de ocorrências
+positivas:
+= positivo,aspecto
+total,aspecto
+100
+Esses valores não substituem a distribuição completa das classes, mas fornecem uma
+medida resumida utilizada na apresentação dos indicadores.
+O frontend utiliza a biblioteca Recharts para representar as informações agregadas. São
+empregados gráﬁcos para apresentação da distribuição geral dos sentimentos e dos resultados
+relacionados aos diferentes aspectos.
+A plataforma permite analisar um estabelecimento individualmente ou consolidar os
+estabelecimentos vinculados ao usuário. As consultas realizadas no backend consideram o ﬁltro
+utilizado pelo frontend, garantindo que os indicadores e a lista de avaliações estejam associados
+ao mesmo conjunto de dados.
+Além dos gráﬁcos, as próprias avaliações permanecem disponíveis na interface, per-
+mitindo relacionar os indicadores quantitativos aos comentários que contribuíram para sua
+formação.
+Para reduzir interpretações baseadas em poucas ocorrências, a interface adota como regra
+operacional um mínimo de dez menções para incluir um aspecto nos destaques de pontos fortes
+ou de atenção. Aspectos com menos ocorrências continuam visíveis, acompanhados do aviso
+“amostra pequena”. Esse limite é uma salvaguarda heurística de apresentação, e não um intervalo
+de conﬁança estatístico nem garantia de representatividade.
+3.14 Segurança e controle de acesso
+A segurança da API foi implementada utilizando Spring Security e JSON Web Token. A
+arquitetura de autenticação é sem estado, isto é, o backend não mantém uma sessão tradicional
+armazenada para cada usuário autenticado.
+As rotas utilizadas para cadastro e autenticação são disponibilizadas publicamente, assim
+
+---PAGE 41---
+3.15. CONTEINERIZAÇÃO E REPRODUTIBILIDADE DO AMBIENTE 40
+como o endpoint utilizado para veriﬁcação da disponibilidade da aplicação. Os demais recursos
+da API exigem autenticação.
+Quando as credenciais são validadas, é gerado um token JWT. Nas requisições subse-
+quentes, esse token é enviado pelo cliente e analisado por um ﬁltro de segurança antes que o
+acesso aos endpoints protegidos seja autorizado.
+As senhas cadastradas não são armazenadas diretamente. O backend utiliza BCrypt para
+gerar representações derivadas das senhas antes de persistir as credenciais.
+Além da autenticação, foram implementadas veriﬁcações de propriedade dos recursos.
+Dessa forma, um usuário autenticado não deve obter acesso às informações pertencentes a outro
+usuário apenas por conhecer um identiﬁcador interno de estabelecimento, avaliação ou trabalho
+de mineração.
+As regras de CORS também são conﬁguradas no backend para determinar quais origens
+podem realizar chamadas para a API no ambiente em que a aplicação é executada.
+3.15 Conteinerização e reprodutibilidade do ambiente
+A solução utiliza Docker e Docker Compose para padronizar a execução dos principais
+componentes.
+No ambiente conteinerizado são deﬁnidos serviços relacionados ao banco de dados
+PostgreSQL, backend e frontend. Essa abordagem reduz a necessidade de conﬁguração manual
+das dependências em cada computador utilizado para executar a aplicação.
+O serviço do banco de dados utiliza PostgreSQL 15 e possui armazenamento persistente,
+evitando perda das informações quando o container é recriado.
+A API utiliza variáveis de ambiente para receber informações especíﬁcas da implantação,
+como conexão com o banco, conﬁgurações de segurança, origens permitidas, caminhos do
+módulo Python e parâmetros relacionados à mineração.
+O frontend passa pelo processo de construção da aplicação React e seus arquivos estáticos
+são disponibilizados por meio do Nginx.
+São utilizados mecanismos de veriﬁcação de disponibilidade para coordenar a inicia-
+lização dos serviços. Dessa maneira, componentes que dependem de outros serviços podem
+aguardar que suas dependências estejam disponíveis antes de iniciar o funcionamento completo.
+O checkpoint do BERTimbau utilizado para análise por aspectos é tratado como um
+artefato externo ao código-fonte principal. No ambiente de execução ele é disponibilizado de
+
+---PAGE 42---
+3.16. PROCEDIMENTOS DE TESTE E VALIDAÇÃO 41
+forma controlada para o módulo responsável pela inferência.
+Antes de iniciar uma mineração, o sistema veriﬁca a existência dos arquivos necessários
+e o valor SHA-256 esperado para o modelo. Essa medida contribui para garantir que o modelo
+executado seja o mesmo artefato selecionado e validado durante os experimentos.
+O modelo utilizado para sentimento geral também pode utilizar cache local dos artefatos
+obtidos por meio da infraestrutura da biblioteca Transformers, reduzindo a necessidade de
+downloads repetidos entre diferentes execuções.
+3.16 Procedimentos de teste e validação
+A validação da plataforma foi realizada em diferentes níveis, contemplando testes auto-
+matizados dos módulos individuais e veriﬁcações do ﬂuxo completo da aplicação.
+No backend foram desenvolvidos testes relacionados às regras de negócio, autenticação,
+autorização, persistência, consultas, mineração, gerenciamento dos trabalhos, recuperação das
+operações após reinicialização, deduplicação e tratamento de situações de erro.
+Na versão ﬁnal utilizada para validação, a suíte do backend compreendeu 116 testes
+automatizados em Java.
+O módulo Python foi validado por meio de testes relacionados ao coletor do Google Maps,
+processamento das avaliações, identiﬁcação dos aspectos, veriﬁcação do checkpoint utilizado
+pelo BERTimbau e mecanismos auxiliares relacionados à mineração. A suíte correspondente
+compreendeu 45 testes automatizados.
+No frontend foram utilizados Vitest e Testing Library para testes dos componentes e
+comportamentos da interface. A versão considerada na validação ﬁnal possuía nove testes
+automatizados desse nível.
+Também foram realizados testes de ponta a ponta utilizando Playwright. Esses testes
+veriﬁcam a interação com a aplicação de forma semelhante ao comportamento do usuário,
+atravessando mais de uma camada do sistema. Na validação ﬁnal foram executados três cenários
+E2E.
+Além dos testes funcionais, o frontend foi submetido à análise estática com ESLint e ao
+processo completo de build, permitindo identiﬁcar problemas de tipagem, sintaxe e construção
+antes da implantação.
+A integração também foi veriﬁcada em ambiente Docker utilizando PostgreSQL 15,
+Java 21, Python 3.11, navegador Chromium e Nginx. Esse procedimento permitiu validar a
+
+---PAGE 43---
+3.17. LIMITAÇÕES METODOLÓGICAS 42
+comunicação entre os serviços em uma conﬁguração próxima daquela deﬁnida para execução do
+projeto.
+Durante as veriﬁcações integradas foram contemplados, entre outros pontos, a execução
+das migrações do banco de dados, autenticação, isolamento das informações entre usuários,
+criação e acompanhamento dos trabalhos de mineração, recuperação de operações após reinicia-
+lização, importação das avaliações e controle de duplicidades.
+O processo de integração contínua do repositório também executa veriﬁcações automati-
+zadas quando são realizadas alterações na branch principal ou abertas solicitações de integração
+de código.
+Nesse ﬂuxo são preparados ambientes especíﬁcos para backend, módulo Python e fron-
+tend. O backend utiliza Java 21, enquanto o módulo de mineração utiliza Python 3.11 e o
+frontend utiliza ambiente Node.js. São executados os testes, veriﬁcações de código e processo
+de construção aplicáveis a cada componente.
+Os resultados observados durante os experimentos e durante a validação da plataforma
+são discutidos no Capítulo 4.
+As ferramentas auxiliares utilizadas para seleção da amostra, preparação do caderno
+de anotação e veriﬁcação dos relatórios cientíﬁcos foram cobertas por 17 testes automatizados
+adicionais.
+3.17 Limitações metodológicas
+Apesar dos mecanismos utilizados para aumentar a robustez e a reprodutibilidade do
+processo, algumas limitações devem ser consideradas na interpretação dos resultados.
+A primeira está relacionada à aquisição das avaliações. A mineração depende da estrutura
+pública disponibilizada pelo Google Maps, cuja interface é externa ao controle da aplicação.
+Modiﬁcações no HTML, nomes dos elementos, mecanismos de virtualização, políticas de
+carregamento ou restrições aplicadas pela plataforma podem alterar o comportamento do coletor.
+Por esse motivo, a obtenção de exatamente 100 avaliações e a conﬁrmação da ordenação
+pelos comentários mais recentes não são consideradas garantias absolutas em todas as execu-
+ções. O sistema procura identiﬁcar essas condições e registrar avisos quando a coleta ocorre
+parcialmente.
+Outra limitação está relacionada à base utilizada no treinamento do modelo especializado.
+O M-ABSA possui versões multilíngues construídas por processo de tradução acompanhado
+
+---PAGE 44---
+3.17. LIMITAÇÕES METODOLÓGICAS 43
+de procedimentos de revisão (Wu et al. , 2025). Embora essa característica permita utilizar
+exemplos em português e seja adequada à experimentação do método empregado, esses dados
+não representam necessariamente toda a variabilidade encontrada em avaliações espontaneamente
+escritas por consumidores brasileiros.
+Dessa forma, os resultados obtidos com o conjunto de teste são utilizados para avaliar
+o comportamento do modelo dentro do conjunto empregado no experimento, não devendo ser
+interpretados automaticamente como uma medição deﬁnitiva de desempenho para qualquer
+estabelecimento ou tipo de texto em produção.
+Uma possibilidade de evolução consiste na construção ou utilização de um conjunto
+formado por avaliações reais em português brasileiro anotadas manualmente para os mesmos
+aspectos adotados pela plataforma.
+Também devem ser consideradas as limitações do mecanismo determinístico utilizado
+para a identiﬁcação inicial dos aspectos. A abordagem baseada em vocabulários possui a
+vantagem de fornecer um procedimento controlável e interpretável, porém pode deixar de
+reconhecer aspectos expressos de maneira implícita ou por termos que não estejam contemplados
+nas regras deﬁnidas.
+Além disso, fenômenos linguísticos como ironia, sarcasmo, negação complexa, dependên-
+cias entre sentenças e expressões muito especíﬁcas de determinadas regiões podem representar
+desaﬁos para os classiﬁcadores.
+Por essa razão, a metodologia adotada não considera a análise automatizada como substi-
+tuta da interpretação humana dos comentários. Os indicadores são utilizados como mecanismo de
+apoio à organização e exploração das informações, mantendo as avaliações originais disponíveis
+para consulta pelo usuário.
+Mesmo diante dessas limitações, a integração entre aquisição automatizada, identiﬁcação
+contextual de aspectos, classiﬁcação utilizando modelos de linguagem, persistência estruturada
+e visualização dos resultados estabelece um ﬂuxo reproduzível para investigar a aplicação de
+Análise de Sentimentos Baseada em Aspectos no acompanhamento da reputação online.
+
+---PAGE 45---
+CAPÍTULO 4
+RESULTADOS E DISCUSSÃO
+Este capítulo apresenta os resultados do ajuste e da comparação dos modelos de sen-
+timento, a análise dos erros observados e as veriﬁcações realizadas sobre a plataforma. Os
+resultados quantitativos principais referem-se à partição de teste do M-ABSA. O piloto com
+avaliações coletadas pelo sistema é discutido separadamente, pois ainda não possui rótulos
+humanos de referência.
+4.1 Composição dos dados experimentais
+Após o mapeamento das categorias originais para Atendimento, Ambiente, Comida
+e Preço e a remoção dos conﬂitos descritos no método, foram utilizados 2.125 pares para
+treinamento, 569 para validação e 1.040 para teste. A Tabela 4.1 apresenta a distribuição das
+classes.
+Tabela 4.1: Distribuição dos pares por classe de sentimento
+Partição Negativo Neutro Positivo Total
+Treinamento 529 73 1.523 2.125
+V alidação 137 34 398 569
+Teste 218 76 746 1.040
+Fonte: Elaborado pelos autores com
+base no M-ABSA..
+Observa-se predominância da classe Positivo e baixa representação da classe Neutro. No
+treinamento, os 73 exemplos neutros correspondem a apenas 3,44% dos pares. Esse desbalancea-
+mento motivou o uso da amostragem balanceada e a escolha da F1 macro como medida principal
+de seleção, pois a acurácia isolada poderia favorecer o desempenho na classe majoritária.
+Na partição de teste, a distribuição por aspecto também foi desigual: 782 pares de
+44
+
+---PAGE 46---
+4.2. SELEÇÃO DO CHECKPOINT DO BERTIMBAU 45
+Comida, 124 de Atendimento, 74 de Ambiente e 60 de Preço. Assim, resultados de aspectos
+menos frequentes, especialmente quando uma de suas classes possui poucos exemplos, devem
+ser interpretados com cautela.
+4.2 Seleção do checkpoint do BERTimbau
+O treinamento foi executado por duas épocas. A Tabela 4.2 apresenta a evolução obser-
+vada na partição de validação.
+Tabela 4.2: Desempenho do BERTimbau durante a validação
+Época Acurácia Precisão macro Revocação macro F1 macro
+1 0,7750 0,6277 0,6867 0,6317
+2 0,8453 0,6769 0,7081 0,6856
+Fonte: Elaborado
+pelos autores..
+A segunda época elevou a F1 macro em 0,0539 e a acurácia em 7,03 pontos percentuais,
+sendo escolhida como checkpoint ﬁnal. A seleção ocorreu antes da avaliação do teste, evitando
+utilizar a partição ﬁnal para decidir qual versão do modelo deveria ser mantida.
+4.3 Comparação entre BERTweet e BERTimbau
+A Tabela 4.3 reúne as métricas calculadas sobre os mesmos 1.040 pares de teste.
+Tabela 4.3: Comparação geral dos modelos na partição de teste
+Modelo Acurácia Precisão macro Revocação macro F1 macro
+BERTweet 0,6337 0,6121 0,6104 0,5306
+BERTimbau 0,8202 0,6354 0,6546 0,6427
+Fonte:
+Elaborado pelos autores..
+O BERTimbau apresentou ganho de 18,65 pontos percentuais de acurácia e de 0,1121
+em F1 macro. Esse resultado sustenta sua adoção na classiﬁcação por aspecto da plataforma.
+O ganho não deve, contudo, ser interpretado como prova de superioridade geral da arquitetura:
+o BERTweet é um classiﬁcador de sentimento geral e recebeu somente o texto, enquanto o
+BERTimbau foi ajustado para a tarefa e recebeu também o aspecto e o termo-alvo. A comparação
+demonstra maior adequação à tarefa deﬁnida neste trabalho.
+A Tabela 4.4 detalha o desempenho por classe.
+
+---PAGE 47---
+4.3. COMPARAÇÃO ENTRE BERTWEET E BERTIMBAU 46
+Tabela 4.4: Precisão, revocação e F1 por classe no teste
+Modelo Classe Precisão Revocação F1 Suporte
+BERTweet Negativo 0,7388 0,4541 0,5625 218
+Neutro 0,1410 0,6974 0,2345 76
+Positivo 0,9566 0,6796 0,7947 746
+BERTimbau Negativo 0,7578 0,7752 0,7664 218
+Neutro 0,2212 0,3026 0,2556 76
+Positivo 0,9271 0,8861 0,9061 746
+Fonte: Elaborado
+pelos autores..
+O maior avanço ocorreu nas classes Negativo e Positivo. Para Negativo, a F1 passou
+de 0,5625 para 0,7664; para Positivo, de 0,7947 para 0,9061. A classe Neutro permaneceu
+problemática nos dois modelos. O BERTweet recuperou 69,74% dos exemplos neutros, mas
+sua precisão de 14,10% mostra que atribuiu Neutro a muitos exemplos de outras classes. O
+BERTimbau reduziu esse excesso, porém recuperou somente 30,26% dos neutros.
+4.3.1 Matrizes de confusão
+As Tabelas 4.5 e 4.6 apresentam as matrizes de confusão. As linhas representam as
+classes esperadas e as colunas, as classes previstas.
+Tabela 4.5: Matriz de confusão do BERTweet
+Esperado / previsto Negativo Neutro Positivo
+Negativo 99 107 12
+Neutro 12 53 11
+Positivo 23 216 507
+Fonte: Elaborado pelos autores..
+Tabela 4.6: Matriz de confusão do BERTimbau
+Esperado / previsto Negativo Neutro Positivo
+Negativo 169 28 21
+Neutro 22 23 31
+Positivo 32 53 661
+Fonte: Elaborado pelos autores..
+O BERTweet previu a classe Neutro 376 vezes, embora o teste contenha somente 76
+exemplos dessa classe. Entre os positivos, 216 foram deslocados para Neutro. No BERTimbau,
+esse deslocamento caiu para 53 casos e o número de positivos corretamente classiﬁcados
+aumentou de 507 para 661. Ainda assim, 31 dos 76 neutros foram classiﬁcados como positivos,
+conﬁrmando que a fronteira entre uma descrição neutra e uma avaliação favorável permanece
+difícil.
+
+---PAGE 48---
+4.4. ANÁLISE DOS ERROS E DO PILOTO COM A VALIAÇÕES REAIS 47
+4.3.2 Desempenho por aspecto
+A Tabela 4.7 apresenta acurácia e F1 macro calculadas separadamente para cada aspecto.
+Tabela 4.7: Desempenho dos modelos por aspecto
+BERTweet BERTimbau
+(lr)3-4(lr)5-6 Aspecto n Acurácia F1 macro Acurácia F1 macro
+Ambiente 74 0,6892 0,4645 0,8378 0,5113
+Atendimento 124 0,6935 0,5771 0,8710 0,6709
+Comida 782 0,6304 0,5173 0,8197 0,6228
+Preço 60 0,4833 0,4564 0,7000 0,5934
+Fonte:
+Elaborado pelos autores..
+O BERTimbau superou a linha de base nos quatro aspectos e nas duas métricas. Aten-
+dimento apresentou a maior acurácia, 87,10%, enquanto Preço apresentou a menor, 70,00%.
+Entretanto, Ambiente contém apenas um exemplo negativo e cinco neutros; por isso, sua F1
+macro é sensível a poucos acertos ou erros e não deve ser comparada isoladamente a aspectos
+com distribuição mais ampla. Comida concentra 75,19% do teste e, portanto, exerce maior
+inﬂuência sobre a acurácia global.
+4.4 Análise dos erros e do piloto com avaliações reais
+Os resultados indicam três fontes principais de erro. A primeira é o desbalanceamento
+de classes, particularmente a baixa quantidade de neutros. A segunda é a diferença tênue entre
+descrição factual e avaliação: aﬁrmações sobre disponibilidade, preço ou características do
+ambiente podem depender de informações apresentadas em outra sentença. A terceira envolve o
+próprio recorte do trecho. Contrastes, negações e múltiplos aspectos em uma avaliação podem
+fazer com que um contexto amplo introduza sinais pertencentes a outro alvo.
+O piloto de desenvolvimento reuniu 30 avaliações reais, sendo cinco curtas, 13 médias
+e 12 longas. Como somente um estabelecimento estava disponível no snapshot, a amostra não
+representa a diversidade do domínio. Após a revisão do protocolo, o rascunho assistido continha
+87 menções candidatas e uma ocorrência foi excluída pela regra de não experiência.
+Casos como a frase “não cheguei a experimentar a comida” evidenciaram a necessidade
+de separar menção lexical de opinião. A presença da palavra “comida” não expressa, nesse
+caso, polaridade sobre sua qualidade; a versão ﬁnal das regras exclui declarações simples de
+não consumo antes da classiﬁcação. Em contrapartida, críticas de indisponibilidade, como a
+
+---PAGE 49---
+4.5. VALIDAÇÃO DA PLATAFORMA 48
+ausência repetida de uma bebida desejada, permanecem candidatas, pois podem representar uma
+experiência negativa relacionada à oferta.
+Outro caso observado foi “o ambiente é bom”, classiﬁcado como Neutro pelo BERTimbau
+apesar do marcador avaliativo positivo. Exemplos dessa natureza mostram que a conﬁança da
+saída do modelo não deve ser interpretada como probabilidade comprovada de acerto e reforçam
+a importância de manter o texto original acessível no dashboard.
+As previsões do BERTweet e do BERTimbau foram exibidas no caderno de revisão para
+apoiar a análise das fronteiras do protocolo. Contudo, os campos destinados aos rótulos humanos
+permaneceram vazios. Por essa razão, os valores de concordância com o rascunho assistido não
+são utilizados como métricas cientíﬁcas, não substituem um gabarito humano e não permitem
+aﬁrmar o desempenho ponta a ponta em avaliações reais. Essa separação evita transformar uma
+sugestão produzida durante o desenvolvimento em evidência de validação.
+4.5 Validação da plataforma
+Além do experimento dos modelos, foram executadas as suítes automatizadas apresenta-
+das na Tabela 4.8.
+Tabela 4.8: Testes automatizados executados na versão avaliada
+Componente Testes Resultado
+Backend Java/Spring Boot 116 Aprovados
+Minerador e processamento Python 45 Aprovados
+Componentes do frontend 9 Aprovados
+Cenários de ponta a ponta do frontend 3 Aprovados
+Ferramentas do protocolo cientíﬁco 17 Aprovados
+Total 190 Aprovados
+Fonte: Elaborado pelos autores..
+Os testes do backend cobriram autenticação, autorização por proprietário, migrações,
+consultas, ﬁla cheia, persistência e recuperação dos trabalhos de mineração, deduplicação e
+tratamento de erros. No minerador foram veriﬁcadas, entre outras situações, a expansão de
+comentários, a rolagem de listas virtualizadas, a ordenação pelas avaliações recentes, a extração
+de aspectos e a validação do checkpoint. Os cenários E2E percorreram autenticação, navegação,
+mineração, ﬁltros de estabelecimento, paginação e consistência dos indicadores.
+O sistema também foi executado por meio do Docker Compose com PostgreSQL, bac-
+kend, minerador e frontend. O ﬂuxo de autenticação, cadastro do estabelecimento, criação e
+acompanhamento do trabalho, coleta, importação e visualização foi exercitado no ambiente
+
+---PAGE 50---
+4.6. DISCUSSÃO GERAL E AMEAÇAS À VALIDADE 49
+integrado. Em uma atualização subsequente com 100 avaliações processadas, o mecanismo
+reconheceu 99 registros já armazenados e importou um registro novo. O resultado fornece
+evidência funcional de coleta incremental e deduplicação, embora não constitua um ensaio de
+desempenho.
+4.6 Discussão geral e ameaças à validade
+Os resultados respondem ao objetivo de comparar o classiﬁcador geral usado inicialmente
+com um modelo especializado por aspecto: dentro do teste M-ABSA, o BERTimbau foi superior
+no resultado global, por classe e nos quatro aspectos. Sua incorporação ao sistema é, portanto,
+coerente com a evidência disponível.
+A validade interna é favorecida pelo uso das mesmas instâncias de teste para os dois
+modelos, pela preservação das divisões oﬁciais e pela seleção do checkpoint na validação. Por
+outro lado, as entradas distintas representam uma ameaça quando se tenta atribuir o ganho apenas
+à arquitetura. O resultado mede as abordagens completas: sentimento geral sem aspecto contra
+um modelo ajustado com aspecto e termo-alvo.
+Quanto à validade externa, os textos em português do M-ABSA derivam de um processo
+multilíngue de tradução e revisão (Wu et al., 2025). Eles não abrangem necessariamente variações
+regionais, erros ortográﬁcos, ironia e outros fenômenos encontrados em comentários espontâneos
+brasileiros. Além disso, o piloto real contém uma única loja e ainda não foi adjudicado por
+anotadores humanos.
+A qualidade ponta a ponta depende de duas decisões: reconhecer se um aspecto está
+presente e classiﬁcar sua polaridade. As métricas principais avaliam a segunda tarefa com
+aspectos já anotados. Assim, uma boa classiﬁcação não elimina falsos positivos ou falsos
+negativos das regras de extração. A plataforma reduz esse risco por meio de regras contextuais,
+segmentação e exclusão de não consumo simples, mas um conjunto real anotado continua
+necessário para medir integralmente o processo.
+Por ﬁm, a coleta depende da interface pública do Google Maps. A automação foi
+fortalecida com tentativas controladas, avisos de coleta parcial e testes para listas virtualizadas,
+mas alterações externas podem exigir manutenção. Para uma implantação comercial, uma
+integração autorizada com a API oﬁcial do Perﬁl da Empresa no Google constitui alternativa
+mais estável quando o proprietário conceder acesso.
+
+---PAGE 51---
+CAPÍTULO 5
+CONCLUSÃO
+Este trabalho teve como objetivo desenvolver e avaliar uma plataforma capaz de trans-
+formar avaliações online em indicadores de sentimento geral e por aspecto. O objetivo foi
+atendido por meio da integração entre coleta automatizada, Processamento de Linguagem Na-
+tural, persistência, atualização incremental e visualização dos resultados em uma aplicação
+web.
+A arquitetura construída separa o frontend em React e TypeScript, a API em Java e Spring
+Boot, o banco PostgreSQL e o módulo Python responsável pela coleta e análise textual. Essa
+divisão permitiu tratar autenticação, autorização, isolamento dos estabelecimentos, persistência
+dos trabalhos de mineração, recuperação após reinício, deduplicação e atualização periódica.
+A execução conteinerizada e os 190 testes automatizados distribuídos entre os componentes
+forneceram evidências de funcionamento e reprodutibilidade do artefato.
+Na etapa de Análise de Sentimentos Baseada em Aspectos, o trabalho delimitou ex-
+plicitamente as responsabilidades da solução. V ocabulários e regras contextuais identiﬁcam
+as menções candidatas a Atendimento, Ambiente, Comida e Preço, enquanto o BERTimbau
+ajustado classiﬁca a polaridade de cada menção. O modelo não é apresentado, portanto, como
+responsável sozinho pela extração dos aspectos.
+No teste composto por 1.040 pares do M-ABSA, o BERTimbau alcançou acurácia de
+82,02% e F1 macro de 0,6427. O BERTweet usado como linha de base alcançou 63,37% e
+0,5306, respectivamente. O ganho de 18,65 pontos percentuais de acurácia e 0,1121 de F1 macro,
+juntamente com o melhor resultado nos quatro aspectos analisados, fundamentou a escolha do
+BERTimbau para a tarefa por aspecto. A comparação demonstra a vantagem da abordagem
+50
+
+---PAGE 52---
+CAPÍTULO 5. CONCLUSÃO 51
+especializada no contexto deste projeto, sem aﬁrmar superioridade universal entre os modelos.
+Os resultados também mostraram que a classe Neutro permanece como principal limitação
+do classiﬁcador. O desbalanceamento dos dados, a ambiguidade entre descrições e avaliações e a
+dependência do contexto contribuem para esse comportamento. A regra que exclui declarações
+simples de não consumo foi incorporada após a inspeção do piloto, evitando atribuir sentimento
+a uma experiência que o autor declarou não ter vivenciado.
+Entre as limitações, destacam-se o uso de dados multilíngues traduzidos no experimento,
+a dependência da estrutura pública e mutável do Google Maps, o recorte inicial ao setor de
+alimentação e a extração de aspectos baseada em vocabulários. Além disso, as 30 avaliações reais
+selecionadas foram utilizadas para desenvolvimento do protocolo, mas ainda não constituem
+teste cientíﬁco ﬁnal: elas pertencem a um único estabelecimento e não receberam anotação
+humana completa. Essa limitação foi mantida explícita para não confundir um rascunho assistido
+com referência de qualidade.
+Como trabalhos futuros, recomenda-se construir uma amostra maior, proveniente de
+múltiplos estabelecimentos e anotada independentemente por pelo menos dois avaliadores,
+com adjudicação das divergências e medição de concordância. Essa base permitirá avaliar
+conjuntamente a presença dos aspectos e suas polaridades, além de investigar ironia, negação,
+disponibilidade e opiniões implícitas. Também podem ser explorados novos domínios, como
+serviços de estética, desde que sejam deﬁnidos vocabulários, aspectos e dados de validação
+especíﬁcos.
+Para evolução do produto, são possibilidades relevantes a integração autorizada com a
+API do Perﬁl da Empresa no Google, mecanismos de monitoramento operacional e a geração
+de recomendações a partir de subtemas recorrentes. Essa última função deve ser tratada como
+camada posterior e rastreável, baseada nas avaliações que sustentam cada sugestão, para não
+transformar uma recomendação gerada automaticamente em fato não veriﬁcado.
+Conclui-se que a plataforma demonstra a viabilidade de combinar coleta incremental,
+análise de sentimentos por aspecto e Inteligência de Negócios para organizar avaliações online.
+Ao mesmo tempo, os experimentos evidenciam que a utilidade prática depende tanto do classi-
+ﬁcador quanto da qualidade da extração, dos dados de referência e da transparência com que
+limitações e tamanhos de amostra são apresentados ao usuário.
+
+---PAGE 53---
+REFERÊNCIAS
+AXIOS. Axios Documentation. [S. l.: s. n. ], 2026. https://axios-http.com/docs/intro.
+Acesso em: 20 ago. 2026.
+DEVLIN, Jacob et al. BERT: Pre-training of Deep Bidirectional Transformers for Language
+Understanding. In: PROCEEDINGS of the 2019 Conference of the North American Chapter of
+the Association for Computational Linguistics: Human Language Technologies. Minneapolis,
+Minnesota: Association for Computational Linguistics, 2019. p. 4171–4186. DOI:
+10.18653/v1/N19-1423. Disponível em: https://aclanthology.org/N19-1423/.
+DOCKER INC. Docker Compose Documentation. [S. l.: s. n. ], 2026.
+https://docs.docker.com/compose/. Acesso em: 20 ago. 2026.
+DOCKER INC. Docker Documentation. [S. l.: s. n. ], 2026. https://docs.docker.com/.
+Acesso em: 20 ago. 2026.
+HUGGING FACE. Transformers Documentation. [S. l.: s. n. ], 2026.
+https://huggingface.co/docs/transformers/. Acesso em: 20 ago. 2026.
+KOTLER, Philip; KART AJA Y A, Hermawan; SETIAW AN, Iwan.Marketing 4.0: Moving from
+Traditional to Digital. Hoboken: John Wiley & Sons, 2017. ISBN 9781119341208.
+LIU, Bing. Sentiment Analysis and Opinion Mining . [S. l.]: Morgan & Claypool Publishers,
+2012. v. 5, p. 1–167. (Synthesis Lectures on Human Language Technologies, 1). DOI:
+10.2200/S00416ED1V01Y201204HLT016.
+LUCIDE CONTRIBUTORS. Lucide React Documentation. [S. l.: s. n. ], 2026.
+https://lucide.dev/guide/packages/lucide-react. Acesso em: 20 ago. 2026.
+52
+
+---PAGE 54---
+REFERÊNCIAS 53
+MEDHA T, Walaa; HASSAN, Ahmed; KORASHY , Hoda. Sentiment Analysis Algorithms and
+Applications: A Survey. Ain Shams Engineering Journal , v. 5, n. 4, p. 1093–1113, 2014. DOI:
+10.1016/j.asej.2014.04.011.
+META PLA TFORMS.React Documentation. [S. l.: s. n. ], 2026. https://react.dev/.
+Acesso em: 20 ago. 2026.
+MICROSOFT. Playwright Documentation. [S. l.: s. n. ], 2026. https://playwright.dev/.
+Acesso em: 20 ago. 2026.
+MICROSOFT. TypeScript Documentation. [S. l.: s. n. ], 2026.
+https://www.typescriptlang.org/docs/. Acesso em: 20 ago. 2026.
+NGINX. NGINX Documentation. [S. l.: s. n. ], 2026. https://nginx.org/en/docs/.
+Acesso em: 20 ago. 2026.
+PÉREZ, Juan Manuel et al. pysentimiento: A Python Toolkit for Opinion Mining and Social
+NLP Tasks. arXiv preprint arXiv:2106.09462, 2021. Disponível em:
+https://arxiv.org/abs/2106.09462.
+PONTIKI, Maria et al. SemEval-2016 Task 5: Aspect Based Sentiment Analysis . In:
+PROCEEDINGS of the 10th International Workshop on Semantic Evaluation. San Diego,
+California: Association for Computational Linguistics, 2016. p. 19–30. DOI:
+10.18653/v1/S16-1002. Disponível em: https://aclanthology.org/S16-1002/.
+POSTGRESQL GLOBAL DEVELOPMENT GROUP .PostgreSQL Documentation.
+[S. l.: s. n. ], 2026. https://www.postgresql.org/docs/. Acesso em: 20 ago. 2026.
+PYTORCH FOUNDA TION.PyTorch Documentation. [S. l.: s. n. ], 2026.
+https://pytorch.org/docs/stable/. Acesso em: 20 ago. 2026.
+REACT ROUTER. React Router Documentation. [S. l.: s. n. ], 2026.
+https://reactrouter.com/. Acesso em: 20 ago. 2026.
+RECHARTS. Recharts Documentation. [S. l.: s. n. ], 2026. https://recharts.org/.
+Acesso em: 20 ago. 2026.
+SHNEIDERMAN, Ben. Universal Usability. Communications of the ACM, v. 43, n. 5,
+p. 84–91, 2000. DOI: 10.1145/332833.332843.
+SOUZA, Fábio; NOGUEIRA, Rodrigo; LOTUFO, Roberto. BERTimbau: Pretrained BERT
+Models for Brazilian Portuguese . In: INTELLIGENT Systems. Cham: Springer International
+
+---PAGE 55---
+REFERÊNCIAS 54
+Publishing, 2020. p. 403–417. DOI: 10.1007/978-3-030-61377-8_28. Disponível em:
+https://doi.org/10.1007/978-3-030-61377-8_28.
+SPRING. Spring Boot Reference Documentation . [S. l.: s. n. ], 2026.
+https://docs.spring.io/spring-boot/. Acesso em: 20 ago. 2026.
+SPRING. Spring Data JPA Reference Documentation . [S. l.: s. n. ], 2026.
+https://docs.spring.io/spring-data/jpa/reference/. Acesso em: 20 ago. 2026.
+SPRING. Spring Security Reference. [S. l.: s. n. ], 2026.
+https://docs.spring.io/spring-security/reference/. Acesso em: 20 ago. 2026.
+TAILWIND LABS. Tailwind CSS Documentation. [S. l.: s. n. ], 2026.
+https://tailwindcss.com/docs. Acesso em: 20 ago. 2026.
+TUFTE, Edward R. The Visual Display of Quantitative Information . 2. ed. Cheshire,
+Connecticut: Graphics Press, 2001. ISBN 9780961392147.
+V ASW ANI, Ashishet al. Attention Is All Y ou Need. In: ADV ANCES in Neural Information
+Processing Systems. [S. l.]: Curran Associates, Inc., 2017. v. 30, p. 5998–6008. Disponível em:
+https://proceedings.neurips.cc/paper/7181-attention-is-all-you-need.
+VITE. Vite Documentation. [S. l.: s. n. ], 2026. https://vite.dev/. Acesso em: 20 ago.
+2026.
+WU, ChengY anet al. M-ABSA: A Multilingual Dataset for Aspect-Based Sentiment Analysis .
+In: PROCEEDINGS of the 2025 Conference on Empirical Methods in Natural Language
+Processing. Suzhou, China: Association for Computational Linguistics, 2025. p. 2530–2557.
+DOI: 10.18653/v1/2025.emnlp-main.128. Disponível em:
+https://aclanthology.org/2025.emnlp-main.128/.
