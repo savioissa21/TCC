@@ -1,6 +1,5 @@
 import sys
 import asyncio
-from playwright.async_api import async_playwright
 import json
 import os
 from pathlib import Path
@@ -8,6 +7,7 @@ from transformers import pipeline
 
 from review_identity import review_identity
 from maps_collector import prepare_reviews, collect_reviews
+from serpapi_collector import collect_reviews_from_serpapi
 from aspect_analysis import analyze_aspects_with
 from absa_model_validation import (
     AbsaModelError,
@@ -19,6 +19,7 @@ from bertimbau_absa import AspectSentimentAnalyzer
 TARGET_URL = sys.argv[1] if len(sys.argv) >= 2 else None
 OUTPUT_FILE = os.getenv('MINING_OUTPUT_FILE', 'dados_temp.json')
 TARGET_REVIEWS = int(os.getenv('TARGET_REVIEWS', '100'))
+COLLECTOR_PROVIDER = os.getenv('REVIEW_COLLECTOR_PROVIDER', 'serpapi').strip().casefold()
 
 
 sentiment_pipeline = None
@@ -49,24 +50,10 @@ def get_aspect_sentiment_analyzer():
 def analyze_aspects(text):
     return analyze_aspects_with(text, get_aspect_sentiment_analyzer())
 
-async def run():
-    if TARGET_URL is None:
-        raise RuntimeError("Faltou a URL do Maps.")
-    print(f"[INFO] Iniciando Mineracao para: {TARGET_URL}")
-
-    try:
-        require_absa_model(
-            ABSA_MODEL_PATH,
-            ABSA_MODEL_SHA256,
-            require_checksum=True,
-        )
-        get_aspect_sentiment_analyzer()
-    except AbsaModelError as error:
-        print(f"[MINING_ERROR] {error}", flush=True)
-        raise
-
+async def collect_with_browser(target_url, collection_warnings):
+    """Coletor legado mantido como fallback operacional explícito."""
+    from playwright.async_api import async_playwright
     async with async_playwright() as p:
-        # User-agent real para evitar detecção de bot pelo Google
         browser = await p.chromium.launch(
             headless=True,
             timeout=60000,
@@ -86,10 +73,9 @@ async def run():
         page = await context.new_page()
 
         try:
-            await page.goto(TARGET_URL, timeout=60000, wait_until='domcontentloaded')
+            await page.goto(target_url, timeout=60000, wait_until='domcontentloaded')
             await page.wait_for_timeout(5000)
 
-            # 1. Aceitar cookies (Google Consent - aparece sempre em headless)
             async def accept_cookie_consent():
                 for selector in [
                     'button:has-text("Aceitar tudo")',
@@ -109,76 +95,127 @@ async def run():
                         continue
 
             await accept_cookie_consent()
-            collection_warnings = []
             expected = await prepare_reviews(page, accept_cookie_consent, warnings=collection_warnings)
-            collected_reviews = await collect_reviews(page, TARGET_REVIEWS, expected=expected, warnings=collection_warnings)
-            print(f"[PROCESSANDO] {len(collected_reviews)} reviews para analisar...", flush=True)
-
-            processed_data = []
-            for i, review in enumerate(collected_reviews):
-                if len(processed_data) >= TARGET_REVIEWS:
-                    break
-                try:
-                    author = review["author"]
-                    original_text = review["text"]
-                    rating = review["rating"]
-                    date = review["date"]
-
-                    if original_text:
-                        # Respect the tokenizer's token limit (characters are not tokens).
-                        # Keep the complete text for storage and aspect extraction.
-                        overall = get_sentiment_pipeline()(original_text, truncation=True)[0]
-                        sentiment_map = {'POS': 'Positivo', 'NEG': 'Negativo', 'NEU': 'Neutro'}
-                        overall_sentiment = sentiment_map.get(overall['label'], 'Neutro')
-                        sentiment_score = round(overall['score'], 4)
-                        aspects = analyze_aspects(original_text)
-                        display_text = original_text
-                    else:
-                        # Sem comentário, a nota é o único sinal disponível.
-                        overall_sentiment = 'Positivo' if rating >= 4 else 'Negativo' if rating <= 2 else 'Neutro'
-                        sentiment_score = 1.0
-                        aspects = []
-                        display_text = "Avaliação sem comentário."
-
-                    processed_data.append({
-                        **review_identity(
-                            review.get("review_id"), author, rating, original_text
-                        ),
-                        "author": author,
-                        "text": display_text,
-                        "rating": rating,
-                        "date": date,
-                        "source": "Google Maps",
-                        "sentimentScore": sentiment_score,
-                        "overallSentiment": overall_sentiment,
-                        "aspects": aspects
-                    })
-
-                    if len(processed_data) % 10 == 0:
-                        print(f"[PROGRESSO] {len(processed_data)} analisadas...")
-
-                except AbsaModelError:
-                    raise
-                except Exception as e:
-                    print(f"[ERRO review {i}]: {e}")
-                    raise RuntimeError("A análise de sentimentos falhou; esta execução não será importada.") from e
-
-            # 7. Salvar
-            with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-                json.dump({"reviews": processed_data, "collectionWarnings": list(dict.fromkeys(collection_warnings))},
-                          f, ensure_ascii=False, indent=2)
-
-            print(f"[SUCESSO] {len(processed_data)} reviews salvas em {OUTPUT_FILE}")
-
-        except Exception as e:
-            print(f"[ERRO CRITICO] {e}")
-            print(f"[MINING_ERROR] {e}", flush=True)
-            import traceback
-            traceback.print_exc()
-            raise
+            return await collect_reviews(
+                page,
+                TARGET_REVIEWS,
+                expected=expected,
+                warnings=collection_warnings,
+            )
         finally:
             await context.close()
             await browser.close()
+
+
+async def collect_input_reviews(collection_warnings):
+    if COLLECTOR_PROVIDER == 'serpapi':
+        print("[COLETA] Provedor: SerpApi.", flush=True)
+        return await collect_reviews_from_serpapi(
+            TARGET_URL,
+            TARGET_REVIEWS,
+            warnings=collection_warnings,
+        )
+    if COLLECTOR_PROVIDER in {'browser', 'playwright'}:
+        print("[COLETA] Provedor legado: navegador automatizado.", flush=True)
+        return await collect_with_browser(TARGET_URL, collection_warnings)
+    raise RuntimeError(
+        "REVIEW_COLLECTOR_PROVIDER inválido. Use 'serpapi' ou 'browser'."
+    )
+
+
+def process_reviews(collected_reviews):
+    print(f"[PROCESSANDO] {len(collected_reviews)} reviews para analisar...", flush=True)
+    processed_data = []
+    for i, review in enumerate(collected_reviews):
+        if len(processed_data) >= TARGET_REVIEWS:
+            break
+        try:
+            author = review["author"]
+            original_text = review["text"]
+            rating = review["rating"]
+            date = review["date"]
+
+            if original_text:
+                # Respect the tokenizer's token limit (characters are not tokens).
+                # Keep the complete text for storage and aspect extraction.
+                overall = get_sentiment_pipeline()(original_text, truncation=True)[0]
+                sentiment_map = {'POS': 'Positivo', 'NEG': 'Negativo', 'NEU': 'Neutro'}
+                overall_sentiment = sentiment_map.get(overall['label'], 'Neutro')
+                sentiment_score = round(overall['score'], 4)
+                aspects = analyze_aspects(original_text)
+                display_text = original_text
+            else:
+                # Sem comentário, a nota é o único sinal disponível.
+                overall_sentiment = 'Positivo' if rating >= 4 else 'Negativo' if rating <= 2 else 'Neutro'
+                sentiment_score = 1.0
+                aspects = []
+                display_text = "Avaliação sem comentário."
+
+            processed_data.append({
+                **review_identity(
+                    review.get("review_id"), author, rating, original_text
+                ),
+                "author": author,
+                "text": display_text,
+                "rating": rating,
+                "date": date,
+                "source": "Google Maps via SerpApi" if COLLECTOR_PROVIDER == 'serpapi' else "Google Maps",
+                "sentimentScore": sentiment_score,
+                "overallSentiment": overall_sentiment,
+                "aspects": aspects
+            })
+
+            if len(processed_data) % 10 == 0:
+                print(f"[PROGRESSO] {len(processed_data)} analisadas...")
+
+        except AbsaModelError:
+            raise
+        except Exception as error:
+            print(f"[ERRO review {i}]: {error}")
+            raise RuntimeError(
+                "A análise de sentimentos falhou; esta execução não será importada."
+            ) from error
+    return processed_data
+
+
+async def run():
+    if TARGET_URL is None:
+        raise RuntimeError("Faltou a URL do Maps.")
+    print(f"[INFO] Iniciando Mineracao para: {TARGET_URL}")
+
+    try:
+        require_absa_model(
+            ABSA_MODEL_PATH,
+            ABSA_MODEL_SHA256,
+            require_checksum=True,
+        )
+        get_aspect_sentiment_analyzer()
+    except AbsaModelError as error:
+        print(f"[MINING_ERROR] {error}", flush=True)
+        raise
+
+    try:
+        collection_warnings = []
+        collected_reviews = await collect_input_reviews(collection_warnings)
+        processed_data = process_reviews(collected_reviews)
+        with open(OUTPUT_FILE, 'w', encoding='utf-8') as output:
+            json.dump(
+                {
+                    "reviews": processed_data,
+                    "collectionWarnings": list(dict.fromkeys(collection_warnings)),
+                    "collectionProvider": COLLECTOR_PROVIDER,
+                },
+                output,
+                ensure_ascii=False,
+                indent=2,
+            )
+        print(f"[SUCESSO] {len(processed_data)} reviews salvas em {OUTPUT_FILE}")
+    except Exception as error:
+        print(f"[ERRO CRITICO] {error}")
+        print(f"[MINING_ERROR] {error}", flush=True)
+        import traceback
+        traceback.print_exc()
+        raise
 
 if __name__ == "__main__":
     if TARGET_URL is None:
