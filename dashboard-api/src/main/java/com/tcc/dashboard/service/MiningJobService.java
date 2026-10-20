@@ -183,6 +183,12 @@ public class MiningJobService {
                 message.startsWith("Nenhuma avaliação")
                         || message.startsWith("O Google Maps")
                         || message.startsWith("A página abriu")
+                        || message.startsWith("A SerpApi")
+                        || message.startsWith("A chave da SerpApi")
+                        || message.startsWith("A cota da SerpApi")
+                        || message.startsWith("Não foi possível abrir o link curto")
+                        || message.startsWith("Não foi possível identificar")
+                        || message.startsWith("O link curto")
                         || message.startsWith("A mineração excedeu"))) {
             return message;
         }

@@ -89,6 +89,11 @@ public class MiningService {
             pb.redirectErrorStream(true);
             pb.environment().put("PYTHONUNBUFFERED", "1");
             pb.environment().put("MINING_OUTPUT_FILE", jsonFile.getAbsolutePath());
+            ObjectMapper mapper = new ObjectMapper();
+            List<String> knownGoogleReviewIds = reviewRepository.findKnownGoogleReviewIds(
+                    establishmentId, PageRequest.of(0, 500));
+            pb.environment().put("MINING_KNOWN_REVIEW_IDS",
+                    mapper.writeValueAsString(knownGoogleReviewIds == null ? List.of() : knownGoogleReviewIds));
 
             MiningProcessRunner.run(pb, processTimeout);
 
@@ -96,7 +101,6 @@ public class MiningService {
                 throw new BadRequestException("O minerador não gerou o arquivo de resultado.");
             }
 
-            ObjectMapper mapper = new ObjectMapper();
             MiningPayload payload = parsePayload(mapper, jsonFile);
             List<Review> reviews = payload.reviews();
             ensureReviewsFound(reviews);
@@ -288,7 +292,7 @@ public class MiningService {
         establishment.setLastNewReviews(imported);
         establishment.setLastMiningStatus("COMPLETED");
         establishment.setLastMiningMessage((partial
-                ? "Coleta parcial: o Google limitou o acesso ou a ordenação. As avaliações podem não ser as mais recentes. " : "")
+                ? "Coleta parcial: o provedor não disponibilizou todas as avaliações solicitadas. " : "")
                 + imported + " novas; " + skipped + " já conhecidas.");
         establishmentRepository.save(establishment);
     }

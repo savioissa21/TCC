@@ -128,6 +128,21 @@ class ReviewQueriesTest {
     }
 
     @Test
+    void returnsOnlyKnownOriginalGoogleIdsInStableRecentOrder() {
+        em.find(Review.class, "b").setGoogleReviewId("google-b");
+        em.find(Review.class, "a").setGoogleReviewId("google-a");
+        em.find(Review.class, "legacy").setGoogleReviewId(" ");
+        em.flush();
+
+        assertEquals(
+                List.of("google-b", "google-a"),
+                repository.findKnownGoogleReviewIds(store.getId(), PageRequest.of(0, 10)));
+        assertEquals(
+                List.of("google-b"),
+                repository.findKnownGoogleReviewIds(store.getId(), PageRequest.of(0, 1)));
+    }
+
+    @Test
     void selectedStoreScopesBothFeedAndStatsAndRejectsAnotherOwner() {
         Establishment second = em.find(Establishment.class, empty.getId());
         Review extra = review(second, "second-store", 1.0, "Negativo", LocalDateTime.now(), "Outro", "ruim");

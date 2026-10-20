@@ -13,6 +13,16 @@ import java.util.List;
 public interface ReviewRepository extends JpaRepository<Review, String> {
     Slice<Review> findByEstablishmentId(Long establishmentId, Pageable pageable);
 
+    @Query("""
+            select r.googleReviewId from Review r
+            where r.establishment.id = :establishmentId
+              and r.googleReviewId is not null and trim(r.googleReviewId) <> ''
+            order by case when r.collectedAt is null then 1 else 0 end,
+                     r.collectedAt desc, r.id desc
+            """)
+    List<String> findKnownGoogleReviewIds(
+            @Param("establishmentId") Long establishmentId, Pageable pageable);
+
     // Page IDs without joining a collection: LIMIT/OFFSET stays in the database.
     @Query(value = """
             select r.id from Review r

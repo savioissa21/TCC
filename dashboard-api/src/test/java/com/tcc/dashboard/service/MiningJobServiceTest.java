@@ -1,5 +1,6 @@
 package com.tcc.dashboard.service;
 
+import com.tcc.dashboard.exception.BadRequestException;
 import com.tcc.dashboard.exception.NotFoundException;
 import com.tcc.dashboard.model.Establishment;
 import com.tcc.dashboard.model.MiningJob;
@@ -130,6 +131,18 @@ class MiningJobServiceTest {
         assertEquals(MiningJobState.COMPLETED, interrupted.getState());
         assertEquals(1, interrupted.getReviewsImported());
         assertNotNull(interrupted.getFinishedAt());
+    }
+
+    @Test
+    void exposesOnlyControlledSerpApiErrorsToTheUser() {
+        String configuration = "A chave da SerpApi não foi configurada.";
+        String quota = "A cota da SerpApi foi atingida.";
+        assertEquals(configuration,
+                MiningJobService.publicFailureMessage(new BadRequestException(configuration)));
+        assertEquals(quota,
+                MiningJobService.publicFailureMessage(new BadRequestException(quota)));
+        assertEquals("Não foi possível concluir a mineração. Tente novamente em alguns minutos.",
+                MiningJobService.publicFailureMessage(new RuntimeException("api_key=secret")));
     }
 
     private AtomicReference<MiningJob> configureRepository() {
