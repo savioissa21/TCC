@@ -6,7 +6,7 @@ Docker. Execute os comandos na raiz do repositório.
 ## Inicialização do zero
 
 1. Copie `.env.example` para `.env` e preencha `DB_PASSWORD`, `JWT_SECRET`,
-   `ABSA_MODEL_HOST_PATH` e `ABSA_MODEL_SHA256`.
+   `SERPAPI_API_KEY`, `ABSA_MODEL_HOST_PATH` e `ABSA_MODEL_SHA256`.
 2. Valide o artefato local:
 
    ```bash
@@ -23,6 +23,24 @@ Docker. Execute os comandos na raiz do repositório.
 
 O banco, a API e o frontend devem ficar `healthy`. O endpoint
 `http://localhost:8080/api/health` só retorna `UP` após consultar o PostgreSQL.
+
+## Operação da SerpApi
+
+O padrão `REVIEW_COLLECTOR_PROVIDER=serpapi` exige `SERPAPI_API_KEY`. A ausência,
+invalidade ou esgotamento da cota aparece como falha controlada do job e não
+expõe a chave. Monitore o consumo no painel da SerpApi.
+
+A carga inicial de 100 avaliações normalmente usa seis chamadas: oito resultados
+na primeira e até vinte nas demais. Coletas incrementais param no primeiro
+`review_id` conhecido entre os 500 IDs recentes enviados pelo backend. Links sem
+`data_id` ou `place_id` podem consumir uma chamada adicional para localizar o
+estabelecimento.
+
+O cache pode permanecer habilitado (`SERPAPI_NO_CACHE=false`) nas atualizações
+semanais. Se for necessário observar uma avaliação publicada nos últimos minutos,
+ative temporariamente `SERPAPI_NO_CACHE=true`, sabendo que a chamada será
+contabilizada. Para diagnóstico do coletor antigo, use
+`REVIEW_COLLECTOR_PROVIDER=browser` e depois restaure `serpapi`.
 
 ## Backup e restauração
 
