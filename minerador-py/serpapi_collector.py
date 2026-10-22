@@ -18,6 +18,7 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
 SERPAPI_ENDPOINT = "https://serpapi.com/search.json"
 GOOGLE_DOMAIN = re.compile(r"(^|.*\.)google\.[a-z]{2,3}(\.[a-z]{2})?$", re.I)
 DATA_ID = re.compile(r"0x[0-9a-f]+:0x[0-9a-f]+", re.I)
+PLACE_DATA_ID = re.compile(r"!1s(0x[0-9a-f]+:0x[0-9a-f]+)", re.I)
 PLACE_ID = re.compile(r"^ChI[A-Za-z0-9_-]+$")
 COORDINATES = re.compile(r"@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)")
 
@@ -116,6 +117,13 @@ def extract_place_reference(value: str) -> tuple[str, str] | None:
             return "place_id", candidate
 
     decoded = unquote(value)
+    # URLs completas do Maps podem conter outros data_id antes do local
+    # principal (por exemplo, em um parâmetro !5s). O marcador !1s dentro do
+    # bloco do estabelecimento identifica a referência que deve ser enviada à
+    # Google Maps Reviews API.
+    place_candidate = PLACE_DATA_ID.search(decoded)
+    if place_candidate:
+        return "data_id", place_candidate.group(1).lower()
     candidate = DATA_ID.search(decoded)
     if candidate:
         return "data_id", candidate.group(0).lower()

@@ -15,6 +15,12 @@ from serpapi_collector import (
 
 DATA_ID = "0x94a76372804ee625:0x9b25daaefa71e5f6"
 MAPS_URL = f"https://www.google.com/maps/place/Loja/data=!4m5!3m4!1s{DATA_ID}!8m2!3d-17!4d-48"
+VASTO_DATA_ID = "0x935a3b91dd441a7f:0x6595c3dfce6287f0"
+VASTO_MAPS_URL = (
+    "https://www.google.com/maps/place/Vasto/@-15.8,-47.9,15z/data="
+    "!3m2!1e3!5s0x935a3ab7b628f685:0xea466f97f17ae432"
+    f"!4m7!3m6!1s{VASTO_DATA_ID}!8m2!3d-15.8148924!4d-47.9032738"
+)
 
 
 def raw_review(index, source="Google"):
@@ -47,6 +53,12 @@ class SerpApiCollectorTest(unittest.TestCase):
         self.assertEqual(
             extract_place_reference("https://www.google.com/maps?q=place_id:ChIJabc_123"),
             ("place_id", "ChIJabc_123"),
+        )
+
+    def test_prefers_place_data_id_when_url_contains_auxiliary_data_id(self):
+        self.assertEqual(
+            extract_place_reference(VASTO_MAPS_URL),
+            ("data_id", VASTO_DATA_ID),
         )
 
     def test_expands_short_url_and_rejects_non_google_destination(self):
