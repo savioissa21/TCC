@@ -8,7 +8,7 @@ Monorepo do Trabalho de Conclusão de Curso. Sistema de análise de sentimentos 
 TCC/
 ├── dashboard-api/      # API Spring Boot (Java 21) + JWT + PostgreSQL
 ├── dashboard-front/    # Frontend React + Vite + TailwindCSS
-├── minerador-py/       # Coleta SerpApi (Playwright como fallback) + PLN
+├── minerador-py/       # Coleta Outscraper/SerpApi (Playwright como fallback) + PLN
 └── docker-compose.yml  # Orquestração Docker
 ```
 
@@ -27,9 +27,9 @@ siga o procedimento de baseline em [dashboard-api/README.md](dashboard-api/READM
 ### 1. Configurar os segredos
 
 Copie `.env.example` para `.env`. Gere valores novos e aleatórios para
-`DB_PASSWORD` e `JWT_SECRET` e informe em `SERPAPI_API_KEY` a chave privada
-fornecida pela SerpApi. O arquivo `.env` é ignorado pelo Git e não entra no
-contexto de build do Docker.
+`DB_PASSWORD` e `JWT_SECRET` e informe a chave privada do provedor de coleta
+selecionado. O arquivo `.env` é ignorado pelo Git e não entra no contexto de
+build do Docker.
 
 Para gerar uma chave JWT segura, use pelo menos 32 bytes aleatórios:
 
@@ -49,10 +49,28 @@ Se o volume do PostgreSQL já existir, mudar `POSTGRES_PASSWORD` no Compose não
 altera automaticamente a senha do banco inicializado. Primeiro altere a senha
 do usuário no PostgreSQL e depois coloque o mesmo valor em `DB_PASSWORD`.
 
-### 2. Configurar a coleta pela SerpApi
+### 2. Configurar o provedor de coleta
 
-Crie uma conta na [SerpApi](https://serpapi.com/) e copie a chave privada da
-página **Manage API Key** para o `.env`:
+Para usar a Outscraper, crie uma conta no [painel da Outscraper](https://app.outscraper.com/profile),
+copie a chave privada para o `.env` e selecione o provedor:
+
+```dotenv
+REVIEW_COLLECTOR_PROVIDER=outscraper
+OUTSCRAPER_API_KEY=<chave-privada>
+OUTSCRAPER_TIMEOUT_SECONDS=240
+TARGET_REVIEWS=100
+```
+
+O minerador envia a URL do estabelecimento diretamente para a Google Maps
+Reviews API da Outscraper, pede as avaliações mais recentes e limita a consulta
+a um estabelecimento. O valor de `TARGET_REVIEWS` pode ficar entre 1 e 500.
+Em atualizações, o backend envia os IDs já armazenados; o minerador interrompe o
+processamento ao alcançar o primeiro ID conhecido e a API também mantém a
+deduplicação no banco.
+
+A SerpApi continua disponível como alternativa. Crie uma conta na
+[SerpApi](https://serpapi.com/) e copie a chave privada da página **Manage API
+Key** para o `.env`:
 
 ```dotenv
 REVIEW_COLLECTOR_PROVIDER=serpapi
@@ -65,10 +83,11 @@ ordem `newestFirst` e pagina até a meta. A primeira página possui até oito
 avaliações e as seguintes, até vinte. Em atualizações, o backend envia os IDs
 já armazenados e a coleta para ao alcançar o primeiro ID conhecido.
 
-`SERPAPI_NO_CACHE=false` aceita o cache do provedor, que pode durar até uma
+`SERPAPI_NO_CACHE=false` aceita o cache da SerpApi, que pode durar até uma
 hora. Configure `true` somente quando uma atualização imediatamente atual for
 mais importante que economizar cota. A chave existe apenas no contêiner da API;
-nunca deve ser colocada no React, em logs ou no Git.
+nunca deve ser colocada no React, em logs ou no Git. A mesma regra vale para a
+chave da Outscraper.
 
 O coletor antigo pode ser selecionado explicitamente para diagnóstico com
 `REVIEW_COLLECTOR_PROVIDER=browser`. Ele permanece como fallback experimental e
@@ -154,13 +173,13 @@ Se alguma porta já estiver ocupada, configure `FRONTEND_PORT`, `API_PORT` ou
 - **Backend**: Spring Boot 4, Spring Security, JWT, JPA/Hibernate
 - **Frontend**: React, Vite, TypeScript, TailwindCSS
 - **Banco**: PostgreSQL 15
-- **Coleta e PLN**: Python 3.11, SerpApi, Playwright (fallback), BERTweet e BERTimbau ABSA
+- **Coleta e PLN**: Python 3.11, Outscraper, SerpApi, Playwright (fallback), BERTweet e BERTimbau ABSA
 - **Infra**: Docker, Nginx
 
 ## Atualização contínua das avaliações
 
 Cada estabelecimento é atualizado automaticamente a cada sete dias. O agendador
-verifica de hora em hora quais lojas estão vencidas, solicita à SerpApi as
+verifica de hora em hora quais lojas estão vencidas, solicita ao provedor selecionado as
 avaliações do Google Maps por **mais recentes**, coloca as coletas em uma fila
 única e importa somente avaliações ainda não armazenadas. A tela **Minhas Lojas** também permite
 atualizar imediatamente ou pausar a rotina automática.
@@ -181,8 +200,9 @@ testes controlados para impedir coletas automáticas.
 
 Ao exceder o limite, a API encerra o Python e seus subprocessos, registra a
 coleta como falha e libera a fila para o próximo trabalho. O limite inclui
-carregamento dos modelos, coleta, análise e leitura dos logs. A SerpApi possui
-timeout próprio configurável por `SERPAPI_TIMEOUT_SECONDS`. No modo legado, o
+carregamento dos modelos, coleta, análise e leitura dos logs. SerpApi e
+Outscraper possuem timeouts próprios configuráveis por `SERPAPI_TIMEOUT_SECONDS`
+e `OUTSCRAPER_TIMEOUT_SECONDS`. No modo legado, o
 Playwright limita ações a 15 segundos e navegação/inicialização a 60 segundos.
 
 Os textos já coletados permanecem no PostgreSQL com a data de coleta. O

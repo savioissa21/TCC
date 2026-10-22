@@ -8,6 +8,7 @@ from transformers import pipeline
 from review_identity import review_identity
 from maps_collector import prepare_reviews, collect_reviews
 from serpapi_collector import collect_reviews_from_serpapi
+from outscraper_collector import collect_reviews_from_outscraper
 from aspect_analysis import analyze_aspects_with
 from absa_model_validation import (
     AbsaModelError,
@@ -115,11 +116,18 @@ async def collect_input_reviews(collection_warnings):
             TARGET_REVIEWS,
             warnings=collection_warnings,
         )
+    if COLLECTOR_PROVIDER == 'outscraper':
+        print("[COLETA] Provedor: Outscraper.", flush=True)
+        return await collect_reviews_from_outscraper(
+            TARGET_URL,
+            TARGET_REVIEWS,
+            warnings=collection_warnings,
+        )
     if COLLECTOR_PROVIDER in {'browser', 'playwright'}:
         print("[COLETA] Provedor legado: navegador automatizado.", flush=True)
         return await collect_with_browser(TARGET_URL, collection_warnings)
     raise RuntimeError(
-        "REVIEW_COLLECTOR_PROVIDER inválido. Use 'serpapi' ou 'browser'."
+        "REVIEW_COLLECTOR_PROVIDER inválido. Use 'outscraper', 'serpapi' ou 'browser'."
     )
 
 
@@ -159,7 +167,10 @@ def process_reviews(collected_reviews):
                 "text": display_text,
                 "rating": rating,
                 "date": date,
-                "source": "Google Maps via SerpApi" if COLLECTOR_PROVIDER == 'serpapi' else "Google Maps",
+                "source": {
+                    'serpapi': "Google Maps via SerpApi",
+                    'outscraper': "Google Maps via Outscraper",
+                }.get(COLLECTOR_PROVIDER, "Google Maps"),
                 "sentimentScore": sentiment_score,
                 "overallSentiment": overall_sentiment,
                 "aspects": aspects
