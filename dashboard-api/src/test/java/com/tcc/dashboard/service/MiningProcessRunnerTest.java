@@ -47,6 +47,7 @@ class MiningProcessRunnerTest {
     void interruptionKillsProcessAndPropagatesToCaller() throws Exception {
         Path pidFile = temp.resolve("parent.pid");
         AtomicReference<Throwable> failure = new AtomicReference<>();
+        AtomicReference<String> pid = new AtomicReference<>();
         Thread worker = new Thread(() -> {
             try {
                 MiningProcessRunner.run(command("pid", pidFile.toString()), Duration.ofSeconds(15));
@@ -57,15 +58,24 @@ class MiningProcessRunnerTest {
         worker.start();
         try {
             long deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos();
-            while (!Files.exists(pidFile) && System.nanoTime() < deadline) Thread.sleep(20);
-            assertTrue(Files.exists(pidFile));
+            while (System.nanoTime() < deadline) {
+                if (Files.exists(pidFile)) {
+                    String content = Files.readString(pidFile).trim();
+                    if (!content.isEmpty()) {
+                        pid.set(content);
+                        break;
+                    }
+                }
+                Thread.sleep(20);
+            }
+            assertNotNull(pid.get(), "The helper must finish writing its PID before interruption");
         } finally {
             worker.interrupt();
             worker.join(5000);
         }
         assertFalse(worker.isAlive());
         assertInstanceOf(InterruptedException.class, failure.get());
-        assertProcessStops(Long.parseLong(Files.readString(pidFile)));
+        assertProcessStops(Long.parseLong(pid.get()));
     }
 
     private static void assertProcessStops(long pid) throws Exception {
