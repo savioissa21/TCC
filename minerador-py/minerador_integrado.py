@@ -8,6 +8,7 @@ from transformers import pipeline
 from review_identity import review_identity
 from maps_collector import prepare_reviews, collect_reviews
 from serpapi_collector import collect_reviews_from_serpapi
+from apify_collector import collect_reviews_from_apify
 from aspect_analysis import analyze_aspects_with
 from absa_model_validation import (
     AbsaModelError,
@@ -107,7 +108,15 @@ async def collect_with_browser(target_url, collection_warnings):
             await browser.close()
 
 
-async def collect_input_reviews(collection_warnings):
+async def collect_input_reviews(collection_warnings, collection_metadata):
+    if COLLECTOR_PROVIDER == 'apify':
+        print("[COLETA] Provedor: Apify.", flush=True)
+        return await collect_reviews_from_apify(
+            TARGET_URL,
+            TARGET_REVIEWS,
+            warnings=collection_warnings,
+            metadata=collection_metadata,
+        )
     if COLLECTOR_PROVIDER == 'serpapi':
         print("[COLETA] Provedor: SerpApi.", flush=True)
         return await collect_reviews_from_serpapi(
@@ -119,7 +128,7 @@ async def collect_input_reviews(collection_warnings):
         print("[COLETA] Provedor legado: navegador automatizado.", flush=True)
         return await collect_with_browser(TARGET_URL, collection_warnings)
     raise RuntimeError(
-        "REVIEW_COLLECTOR_PROVIDER inválido. Use 'serpapi' ou 'browser'."
+        "REVIEW_COLLECTOR_PROVIDER inválido. Use 'apify', 'serpapi' ou 'browser'."
     )
 
 
@@ -131,35 +140,34 @@ def process_reviews(collected_reviews):
             break
         try:
             author = review["author"]
-            original_text = review["text"]
+            original_text = review.get("text")
+            if not isinstance(original_text, str) or not original_text.strip():
+                print(f"[IGNORADA review {i}] avaliação sem comentário textual.", flush=True)
+                continue
+            original_text = original_text.strip()
             rating = review["rating"]
             date = review["date"]
 
-            if original_text:
-                # Respect the tokenizer's token limit (characters are not tokens).
-                # Keep the complete text for storage and aspect extraction.
-                overall = get_sentiment_pipeline()(original_text, truncation=True)[0]
-                sentiment_map = {'POS': 'Positivo', 'NEG': 'Negativo', 'NEU': 'Neutro'}
-                overall_sentiment = sentiment_map.get(overall['label'], 'Neutro')
-                sentiment_score = round(overall['score'], 4)
-                aspects = analyze_aspects(original_text)
-                display_text = original_text
-            else:
-                # Sem comentário, a nota é o único sinal disponível.
-                overall_sentiment = 'Positivo' if rating >= 4 else 'Negativo' if rating <= 2 else 'Neutro'
-                sentiment_score = 1.0
-                aspects = []
-                display_text = "Avaliação sem comentário."
+            # Respect the tokenizer's token limit (characters are not tokens).
+            # Keep the complete text for storage and aspect extraction.
+            overall = get_sentiment_pipeline()(original_text, truncation=True)[0]
+            sentiment_map = {'POS': 'Positivo', 'NEG': 'Negativo', 'NEU': 'Neutro'}
+            overall_sentiment = sentiment_map.get(overall['label'], 'Neutro')
+            sentiment_score = round(overall['score'], 4)
+            aspects = analyze_aspects(original_text)
 
             processed_data.append({
                 **review_identity(
                     review.get("review_id"), author, rating, original_text
                 ),
                 "author": author,
-                "text": display_text,
+                "text": original_text,
                 "rating": rating,
                 "date": date,
-                "source": "Google Maps via SerpApi" if COLLECTOR_PROVIDER == 'serpapi' else "Google Maps",
+                "source": {
+                    'apify': "Google Maps via Apify",
+                    'serpapi': "Google Maps via SerpApi",
+                }.get(COLLECTOR_PROVIDER, "Google Maps"),
                 "sentimentScore": sentiment_score,
                 "overallSentiment": overall_sentiment,
                 "aspects": aspects
@@ -196,7 +204,11 @@ async def run():
 
     try:
         collection_warnings = []
-        collected_reviews = await collect_input_reviews(collection_warnings)
+        collection_metadata = {}
+        collected_reviews = await collect_input_reviews(
+            collection_warnings,
+            collection_metadata,
+        )
         processed_data = process_reviews(collected_reviews)
         with open(OUTPUT_FILE, 'w', encoding='utf-8') as output:
             json.dump(
@@ -204,6 +216,7 @@ async def run():
                     "reviews": processed_data,
                     "collectionWarnings": list(dict.fromkeys(collection_warnings)),
                     "collectionProvider": COLLECTOR_PROVIDER,
+                    "collectionMetadata": collection_metadata,
                 },
                 output,
                 ensure_ascii=False,
