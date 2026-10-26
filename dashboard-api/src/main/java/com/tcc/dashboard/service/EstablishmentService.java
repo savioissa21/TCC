@@ -143,6 +143,7 @@ public class EstablishmentService {
         return establishmentRepository.summarizeByOwner(userEmail).stream().map(est ->
                 new EstablishmentSummaryDTO(est.getId(), est.getName(), est.getMapsUrl(),
                         est.getReviewCount(), Math.round(est.getAvgRating() * 10.0) / 10.0,
+                        est.getGoogleRating(), est.getGoogleReviewCount(), est.getGoogleRatingUpdatedAt(),
                         est.getReviewCount() == 0 ? 0.0
                                 : Math.round(1000.0 * est.getPositiveCount() / est.getReviewCount()) / 10.0,
                         !Boolean.FALSE.equals(est.getAutomaticUpdatesEnabled()),

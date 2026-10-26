@@ -27,12 +27,33 @@ class MiningPayloadTest {
         var payload = parse("{\"reviews\":[{\"author\":\"Ana\"}],\"collectionWarnings\":[]}");
         assertFalse(payload.partial());
         assertEquals("Ana", payload.reviews().getFirst().getAuthor());
+        assertNull(payload.metadata().googleRating());
     }
 
     @Test void preservesReviewsAndPartialStatusWithoutExposingRawWarningText() throws Exception {
         var payload = parse("{\"reviews\":[{\"author\":\"Ana\"}],\"collectionWarnings\":[\"SORT_UNCONFIRMED\"]}");
         assertTrue(payload.partial());
         assertEquals(1, payload.reviews().size());
+    }
+
+    @Test void parsesValidatedGoogleMetadata() throws Exception {
+        var payload = parse("""
+                {"reviews":[],"collectionWarnings":[],"collectionMetadata":{
+                  "googleRating":4.6,"googleReviewCount":1284,"reviewsWithoutText":37
+                }}
+                """);
+        assertEquals(4.6, payload.metadata().googleRating());
+        assertEquals(1284L, payload.metadata().googleReviewCount());
+        assertEquals(37, payload.metadata().reviewsWithoutText());
+    }
+
+    @Test void rejectsInvalidGoogleMetadata() {
+        assertThrows(BadRequestException.class, () -> parse("""
+                {"reviews":[],"collectionWarnings":[],"collectionMetadata":{"googleRating":6}}
+                """));
+        assertThrows(BadRequestException.class, () -> parse("""
+                {"reviews":[],"collectionWarnings":[],"collectionMetadata":{"googleReviewCount":-1}}
+                """));
     }
 
     @Test void rejectsMalformedReportInsteadOfClaimingCompleteness() {
@@ -47,9 +68,10 @@ class MiningPayloadTest {
         ReflectionTestUtils.setField(service, "retryInterval", Duration.ofHours(24));
         ReflectionTestUtils.setField(service, "updateInterval", Duration.ofDays(7));
         Establishment store = new Establishment();
-        ReflectionTestUtils.invokeMethod(service, "markCompleted", store, 5, 0, true);
+        ReflectionTestUtils.invokeMethod(service, "markCompleted", store, 5, 0, true, 3);
         assertEquals("COMPLETED", store.getLastMiningStatus());
         assertTrue(store.getLastMiningMessage().startsWith("Coleta parcial:"));
+        assertTrue(store.getLastMiningMessage().contains("3 sem comentário ignoradas"));
         assertEquals(Duration.ofHours(24), Duration.between(store.getLastMiningSuccessAt(), store.getNextMiningAt()));
         verify(repository).save(store);
     }

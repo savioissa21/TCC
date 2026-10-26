@@ -26,8 +26,8 @@ class FlywayMigrationTest {
     @Test
     void migratesEmptyDatabaseAndDoesNotReapplyVersions() {
         Flyway flyway = flyway();
-        assertEquals(4, flyway.migrate().migrationsExecuted);
-        assertEquals("4", flyway.info().current().getVersion().getVersion());
+        assertEquals(5, flyway.migrate().migrationsExecuted);
+        assertEquals("5", flyway.info().current().getVersion().getVersion());
         flyway.validate();
         seedLegacyData();
         jdbc.update("update review set google_review_id = 'google-1' where id = 'legacy'");
@@ -51,7 +51,7 @@ class FlywayMigrationTest {
         seedLegacyData();
         Flyway flyway = flyway();
         flyway.baseline();
-        assertEquals(3, flyway.migrate().migrationsExecuted);
+        assertEquals(4, flyway.migrate().migrationsExecuted);
         assertLegacyDataPreserved();
         assertNull(jdbc.queryForObject("select google_review_id from review where id = 'legacy'", String.class));
         flyway.validate();
@@ -68,7 +68,7 @@ class FlywayMigrationTest {
         jdbc.update("update review set google_review_id = 'original-google-id' where id = 'legacy'");
         Flyway flyway = flyway();
         flyway.baseline();
-        assertEquals(3, flyway.migrate().migrationsExecuted);
+        assertEquals(4, flyway.migrate().migrationsExecuted);
         assertLegacyDataPreserved();
         assertEquals("original-google-id", jdbc.queryForObject(
                 "select google_review_id from review where id = 'legacy'", String.class));
@@ -115,6 +115,27 @@ class FlywayMigrationTest {
         flyway.migrate();
         jdbc.update("update \"flyway_schema_history\" set \"checksum\" = 0 where \"version\" = '2'");
         assertThrows(FlywayException.class, flyway::validate);
+    }
+
+    @Test
+    void storesGoogleSnapshotAndRemovesLegacyPlaceholderReviews() {
+        Flyway beforeV5 = Flyway.configure().dataSource(dataSource)
+                .locations("classpath:db/migration").target("4")
+                .baselineVersion("1").baselineOnMigrate(false).cleanDisabled(true).load();
+        assertEquals(4, beforeV5.migrate().migrationsExecuted);
+        seedLegacyData();
+        Long store = jdbc.queryForObject("select id from establishment", Long.class);
+        jdbc.update("insert into review (id, text, establishment_id) values ('empty', 'Avaliação sem comentário.', ?)", store);
+        jdbc.update("insert into aspect (name, review_id) values ('Comida', 'empty')");
+
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(0, jdbc.queryForObject("select count(*) from review where id = 'empty'", Integer.class));
+        assertEquals(0, jdbc.queryForObject("select count(*) from aspect where review_id = 'empty'", Integer.class));
+        jdbc.update("update establishment set google_rating = 4.7, google_review_count = 1284 where id = ?", store);
+        assertEquals(4.7, jdbc.queryForObject(
+                "select google_rating from establishment where id = ?", Double.class, store));
+        assertEquals(1284L, jdbc.queryForObject(
+                "select google_review_count from establishment where id = ?", Long.class, store));
     }
 
     private Flyway flyway() {

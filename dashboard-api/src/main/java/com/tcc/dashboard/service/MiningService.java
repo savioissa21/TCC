@@ -2,6 +2,7 @@ package com.tcc.dashboard.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.tcc.dashboard.exception.BadRequestException;
 import com.tcc.dashboard.exception.NotFoundException;
 import com.tcc.dashboard.model.Aspect;
@@ -103,11 +104,13 @@ public class MiningService {
 
             MiningPayload payload = parsePayload(mapper, jsonFile);
             List<Review> reviews = payload.reviews();
-            ensureReviewsFound(reviews);
+            ensureReviewsFound(payload);
+            applyGoogleMetadata(establishment, payload.metadata());
 
             int imported = importNewReviews(establishment, reviews);
             int skipped = reviews.size() - imported;
-            markCompleted(establishment, imported, skipped, payload.partial());
+            markCompleted(establishment, imported, skipped, payload.partial(),
+                    payload.metadata().reviewsWithoutText());
             System.out.println("Sucesso: " + imported + " avaliações novas e " + skipped
                     + " já conhecidas para: " + establishment.getName());
             return imported;
@@ -134,7 +137,9 @@ public class MiningService {
         }
     }
 
-    record MiningPayload(List<Review> reviews, boolean partial) {}
+    record MiningMetadata(Double googleRating, Long googleReviewCount, int reviewsWithoutText) {}
+
+    record MiningPayload(List<Review> reviews, boolean partial, MiningMetadata metadata) {}
 
     static MiningPayload parsePayload(ObjectMapper mapper, File file) throws java.io.IOException {
         var root = mapper.readTree(file);
@@ -146,7 +151,55 @@ public class MiningService {
         if (!reviews.isArray()) throw new BadRequestException("Resultado inválido do minerador.");
         boolean partial = !root.isArray() && root.path("collectionWarnings").isArray()
                 && !root.path("collectionWarnings").isEmpty();
-        return new MiningPayload(mapper.convertValue(reviews, new TypeReference<List<Review>>() {}), partial);
+        MiningMetadata metadata = parseMetadata(root.isArray() ? null : root.get("collectionMetadata"));
+        return new MiningPayload(
+                mapper.convertValue(reviews, new TypeReference<List<Review>>() {}),
+                partial,
+                metadata);
+    }
+
+    private static MiningMetadata parseMetadata(JsonNode node) {
+        if (node == null || node.isNull() || node.isMissingNode()) {
+            return new MiningMetadata(null, null, 0);
+        }
+        if (!node.isObject()) throw new BadRequestException("Metadados inválidos do minerador.");
+
+        Double rating = nullableDouble(node.get("googleRating"), "googleRating");
+        if (rating != null && (!Double.isFinite(rating) || rating < 0 || rating > 5)) {
+            throw new BadRequestException("Nota do Google inválida no resultado do minerador.");
+        }
+        Long count = nullableLong(node.get("googleReviewCount"), "googleReviewCount");
+        if (count != null && count < 0) {
+            throw new BadRequestException("Quantidade de avaliações do Google inválida.");
+        }
+        Long withoutText = nullableLong(node.get("reviewsWithoutText"), "reviewsWithoutText");
+        if (withoutText != null && (withoutText < 0 || withoutText > Integer.MAX_VALUE)) {
+            throw new BadRequestException("Quantidade de avaliações sem comentário inválida.");
+        }
+        return new MiningMetadata(rating, count, withoutText == null ? 0 : withoutText.intValue());
+    }
+
+    private static Double nullableDouble(JsonNode node, String field) {
+        if (node == null || node.isNull()) return null;
+        if (!node.isNumber()) throw new BadRequestException("Campo " + field + " inválido.");
+        return node.doubleValue();
+    }
+
+    private static Long nullableLong(JsonNode node, String field) {
+        if (node == null || node.isNull()) return null;
+        if (!node.isIntegralNumber() || !node.canConvertToLong()) {
+            throw new BadRequestException("Campo " + field + " inválido.");
+        }
+        return node.longValue();
+    }
+
+    private static void applyGoogleMetadata(Establishment establishment, MiningMetadata metadata) {
+        if (metadata.googleRating() == null && metadata.googleReviewCount() == null) return;
+        if (metadata.googleRating() != null) establishment.setGoogleRating(metadata.googleRating());
+        if (metadata.googleReviewCount() != null) {
+            establishment.setGoogleReviewCount(metadata.googleReviewCount());
+        }
+        establishment.setGoogleRatingUpdatedAt(LocalDateTime.now());
     }
 
     private record ImportCandidate(Review review, String googleId, String databaseId, String fingerprint) {}
@@ -285,7 +338,8 @@ public class MiningService {
         establishmentRepository.save(establishment);
     }
 
-    private void markCompleted(Establishment establishment, int imported, int skipped, boolean partial) {
+    private void markCompleted(Establishment establishment, int imported, int skipped, boolean partial,
+            int ignoredWithoutText) {
         LocalDateTime now = LocalDateTime.now();
         establishment.setLastMiningSuccessAt(now);
         establishment.setNextMiningAt(now.plus(partial ? retryInterval : updateInterval));
@@ -293,7 +347,8 @@ public class MiningService {
         establishment.setLastMiningStatus("COMPLETED");
         establishment.setLastMiningMessage((partial
                 ? "Coleta parcial: o provedor não disponibilizou todas as avaliações solicitadas. " : "")
-                + imported + " novas; " + skipped + " já conhecidas.");
+                + imported + " novas; " + skipped + " já conhecidas"
+                + (ignoredWithoutText > 0 ? "; " + ignoredWithoutText + " sem comentário ignoradas." : "."));
         establishmentRepository.save(establishment);
     }
 
@@ -307,8 +362,8 @@ public class MiningService {
         establishmentRepository.save(establishment);
     }
 
-    static void ensureReviewsFound(List<Review> reviews) {
-        if (reviews.isEmpty()) {
+    static void ensureReviewsFound(MiningPayload payload) {
+        if (payload.reviews().isEmpty() && payload.metadata().googleReviewCount() == null) {
             throw new BadRequestException(
                     "Nenhuma avaliação foi encontrada. Selecione um estabelecimento específico no Google Maps e use o link da página da empresa, não um link /maps/search/.");
         }

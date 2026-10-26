@@ -41,7 +41,7 @@ class MiningServiceTest {
     void treatsZeroReviewsAsFailure() {
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
-                () -> MiningService.ensureReviewsFound(List.of()));
+                () -> MiningService.ensureReviewsFound(payload(List.of(), null)));
 
         assertEquals(
                 "Nenhuma avaliação foi encontrada. Selecione um estabelecimento específico no Google Maps e use o link da página da empresa, não um link /maps/search/.",
@@ -50,7 +50,19 @@ class MiningServiceTest {
 
     @Test
     void acceptsNonEmptyReviewList() {
-        assertDoesNotThrow(() -> MiningService.ensureReviewsFound(List.of(new Review())));
+        assertDoesNotThrow(() -> MiningService.ensureReviewsFound(payload(List.of(new Review()), null)));
+    }
+
+    @Test
+    void acceptsSuccessfulCollectionContainingOnlyStarRatings() {
+        assertDoesNotThrow(() -> MiningService.ensureReviewsFound(payload(List.of(), 25L)));
+    }
+
+    private static MiningService.MiningPayload payload(List<Review> reviews, Long googleReviewCount) {
+        return new MiningService.MiningPayload(
+                reviews,
+                false,
+                new MiningService.MiningMetadata(null, googleReviewCount, 0));
     }
 
     @Test

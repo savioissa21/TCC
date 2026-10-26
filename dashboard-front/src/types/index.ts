@@ -44,6 +44,9 @@ export interface EstablishmentSummary {
   mapsUrl: string;
   reviewCount: number;
   avgRating: number;
+  googleRating: number | null;
+  googleReviewCount: number | null;
+  googleRatingUpdatedAt: string | null;
   satisfactionScore: number;
   automaticUpdatesEnabled: boolean;
   lastMiningAt: string | null;

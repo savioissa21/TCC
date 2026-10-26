@@ -39,6 +39,9 @@ class ReviewQueriesTest {
         User outsider = new User("Other", "other@query.test", "password");
         em.persist(owner); em.persist(outsider);
         store = store(owner, "Reviewed");
+        store.setGoogleRating(4.7);
+        store.setGoogleReviewCount(1284L);
+        store.setGoogleRatingUpdatedAt(LocalDateTime.of(2026, 1, 3, 0, 0));
         empty = store(owner, "Empty");
         Establishment other = store(outsider, "Private");
         Review first = review(store, "b", 5.0, "Positivo", LocalDateTime.of(2026, 1, 2, 0, 0), "Ana", "100% bom");
@@ -60,10 +63,15 @@ class ReviewQueriesTest {
         var summary = summaries.stream().filter(s -> s.id().equals(store.getId())).findFirst().orElseThrow();
         assertEquals(3, summary.reviewCount());
         assertEquals(3.0, summary.avgRating());
+        assertEquals(4.7, summary.googleRating());
+        assertEquals(1284L, summary.googleReviewCount());
+        assertEquals(LocalDateTime.of(2026, 1, 3, 0, 0), summary.googleRatingUpdatedAt());
         assertEquals(33.3, summary.satisfactionScore());
         var emptySummary = summaries.stream().filter(s -> s.id().equals(empty.getId())).findFirst().orElseThrow();
         assertEquals(0, emptySummary.reviewCount());
         assertEquals(0, emptySummary.avgRating());
+        assertNull(emptySummary.googleRating());
+        assertNull(emptySummary.googleReviewCount());
         assertEquals(0, emptySummary.satisfactionScore());
         assertEquals(1, statistics.getPrepareStatementCount());
         assertEquals(0, statistics.getEntityLoadCount());

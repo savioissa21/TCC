@@ -35,10 +35,24 @@ function StatCard({
 }
 
 export function StatsGrid({ stats, establishments }: StatsGridProps) {
+  const storesWithGoogleRating = establishments.filter(
+    (store) => store.googleRating !== null && (store.googleReviewCount ?? 0) > 0,
+  );
+  const googleReviewCount = storesWithGoogleRating.reduce(
+    (sum, store) => sum + (store.googleReviewCount ?? 0),
+    0,
+  );
+  const googleRating = googleReviewCount > 0
+    ? storesWithGoogleRating.reduce(
+        (sum, store) => sum + (store.googleRating ?? 0) * (store.googleReviewCount ?? 0),
+        0,
+      ) / googleReviewCount
+    : null;
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <StatCard
-        title="Avaliações analisadas"
+        title="Comentários analisados"
         value={stats.total}
         sub={
           stats.negative > 0 ? (
@@ -46,7 +60,7 @@ export function StatsGrid({ stats, establishments }: StatsGridProps) {
               <TrendingDown size={12} /> {stats.negative} negativas para agir
             </span>
           ) : (
-            stats.total > 0 ? "Nenhuma avaliação negativa" : "Aguardando a primeira coleta"
+            stats.total > 0 ? "Nenhum comentário negativo" : "Aguardando a primeira coleta"
           )
         }
         icon={<Activity size={20} className="text-indigo-500" />}
@@ -64,9 +78,11 @@ export function StatsGrid({ stats, establishments }: StatsGridProps) {
         accentColor="bg-green-500"
       />
       <StatCard
-        title="Nota Média"
-        value={stats.total > 0 ? stats.avgRating.toFixed(1) : "—"}
-        sub="Google Maps · escala de 1 a 5"
+        title="Nota no Google"
+        value={googleRating !== null ? googleRating.toFixed(1) : "—"}
+        sub={googleRating !== null
+          ? `${googleReviewCount.toLocaleString("pt-BR")} avaliações no Google`
+          : "Aguardando uma nova coleta"}
         icon={<Star size={20} className="text-yellow-500 fill-yellow-500" />}
         accentColor="bg-yellow-500"
       />
@@ -76,7 +92,7 @@ export function StatsGrid({ stats, establishments }: StatsGridProps) {
         sub={
           establishments.length === 0
             ? "Adicione sua primeira loja"
-            : `${establishments.reduce((s, e) => s + e.reviewCount, 0)} avaliações monitoradas`
+            : `${establishments.reduce((s, e) => s + e.reviewCount, 0)} comentários analisados`
         }
         icon={<Store size={20} className="text-blue-500" />}
         accentColor="bg-blue-500"

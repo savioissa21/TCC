@@ -26,6 +26,10 @@ public class Establishment {
     private Integer lastNewReviews = 0;
     private String lastMiningStatus;
 
+    private Double googleRating;
+    private Long googleReviewCount;
+    private LocalDateTime googleRatingUpdatedAt;
+
     @Column(length = 1000)
     private String lastMiningMessage;
 
@@ -121,6 +125,30 @@ public class Establishment {
 
     public String getLastMiningMessage() {
         return lastMiningMessage;
+    }
+
+    public Double getGoogleRating() {
+        return googleRating;
+    }
+
+    public void setGoogleRating(Double googleRating) {
+        this.googleRating = googleRating;
+    }
+
+    public Long getGoogleReviewCount() {
+        return googleReviewCount;
+    }
+
+    public void setGoogleReviewCount(Long googleReviewCount) {
+        this.googleReviewCount = googleReviewCount;
+    }
+
+    public LocalDateTime getGoogleRatingUpdatedAt() {
+        return googleRatingUpdatedAt;
+    }
+
+    public void setGoogleRatingUpdatedAt(LocalDateTime googleRatingUpdatedAt) {
+        this.googleRatingUpdatedAt = googleRatingUpdatedAt;
     }
 
     public void setLastMiningMessage(String lastMiningMessage) {

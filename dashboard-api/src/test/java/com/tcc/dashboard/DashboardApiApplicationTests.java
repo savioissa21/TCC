@@ -14,7 +14,7 @@ class DashboardApiApplicationTests {
 
     @Test
     void contextLoadsAfterMigrationsAndHibernateSchemaValidation() {
-        assertEquals("4", flyway.info().current().getVersion().getVersion());
+        assertEquals("5", flyway.info().current().getVersion().getVersion());
         assertEquals(0, flyway.info().pending().length);
         flyway.validate();
     }

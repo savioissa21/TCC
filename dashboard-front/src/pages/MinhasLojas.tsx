@@ -86,6 +86,9 @@ export function MinhasLojas() {
           mapsUrl: establishment.mapsUrl,
           reviewCount: 0,
           avgRating: 0,
+          googleRating: null,
+          googleReviewCount: null,
+          googleRatingUpdatedAt: null,
           satisfactionScore: 0,
           automaticUpdatesEnabled: true,
           lastMiningAt: null,
@@ -328,22 +331,27 @@ export function MinhasLojas() {
                       {est.reviewCount}
                     </p>
                     <p className="text-[10px] leading-tight text-slate-500">
-                      avaliações
+                      comentários analisados
                     </p>
                   </div>
                   <div className="rounded-xl border border-slate-100 bg-slate-50 p-2.5 text-center">
                     <div className="flex items-center justify-center gap-0.5">
                       <p className="text-lg font-bold tabular-nums text-slate-950">
-                        {est.reviewCount > 0 ? est.avgRating.toFixed(1) : "—"}
+                        {est.googleRating !== null ? est.googleRating.toFixed(1) : "—"}
                       </p>
-                      {est.reviewCount > 0 && <Star
+                      {est.googleRating !== null && <Star
                         size={10}
                         className="mb-0.5 fill-amber-400 text-amber-400"
                         aria-hidden="true"
                       />}
                     </div>
                     <p className="text-[10px] leading-tight text-slate-500">
-                      nota média
+                      nota no Google
+                    </p>
+                    <p className="mt-0.5 text-[9px] leading-tight text-slate-400">
+                      {est.googleReviewCount !== null
+                        ? `${est.googleReviewCount.toLocaleString("pt-BR")} no Maps`
+                        : "aguardando coleta"}
                     </p>
                   </div>
                   <div className="rounded-xl border border-slate-100 bg-slate-50 p-2.5 text-center">
@@ -356,7 +364,7 @@ export function MinhasLojas() {
                       {est.reviewCount > 0 ? `${est.satisfactionScore.toFixed(0)}%` : "—"}
                     </div>
                     <p className="text-[10px] leading-tight text-slate-500">
-                      satisfação
+                      satisfação textual
                     </p>
                   </div>
                 </div>

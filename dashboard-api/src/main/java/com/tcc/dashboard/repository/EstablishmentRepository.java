@@ -27,6 +27,9 @@ public interface EstablishmentRepository extends JpaRepository<Establishment, Lo
         Integer getLastNewReviews();
         String getLastMiningStatus();
         String getLastMiningMessage();
+        Double getGoogleRating();
+        Long getGoogleReviewCount();
+        java.time.LocalDateTime getGoogleRatingUpdatedAt();
         long getReviewCount();
         double getAvgRating();
         long getPositiveCount();
@@ -43,12 +46,15 @@ public interface EstablishmentRepository extends JpaRepository<Establishment, Lo
                    e.lastNewReviews as lastNewReviews,
                    e.lastMiningStatus as lastMiningStatus,
                    e.lastMiningMessage as lastMiningMessage,
+                   e.googleRating as googleRating,
+                   e.googleReviewCount as googleReviewCount,
+                   e.googleRatingUpdatedAt as googleRatingUpdatedAt,
                    count(r) as reviewCount,
                    coalesce(avg(coalesce(r.rating, 0.0)), 0.0) as avgRating,
                    coalesce(sum(case when r.overallSentiment = 'Positivo' then 1 else 0 end), 0) as positiveCount
             from Establishment e left join e.reviews r
             where e.owner.email = :email
-            group by e.id, e.name, e.mapsUrl, e.automaticUpdatesEnabled, e.lastMiningAt, e.lastMiningSuccessAt, e.nextMiningAt, e.lastNewReviews, e.lastMiningStatus, e.lastMiningMessage
+            group by e.id, e.name, e.mapsUrl, e.automaticUpdatesEnabled, e.lastMiningAt, e.lastMiningSuccessAt, e.nextMiningAt, e.lastNewReviews, e.lastMiningStatus, e.lastMiningMessage, e.googleRating, e.googleReviewCount, e.googleRatingUpdatedAt
             order by e.id
             """)
     List<Summary> summarizeByOwner(@org.springframework.data.repository.query.Param("email") String email);
