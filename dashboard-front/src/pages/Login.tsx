@@ -1,125 +1,48 @@
+import { ArrowRight, Lock, Mail } from "lucide-react";
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import { Link, useNavigate } from "react-router-dom";
+import { AuthShell } from "../components/layout/AuthShell";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardDescription,
-} from "../components/ui/card";
-import { Sparkles, ArrowRight, Lock, Mail } from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
 
 export function Login() {
   const navigate = useNavigate();
   const { signIn } = useAuth();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setIsLoading(true);
     setError("");
-
     try {
       await signIn({ email, pass: password });
       navigate("/dashboard");
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Não foi possível entrar. Tente novamente.";
-      setError(message);
+      setError(err instanceof Error ? err.message : "Não foi possível entrar. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 transition-colors duration-300">
-      <div className="w-full max-w-md animate-in fade-in zoom-in duration-300 space-y-8">
-        {/* Branding Moderno */}
-        <div className="flex justify-center">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-              <Sparkles size={24} />
-            </div>
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">
-              NEXO
-            </h2>
-          </div>
-        </div>
-
-        <Card className="border-border shadow-xl">
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-bold">
-              Bem-vindo de volta
-            </CardTitle>
-            <CardDescription>
-              Entre com suas credenciais para acessar o painel.
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input
-                label="Email"
-                type="email"
-                maxLength={254}
-                autoComplete="email"
-                placeholder="admin@nexo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                icon={<Mail size={18} />}
-                required
-              />
-
-              <div className="space-y-2">
-                <Input
-                  label="Senha"
-                  type="password"
-                  maxLength={72}
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  icon={<Lock size={18} />}
-                  required
-                />
-              </div>
-
-              {error && (
-                <div className="flex items-center p-3 rounded-md bg-destructive/15 border border-destructive/20 text-destructive text-sm font-medium animate-in slide-in-from-top-1">
-                  {error}
-                </div>
-              )}
-
-              <Button
-                className="w-full font-bold"
-                size="lg"
-                isLoading={isLoading}
-              >
-                Entrar na Plataforma <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        <p className="text-center text-sm text-muted-foreground">
-          Não tem uma conta?{" "}
-          <Link
-            to="/register"
-            className="font-semibold text-primary hover:underline underline-offset-4 transition-all"
-          >
-            Criar agora
-          </Link>
-        </p>
-      </div>
-    </div>
+    <AuthShell
+      eyebrow="Acesso ao painel"
+      title="Bem-vindo de volta"
+      description="Entre para acompanhar a percepção dos clientes e as atualizações das suas lojas."
+      footer={<>Não tem uma conta? <Link to="/register" className="font-bold text-evergreen underline-offset-4 hover:underline">Criar agora</Link></>}
+    >
+      <form aria-label="Entrar na plataforma" onSubmit={handleSubmit} className="space-y-5">
+        <Input label="Email" type="email" maxLength={254} autoComplete="email" placeholder="admin@nexo.com" value={email} onChange={(event) => setEmail(event.target.value)} icon={<Mail size={18} />} required />
+        <Input label="Senha" type="password" maxLength={72} autoComplete="current-password" placeholder="••••••••" value={password} onChange={(event) => setPassword(event.target.value)} icon={<Lock size={18} />} required />
+        {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-sm font-semibold text-red-800 animate-in slide-in-from-top-1">{error}</div>}
+        <Button className="w-full" size="lg" isLoading={isLoading}>
+          Entrar na Plataforma <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+        </Button>
+      </form>
+    </AuthShell>
   );
 }

@@ -108,12 +108,12 @@
 - Produces: `AuthShell({ eyebrow, title, description, children, footer })` com um único `main` e `h1` por tela.
 - Preserva: labels de Email/Senha/Nome, textos dos botões, chamadas `signIn`/`register` e redirecionamentos.
 
-- [ ] **Step 1:** Criar teste afirmando que AuthShell expõe `main`, um `h1`, conteúdo de formulário e argumento de rodapé.
-- [ ] **Step 2:** Executar o teste; esperado: FAIL por módulo ausente.
-- [ ] **Step 3:** Implementar o layout dividido em desktop e formulário direto no mobile, com painel narrativo, assinatura visual e entrada escalonada.
-- [ ] **Step 4:** Migrar Login e Register para AuthShell sem mudar validação, nomes acessíveis ou serviços.
-- [ ] **Step 5:** Executar teste isolado, suíte Vitest e build; esperado: PASS.
-- [ ] **Step 6:** Commit: `feat(front): unify authentication experience`.
+- [x] **Step 1:** Criar teste afirmando que AuthShell expõe `main`, um `h1`, conteúdo de formulário e argumento de rodapé.
+- [x] **Step 2:** Executar o teste; esperado: FAIL por módulo ausente.
+- [x] **Step 3:** Implementar o layout dividido em desktop e formulário direto no mobile, com painel narrativo, assinatura visual e entrada escalonada.
+- [x] **Step 4:** Migrar Login e Register para AuthShell sem mudar validação, nomes acessíveis ou serviços.
+- [x] **Step 5:** Executar teste isolado, suíte Vitest e build; esperado: PASS.
+- [x] **Step 6:** Commit: `feat(front): unify authentication experience`.
 
 ### Task 4: Dashboard, indicadores, avaliações e insights
 
