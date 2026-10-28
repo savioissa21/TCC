@@ -43,7 +43,9 @@ describe("MiningProgressModal", () => {
         onComplete={vi.fn()} onError={vi.fn()} />,
     );
 
-    expect(await screen.findByText("Aguardando na fila de mineração...")).toBeInTheDocument();
+    const statusMessage = await screen.findByText("Aguardando na fila de mineração...");
+    expect(statusMessage).toHaveAttribute("aria-live", "polite");
+    expect(screen.getByRole("dialog", { name: "Acompanhamento da mineração" })).toBeInTheDocument();
     expect(screen.queryByText("Rolando página para carregar avaliações...")).not.toBeInTheDocument();
   });
 

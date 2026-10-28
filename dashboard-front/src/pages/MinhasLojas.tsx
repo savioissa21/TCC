@@ -16,15 +16,19 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "../lib/utils";
+import { motion } from "framer-motion";
+import { Button } from "../components/ui/button";
+import { EditorialLabel } from "../components/ui/editorial";
+import { pageReveal, staggerContainer, staggerItem } from "../lib/motion";
 
 const MINING_LABELS: Record<string, string> = {
   QUEUED: "Na fila", RUNNING: "Em execução", COMPLETED: "Concluída", FAILED: "Falhou",
 };
 
 const MINING_STYLES: Record<string, { badge: string; dot: string }> = {
-  QUEUED: { badge: "bg-amber-50 text-amber-700 ring-amber-200", dot: "bg-amber-500" },
-  RUNNING: { badge: "bg-blue-50 text-blue-700 ring-blue-200", dot: "animate-pulse bg-blue-500" },
-  COMPLETED: { badge: "bg-emerald-50 text-emerald-700 ring-emerald-200", dot: "bg-emerald-500" },
+  QUEUED: { badge: "bg-amber-50 text-amber-800 ring-amber-200", dot: "bg-amber-500" },
+  RUNNING: { badge: "bg-sky-50 text-sky-800 ring-sky-200", dot: "animate-pulse bg-sky-500" },
+  COMPLETED: { badge: "bg-evergreen/10 text-evergreen ring-evergreen/20", dot: "bg-evergreen" },
   FAILED: { badge: "bg-red-50 text-red-700 ring-red-200", dot: "bg-red-500" },
 };
 
@@ -185,45 +189,41 @@ export function MinhasLojas() {
 
   return (
     <>
-      <div className="space-y-6 animate-in fade-in duration-500 pb-12">
-        <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
+      <motion.div initial="hidden" animate="visible" variants={pageReveal} className="space-y-7 pb-12">
+        <header className="flex flex-col gap-5 border-b border-border pb-7 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="mb-2 flex w-fit items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500 shadow-sm">
-              <Sparkles size={12} aria-hidden="true" />
-              Monitoramento contínuo
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-950">
+            <EditorialLabel><Sparkles size={12} aria-hidden="true" /> Monitoramento contínuo</EditorialLabel>
+            <h1 className="mt-3 text-3xl font-black tracking-[-0.045em] text-ink sm:text-4xl">
               Minhas Lojas
             </h1>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-muted-foreground">
               {establishments.length} estabelecimento
               {establishments.length !== 1 ? "s" : ""} monitorado
               {establishments.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <button
-            onClick={() => setIsCreateOpen(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md sm:w-auto"
-          >
+          <Button onClick={() => setIsCreateOpen(true)} className="w-full gap-2 sm:w-auto">
             <Plus size={16} aria-hidden="true" /> Nova Loja
-          </button>
+          </Button>
         </header>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-slate-500">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
             Acompanhe coletas, volume de avaliações e atualização semanal.
           </p>
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() => void loadEstablishments()}
             disabled={isLoading}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+            className="gap-2"
           >
             <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} aria-hidden="true" />
             Atualizar status
-          </button>
+          </Button>
         </div>
-        {loadError && <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        {loadError && <div role="alert" className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm">
           <CircleAlert size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
           <div>
             <p className="font-semibold">Não foi possível atualizar as lojas.</p>
@@ -235,45 +235,43 @@ export function MinhasLojas() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-[390px] animate-pulse rounded-2xl border border-slate-200 bg-white shadow-sm"
+                className="h-[430px] animate-pulse rounded-[1.25rem] border border-border bg-surface shadow-editorial"
               />
             ))}
           </div>
         ) : establishments.length === 0 && !loadError ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 px-6 py-20 text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100">
-              <Store size={22} className="text-slate-400" />
+          <div className="flex flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-border bg-surface/70 px-6 py-20 text-center shadow-editorial">
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-evergreen/10">
+              <Store size={22} className="text-evergreen" />
             </div>
-            <p className="font-semibold text-slate-700">
+            <p className="font-black tracking-[-0.02em] text-ink">
               Nenhum estabelecimento cadastrado
             </p>
-            <p className="text-sm text-slate-400 mt-1 mb-5">
+            <p className="mb-6 mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
               Cadastre sua primeira loja para começar a monitorar avaliações.
             </p>
-            <button
-              onClick={() => setIsCreateOpen(true)}
-              className="flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
+            <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
               <Plus size={14} /> Adicionar Loja
-            </button>
+            </Button>
           </div>
         ) : (
-          <div className="grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {establishments.map((est) => (
-              <div
+              <motion.article
                 key={est.id}
-                className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-200/60"
+                variants={staggerItem}
+                className="group flex h-full flex-col overflow-hidden rounded-[1.25rem] border border-border bg-surface shadow-editorial transition duration-300 ease-editorial hover:-translate-y-1 hover:border-evergreen/25 hover:shadow-lift"
               >
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start justify-between border-b border-border px-5 py-5">
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-950 shadow-sm">
-                      <Store size={18} className="text-white" />
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ink shadow-sm">
+                      <Store size={18} className="text-surface" />
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate font-bold leading-tight text-slate-950" title={est.name}>
+                      <p className="truncate font-black leading-tight tracking-[-0.02em] text-ink" title={est.name}>
                         {est.name}
                       </p>
-                      <p className="mt-1 truncate text-xs text-slate-400">
+                      <p className="mt-1 truncate text-xs text-muted-foreground">
                         {getMapsHostname(est.mapsUrl)}
                       </p>
                     </div>
@@ -283,13 +281,13 @@ export function MinhasLojas() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`Abrir ${est.name} no Google Maps`}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-ink"
                   >
                     <ExternalLink size={15} aria-hidden="true" />
                   </a>
                 </div>
 
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-4">
                   <p
                     role="status"
                     className={cn(
@@ -309,34 +307,34 @@ export function MinhasLojas() {
                       "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold transition disabled:opacity-50",
                       est.automaticUpdatesEnabled
                         ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                        : "bg-slate-100 text-slate-500 hover:bg-slate-200",
+                        : "bg-marble text-muted-foreground hover:bg-accent",
                     )}
                     title="Ativar ou pausar a atualização semanal"
                   >
                     {est.automaticUpdatesEnabled ? "Semanal ativa" : "Pausada"}
                   </button>
                 </div>
-                {est.lastMiningStatus === "FAILED" && <p role="alert" className="mb-3 flex items-start gap-2 rounded-lg bg-red-50 p-3 text-xs text-red-700">
+                {est.lastMiningStatus === "FAILED" && <p role="alert" className="mx-5 mt-3 flex items-start gap-2 rounded-xl bg-red-50 p-3 text-xs text-red-700">
                   <CircleAlert size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
                   <span>{est.lastMiningMessage}</span>
                 </p>}
                 {est.lastMiningMessage?.startsWith("Coleta parcial:") &&
-                  <p role="status" className="mb-3 flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+                  <p role="status" className="mx-5 mt-3 flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
                     <CircleAlert size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
                     <span>{est.lastMiningMessage}</span>
                   </p>}
-                <div className="mb-4 grid grid-cols-3 gap-2">
-                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-2.5 text-center">
-                    <p className="text-lg font-bold tabular-nums text-slate-950">
+                <div className="grid grid-cols-3 gap-2 px-5 pt-4">
+                  <div className="rounded-xl border border-border bg-marble/70 p-2.5 text-center">
+                    <p className="text-lg font-black tabular-nums text-ink">
                       {est.reviewCount}
                     </p>
-                    <p className="text-[10px] leading-tight text-slate-500">
+                    <p className="text-[10px] leading-tight text-muted-foreground">
                       comentários analisados
                     </p>
                   </div>
-                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-2.5 text-center">
+                  <div className="rounded-xl border border-border bg-marble/70 p-2.5 text-center">
                     <div className="flex items-center justify-center gap-0.5">
-                      <p className="text-lg font-bold tabular-nums text-slate-950">
+                      <p className="text-lg font-black tabular-nums text-ink">
                         {est.googleRating !== null ? est.googleRating.toFixed(1) : "—"}
                       </p>
                       {est.googleRating !== null && <Star
@@ -345,33 +343,33 @@ export function MinhasLojas() {
                         aria-hidden="true"
                       />}
                     </div>
-                    <p className="text-[10px] leading-tight text-slate-500">
+                    <p className="text-[10px] leading-tight text-muted-foreground">
                       nota no Google
                     </p>
-                    <p className="mt-0.5 text-[9px] leading-tight text-slate-400">
+                    <p className="mt-0.5 text-[9px] leading-tight text-muted-foreground/80">
                       {est.googleReviewCount !== null
                         ? `${est.googleReviewCount.toLocaleString("pt-BR")} no Maps`
                         : "aguardando coleta"}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-2.5 text-center">
+                  <div className="rounded-xl border border-border bg-marble/70 p-2.5 text-center">
                     <div
                       className={cn(
                         "rounded text-lg font-bold tabular-nums",
-                        est.reviewCount > 0 ? scoreColor(est.satisfactionScore) : "text-slate-400",
+                        est.reviewCount > 0 ? scoreColor(est.satisfactionScore) : "text-muted-foreground",
                       )}
                     >
                       {est.reviewCount > 0 ? `${est.satisfactionScore.toFixed(0)}%` : "—"}
                     </div>
-                    <p className="text-[10px] leading-tight text-slate-500">
+                    <p className="text-[10px] leading-tight text-muted-foreground">
                       satisfação textual
                     </p>
                   </div>
                 </div>
 
-                <div className="mb-4">
+                <div className="px-5 pt-4">
                   <div
-                    className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100"
+                    className="h-1.5 w-full overflow-hidden rounded-full bg-marble"
                     role="progressbar"
                     aria-label={`Satisfação de ${est.name}`}
                     aria-valuemin={0}
@@ -382,7 +380,7 @@ export function MinhasLojas() {
                       className={cn(
                         "h-full rounded-full transition-all",
                         est.satisfactionScore >= 70
-                          ? "bg-green-500"
+                          ? "bg-evergreen"
                           : est.satisfactionScore >= 50
                             ? "bg-yellow-500"
                             : "bg-red-500",
@@ -392,32 +390,33 @@ export function MinhasLojas() {
                   </div>
                 </div>
 
-                <div className="mb-4 flex min-w-0 items-center gap-1.5 text-xs text-slate-500">
+                <div className="flex min-w-0 items-center gap-1.5 px-5 pt-4 text-xs text-muted-foreground">
                     <Clock3 size={13} className="shrink-0" aria-hidden="true" />
                     <span className="truncate">
                       Última atualização: {formatUpdateDate(est.lastMiningSuccessAt)}
                     </span>
                 </div>
 
-                <div className="mb-4 space-y-2 rounded-xl border border-slate-100 bg-slate-50/80 p-3 text-xs text-slate-500">
+                <div className="mx-5 my-4 space-y-2 rounded-xl border border-border bg-marble/60 p-3 text-xs text-muted-foreground">
                   <div className="flex justify-between gap-3">
                     <span>Última tentativa</span>
-                    <span className="text-right font-medium text-slate-700">{formatUpdateDate(est.lastMiningAt)}</span>
+                    <span className="text-right font-bold text-ink/75">{formatUpdateDate(est.lastMiningAt)}</span>
                   </div>
                   <div className="flex justify-between gap-3">
                     <span>Novas na coleta</span>
-                    <span className="font-semibold tabular-nums text-slate-700">{est.lastNewReviews ?? 0}</span>
+                    <span className="font-bold tabular-nums text-ink/75">{est.lastNewReviews ?? 0}</span>
                   </div>
                   <div className="flex justify-between gap-3">
                     <span>Próxima coleta</span>
-                    <span className="text-right font-medium text-slate-700">{est.automaticUpdatesEnabled ? (est.nextMiningAt ? formatUpdateDate(est.nextMiningAt) : "Aguardando") : "Pausada"}</span>
+                    <span className="text-right font-bold text-ink/75">{est.automaticUpdatesEnabled ? (est.nextMiningAt ? formatUpdateDate(est.nextMiningAt) : "Aguardando") : "Pausada"}</span>
                   </div>
                 </div>
-                <div className="mt-auto flex gap-2">
-                  <button
+                <div className="mt-auto flex gap-2 border-t border-border px-5 py-4">
+                  <Button
                     onClick={() => handleRefresh(est)}
                     disabled={refreshingId === est.id}
-                    className="flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    size="sm"
+                    className="flex-1 gap-1.5"
                     title="Buscar avaliações novas agora"
                   >
                     <RefreshCw
@@ -426,22 +425,24 @@ export function MinhasLojas() {
                       aria-hidden="true"
                     />
                     {est.lastMiningStatus === "QUEUED" || est.lastMiningStatus === "RUNNING" ? "Acompanhar mineração" : "Atualizar agora"}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => handleDelete(est)}
                     disabled={deletingId === est.id}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-500 transition hover:border-red-200 hover:bg-red-100 hover:text-red-700 disabled:opacity-50"
+                    variant="destructive"
+                    size="icon"
+                    className="min-h-9 h-9 w-9 shrink-0 bg-red-50 text-red-600 shadow-none hover:bg-red-100"
                     title="Excluir estabelecimento"
                     aria-label={`Excluir ${est.name}`}
                   >
                     <Trash2 size={15} aria-hidden="true" />
-                  </button>
+                  </Button>
                 </div>
-              </div>
+              </motion.article>
             ))}
-          </div>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
 
       <CreateEstablishmentModal
         isOpen={isCreateOpen}

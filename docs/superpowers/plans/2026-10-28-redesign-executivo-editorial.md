@@ -154,12 +154,12 @@
 **Interfaces:**
 - Preserva: criação, exclusão, atualização manual, coleta semanal, polling, coleta parcial, timeout e callbacks públicos dos modais.
 
-- [ ] **Step 1:** Acrescentar testes que fixem `role="dialog"`, títulos associados, mensagem dinâmica em `aria-live` e botão de continuar em segundo plano com nome acessível.
-- [ ] **Step 2:** Executar testes dos modais; esperado: falha somente nas novas garantias semânticas ainda ausentes.
-- [ ] **Step 3:** Reorganizar cartões de loja na ordem identidade → status → indicadores → coleta → ações, mantendo todos os dados e handlers.
-- [ ] **Step 4:** Aplicar superfície editorial, backdrop e transição de deslocamento aos dois modais, preservando foco, Escape e polling real.
-- [ ] **Step 5:** Executar testes dos modais, suíte Vitest e build; esperado: PASS.
-- [ ] **Step 6:** Commit: `feat(front): polish stores and mining workflows`.
+- [x] **Step 1:** Acrescentar testes que fixem `role="dialog"`, títulos associados, mensagem dinâmica em `aria-live` e botão de continuar em segundo plano com nome acessível.
+- [x] **Step 2:** Executar testes dos modais; esperado: falha somente nas novas garantias semânticas ainda ausentes.
+- [x] **Step 3:** Reorganizar cartões de loja na ordem identidade → status → indicadores → coleta → ações, mantendo todos os dados e handlers.
+- [x] **Step 4:** Aplicar superfície editorial, backdrop e transição de deslocamento aos dois modais, preservando foco, Escape e polling real.
+- [x] **Step 5:** Executar testes dos modais, suíte Vitest e build; esperado: PASS.
+- [x] **Step 6:** Commit: `feat(front): polish stores and mining workflows`.
 
 ### Task 6: Responsividade, acessibilidade e validação final
 

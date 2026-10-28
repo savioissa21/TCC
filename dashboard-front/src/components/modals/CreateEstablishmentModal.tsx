@@ -1,6 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { X, Store, Link } from "lucide-react";
 import { useModalFocus } from "../../hooks/useModalFocus";
+import { motion } from "framer-motion";
+import { Button } from "../ui/button";
+import { EditorialLabel } from "../ui/editorial";
+import { Input } from "../ui/input";
+import { pageReveal } from "../../lib/motion";
 
 const SEARCH_URL_ERROR =
   "Links de pesquisa não são aceitos. Selecione um estabelecimento específico no Google Maps e copie o link da página da empresa.";
@@ -114,121 +119,79 @@ export function CreateEstablishmentModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div ref={panel} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="create-store-title" className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[95dvh] overflow-y-auto animate-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4 backdrop-blur-sm">
+      <motion.div
+        ref={panel}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-store-title"
+        initial="hidden"
+        animate="visible"
+        variants={pageReveal}
+        className="max-h-[95dvh] w-full max-w-lg overflow-y-auto rounded-[1.25rem] border border-white/50 bg-surface shadow-2xl"
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-6 sm:px-7">
           <div>
-            <h2 id="create-store-title" className="text-lg font-bold text-slate-900">
-              Adicionar Estabelecimento
-            </h2>
-            <p className="text-sm text-slate-500 mt-0.5">
-              A IA irá coletar e analisar as avaliações automaticamente.
-            </p>
+            <EditorialLabel>Nova fonte de avaliações</EditorialLabel>
+            <h2 id="create-store-title" className="mt-2 text-xl font-black tracking-[-0.035em] text-ink">Adicionar Estabelecimento</h2>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">A coleta será iniciada assim que a loja for cadastrada.</p>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Fechar cadastro de estabelecimento"
-            disabled={isLoading}
-            className="text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            <X size={20} />
-          </button>
+          <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Fechar cadastro de estabelecimento" disabled={isLoading} className="shrink-0">
+            <X size={19} aria-hidden="true" />
+          </Button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor="store-name" className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
-              <Store size={14} />
-              Nome do Estabelecimento
-            </label>
-            <input
-              type="text"
-              id="store-name"
-              minLength={2}
-              maxLength={100}
-              placeholder="Ex: Pizzaria do João"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              disabled={isLoading}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition disabled:opacity-50"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="store-url" className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
-              <Link size={14} />
-              URL do Google Maps
-            </label>
-            <input
+        <form onSubmit={handleSubmit} className="space-y-5 px-6 py-6 sm:px-7">
+          <Input
+            type="text"
+            id="store-name"
+            minLength={2}
+            maxLength={100}
+            label="Nome do Estabelecimento"
+            placeholder="Ex: Pizzaria do João"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            icon={<Store size={17} />}
+            required
+            disabled={isLoading}
+          />
+          <div className="space-y-2.5">
+            <Input
               type="text"
               inputMode="url"
               id="store-url"
               maxLength={2000}
-              onPaste={event => {
-                // Normaliza antes do limite HTML para não cortar um link Markdown.
+              label="URL do Google Maps"
+              icon={<Link size={17} />}
+              onPaste={(event) => {
                 const pasted = normalizeMapsUrlInput(event.clipboardData.getData("text"));
                 if (pasted.length > 2000) {
                   event.preventDefault();
                   setUrlError("A URL do Google Maps é muito longa.");
-                } else if (event.currentTarget.selectionStart === 0 &&
-                  event.currentTarget.selectionEnd === url.length) {
+                } else if (event.currentTarget.selectionStart === 0 && event.currentTarget.selectionEnd === url.length) {
                   event.preventDefault();
                   handleUrlChange(pasted);
                 }
               }}
               placeholder="https://maps.app.goo.gl/..."
               value={url}
-              onChange={(e) => handleUrlChange(e.target.value)}
+              onChange={(event) => handleUrlChange(event.target.value)}
               onBlur={() => setUrl(normalizeMapsUrlInput(url))}
               required
               disabled={isLoading}
-              aria-invalid={Boolean(urlError)}
-              aria-describedby={urlError ? "maps-url-error" : undefined}
-              className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none focus:ring-2 transition disabled:opacity-50 ${
-                urlError
-                  ? "border-red-400 focus:border-red-500 focus:ring-red-500/10"
-                  : "border-slate-200 focus:border-slate-900 focus:ring-slate-900/10"
-              }`}
+              error={urlError || undefined}
             />
-            {urlError ? (
-              <p
-                id="maps-url-error"
-                className="text-xs font-medium text-red-600"
-              >
-                {urlError}
-              </p>
-            ) : (
-              <p className="text-xs text-slate-400">
-                Aceitamos o link de Compartilhar (maps.app.goo.gl) ou a URL
-                completa da página da empresa.
-              </p>
-            )}
+            {!urlError && <p className="text-xs leading-relaxed text-muted-foreground">Use o link de Compartilhar (maps.app.goo.gl) ou a URL completa da página da empresa.</p>}
           </div>
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isLoading}
-              className="flex-1 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition disabled:opacity-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={
-                isLoading || name.trim().length < 2 || name.trim().length > 100 || !url.trim() || Boolean(urlError)
-              }
-              className="flex-1 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+          <div className="flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="flex-1">Cancelar</Button>
+            <Button type="submit" isLoading={isLoading} disabled={isLoading || name.trim().length < 2 || name.trim().length > 100 || !url.trim() || Boolean(urlError)} className="flex-1">
               {isLoading ? "Criando..." : "Criar e Minerar"}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 }
