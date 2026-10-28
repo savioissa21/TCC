@@ -12,16 +12,16 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <div className="w-full space-y-2">
         {label && (
-          <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-foreground">
+          <label className="text-xs font-bold uppercase tracking-[0.08em] text-foreground/75 peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
             {label}
           </label>
         )}
         <textarea
           className={cn(
-            "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2",
-            "text-base md:text-sm text-foreground ring-offset-background",
+            "flex min-h-24 w-full rounded-xl border border-input bg-surface/80 px-3 py-3 shadow-sm",
+            "text-base text-foreground ring-offset-background md:text-sm",
             "placeholder:text-muted-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-all duration-200",
+            "transition duration-300 ease-editorial hover:border-evergreen/40 focus-visible:border-evergreen focus-visible:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2",
             "disabled:cursor-not-allowed disabled:opacity-50",
             error && "border-destructive focus-visible:ring-destructive",
             className

@@ -70,12 +70,12 @@
 - Produces: `EditorialLabel(props: HTMLAttributes<HTMLParagraphElement>)`, `Surface(props: HTMLAttributes<HTMLElement> & { as?: ElementType })`, `MetricPanel({ label, value, detail, icon, tone })`.
 - Produces: `pageReveal`, `staggerContainer`, `staggerItem` compatíveis com `motion` e uma duração máxima de 0,5 s.
 
-- [ ] **Step 1:** Criar `editorial.test.tsx` verificando que `EditorialLabel` renderiza texto, `Surface` aceita elemento semântico e `MetricPanel` associa rótulo, valor e detalhe sem depender de cor.
-- [ ] **Step 2:** Executar `npm test -- --run src/components/ui/editorial.test.tsx`; esperado: FAIL porque o módulo não existe.
-- [ ] **Step 3:** Implementar tokens HSL equivalentes à paleta da especificação em `index.css` e `tailwind.config.js`, incluindo `--ease-editorial`, números tabulares, textura discreta, foco visível e regra `prefers-reduced-motion`.
-- [ ] **Step 4:** Implementar as três primitivas em `editorial.tsx` e variantes em `motion.ts`; atualizar os componentes UI básicos para consumir os tokens sem alterar suas props públicas.
-- [ ] **Step 5:** Executar `npm test -- --run src/components/ui/editorial.test.tsx` e `npm run build`; esperado: PASS.
-- [ ] **Step 6:** Commit: `feat(front): establish executive editorial design system`.
+- [x] **Step 1:** Criar `editorial.test.tsx` verificando que `EditorialLabel` renderiza texto, `Surface` aceita elemento semântico e `MetricPanel` associa rótulo, valor e detalhe sem depender de cor.
+- [x] **Step 2:** Executar `npm test -- --run src/components/ui/editorial.test.tsx`; esperado: FAIL porque o módulo não existe.
+- [x] **Step 3:** Implementar tokens HSL equivalentes à paleta da especificação em `index.css` e `tailwind.config.js`, incluindo `--ease-editorial`, números tabulares, textura discreta, foco visível e regra `prefers-reduced-motion`.
+- [x] **Step 4:** Implementar as três primitivas em `editorial.tsx` e variantes em `motion.ts`; atualizar os componentes UI básicos para consumir os tokens sem alterar suas props públicas.
+- [x] **Step 5:** Executar `npm test -- --run src/components/ui/editorial.test.tsx` e `npm run build`; esperado: PASS.
+- [x] **Step 6:** Commit: `feat(front): establish executive editorial design system`.
 
 ### Task 2: Moldura, sidebar e navegação móvel
 

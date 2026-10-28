@@ -11,24 +11,22 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "default", isLoading, children, disabled, ...props }, ref) => {
     
-    // Base: Mobile First + Focus Ring Moderno + Animação de clique (active:scale-95)
-    const baseStyles = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-95";
-    
-    // Cores Semânticas
+    const baseStyles = "inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl text-sm font-bold tracking-[-0.01em] ring-offset-background transition duration-300 ease-editorial focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:translate-y-px disabled:pointer-events-none disabled:opacity-50";
+
     const variants = {
-      default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
-      destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
-      outline: "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
-      secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-      ghost: "hover:bg-accent hover:text-accent-foreground",
-      link: "text-primary underline-offset-4 hover:underline",
+      default: "bg-ink text-surface shadow-editorial hover:-translate-y-0.5 hover:bg-ink/92 hover:shadow-lift",
+      destructive: "bg-destructive text-destructive-foreground shadow-sm hover:-translate-y-0.5 hover:bg-destructive/92",
+      outline: "border border-input bg-surface/80 text-ink shadow-sm hover:-translate-y-0.5 hover:border-evergreen/40 hover:bg-accent",
+      secondary: "bg-secondary text-secondary-foreground hover:-translate-y-0.5 hover:bg-secondary/75",
+      ghost: "text-ink hover:bg-accent hover:text-accent-foreground",
+      link: "min-h-0 text-evergreen underline-offset-4 hover:underline",
     };
 
     const sizes = {
-      default: "h-10 px-4 py-2",
-      sm: "h-9 rounded-md px-3",
-      lg: "h-11 rounded-md px-8 text-base",
-      icon: "h-10 w-10",
+      default: "px-4 py-2.5",
+      sm: "min-h-9 rounded-lg px-3 py-1.5 text-xs",
+      lg: "min-h-12 px-8 py-3 text-base",
+      icon: "h-11 w-11 px-0",
     };
 
     return (
