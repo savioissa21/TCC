@@ -54,3 +54,7 @@ cientifico/dados_locais/
 
 # ─── Docker volumes ─────────────────────────────────────
 # (volumes são gerenciados pelo Docker, não precisa trackear)
+
+# ─── Workspaces locais do Codex/Superpowers ─────────────
+.worktrees/
+.superpowers/
