@@ -1,12 +1,12 @@
+import { LayoutDashboard, LogOut, Sparkles, Store } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import { Avatar } from "../ui/avatar";
-import { LayoutDashboard, Store, LogOut, Sparkles } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { Avatar } from "../ui/avatar";
 
 const NAV = [
-  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/minhas-lojas", icon: Store, label: "Minhas Lojas" },
+  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard", index: "01" },
+  { to: "/minhas-lojas", icon: Store, label: "Minhas Lojas", index: "02" },
 ];
 
 export function Sidebar() {
@@ -19,56 +19,61 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="hidden md:flex h-screen w-64 flex-col border-r border-slate-200 bg-white fixed left-0 top-0 z-40">
-      {/* Logo */}
-      <div className="p-6 border-b border-slate-100">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900">
-            <Sparkles size={15} className="text-white" />
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 flex-col overflow-hidden bg-ink text-surface shadow-2xl md:flex">
+      <div className="absolute -right-24 top-8 h-52 w-52 rounded-full bg-evergreen/20 blur-3xl" aria-hidden="true" />
+      <div className="relative border-b border-white/10 px-6 py-7">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 -rotate-6 items-center justify-center rounded-xl bg-[#a8e6c3] text-ink shadow-lg shadow-black/10">
+            <Sparkles size={18} aria-hidden="true" />
           </div>
-          <span className="text-lg font-bold tracking-tight text-slate-900">NEXO</span>
+          <div>
+            <span className="block text-lg font-black tracking-[0.12em]">NEXO</span>
+            <span className="mt-0.5 block text-[0.62rem] font-bold uppercase tracking-[0.18em] text-white/45">Voz do cliente</span>
+          </div>
         </div>
       </div>
 
-      {/* Navegação */}
-      <nav className="flex-1 p-4 space-y-1">
-        <p className="px-3 mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Menu</p>
-        {NAV.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+      <nav aria-label="Navegação principal" className="relative flex-1 px-4 py-7">
+        <p className="mb-3 px-3 text-[0.62rem] font-extrabold uppercase tracking-[0.2em] text-white/35">Navegação</p>
+        <div className="space-y-2">
+          {NAV.map(({ to, icon: Icon, label, index }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) => cn(
+                "group flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-bold transition duration-300 ease-editorial",
                 isActive
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-              )
-            }
-          >
-            <Icon size={17} />
-            {label}
-          </NavLink>
-        ))}
+                  ? "bg-[#d9efe3] text-ink shadow-lg shadow-black/10"
+                  : "text-white/62 hover:translate-x-0.5 hover:bg-white/8 hover:text-white",
+              )}
+            >
+              {({ isActive }) => (
+                <>
+                  <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg border", isActive ? "border-ink/10 bg-white/45" : "border-white/10 bg-white/5")}>
+                    <Icon size={16} aria-hidden="true" />
+                  </span>
+                  <span className="flex-1">{label}</span>
+                  <span className={cn("text-[0.58rem] tracking-widest", isActive ? "text-ink/45" : "text-white/20")}>{index}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
       </nav>
 
-      {/* Perfil */}
-      <div className="border-t border-slate-200 p-4 space-y-3">
-        <div className="flex items-center gap-3">
-          <Avatar
-            fallback={user?.name || "US"}
-            className="h-9 w-9 border border-slate-200 bg-slate-100 text-slate-700 text-sm font-bold"
-          />
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-900 truncate">{user?.name}</p>
-            <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+      <div className="relative border-t border-white/10 p-4">
+        <div className="mb-3 flex items-center gap-3 rounded-xl bg-white/5 p-3">
+          <Avatar fallback={user?.name || "US"} className="h-10 w-10 border-white/10" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold text-white">{user?.name}</p>
+            <p className="mt-0.5 truncate text-[0.68rem] text-white/42">{user?.email}</p>
           </div>
         </div>
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-50 hover:border-red-200 transition"
+          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/10 text-sm font-bold text-white/60 transition duration-300 hover:border-red-300/20 hover:bg-red-400/10 hover:text-red-100"
         >
-          <LogOut size={15} />
+          <LogOut size={15} aria-hidden="true" />
           Sair
         </button>
       </div>

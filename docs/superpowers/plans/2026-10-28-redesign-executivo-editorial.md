@@ -90,11 +90,11 @@
 - Consumes: `Surface`, `EditorialLabel` e variantes de `motion.ts`.
 - Produces: os mesmos `<Outlet>`, links `/dashboard` e `/minhas-lojas`, ação `Sair` e nomes acessíveis atuais.
 
-- [ ] **Step 1:** Criar `AppLayout.test.tsx` com router e autenticação simulados; afirmar `navigation` com nome “Navegação principal”, `main`, link ativo, botão “Abrir menu”, fechamento por Escape e foco devolvido ao botão.
-- [ ] **Step 2:** Executar o teste isolado; esperado: falha porque a sidebar atual não nomeia a navegação principal.
-- [ ] **Step 3:** Reformular AppLayout, Sidebar, MobileNav e PrivateRoute com sidebar verde-marinho, fundo marfim, navegação clara, drawer móvel e carregamento coerente; preservar rotas e logout.
-- [ ] **Step 4:** Executar `npm test -- --run src/components/layout/AppLayout.test.tsx` e `npm run build`; esperado: PASS.
-- [ ] **Step 5:** Commit: `feat(front): redesign application navigation shell`.
+- [x] **Step 1:** Criar `AppLayout.test.tsx` com router e autenticação simulados; afirmar `navigation` com nome “Navegação principal”, `main`, link ativo, botão “Abrir menu”, fechamento por Escape e foco devolvido ao botão.
+- [x] **Step 2:** Executar o teste isolado; esperado: falha porque a sidebar atual não nomeia a navegação principal.
+- [x] **Step 3:** Reformular AppLayout, Sidebar, MobileNav e PrivateRoute com sidebar verde-marinho, fundo marfim, navegação clara, drawer móvel e carregamento coerente; preservar rotas e logout.
+- [x] **Step 4:** Executar `npm test -- --run src/components/layout/AppLayout.test.tsx` e `npm run build`; esperado: PASS.
+- [x] **Step 5:** Commit: `feat(front): redesign application navigation shell`.
 
 ### Task 3: Jornada de autenticação
 
