@@ -132,15 +132,15 @@
 - Consumes: primitivas editoriais, tokens e variantes de movimento.
 - Preserva: `StatsGrid({ stats, establishments })`, `ReviewFeed({ feed, stats, onAddStore })`, `ReviewCard({ review })` e `InsightsSidebar({ stats })`.
 
-- [ ] **Step 1:** Criar teste de estados verificando que amostra vazia explica a ação seguinte, skeleton mantém três métricas e falha/aviso parcial permanecem com papéis acessíveis.
-- [ ] **Step 2:** Executar testes de dashboard; esperado: o novo texto/estado editorial ainda não existe.
-- [ ] **Step 3:** Redesenhar cabeçalho e seletor como barra de contexto, mantendo `label="Estabelecimento"`, seleção consolidada e aviso de coleta parcial.
-- [ ] **Step 4:** Migrar StatsGrid para `MetricPanel`, mantendo os textos “Nota no Google”, “Comentários analisados” e distinção da satisfação textual.
-- [ ] **Step 5:** Reorganizar ReviewFeed/ReviewCard em leitura editorial, manter deduplicação de aspectos e “Ler avaliação completa” somente quando truncado.
-- [ ] **Step 6:** Reestilizar gráficos e insights com rótulos textuais, limite mínimo de menções e paleta acessível.
-- [ ] **Step 7:** Adicionar entrada escalonada e transição curta ao trocar escopo, sem atrasar conteúdo para movimento reduzido.
-- [ ] **Step 8:** Executar todos os testes de dashboard e `npm run build`; esperado: PASS.
-- [ ] **Step 9:** Commit: `feat(front): transform dashboard into editorial experience`.
+- [x] **Step 1:** Criar teste de estados verificando que amostra vazia explica a ação seguinte, skeleton mantém três métricas e falha/aviso parcial permanecem com papéis acessíveis.
+- [x] **Step 2:** Executar testes de dashboard; esperado: o novo texto/estado editorial ainda não existe.
+- [x] **Step 3:** Redesenhar cabeçalho e seletor como barra de contexto, mantendo `label="Estabelecimento"`, seleção consolidada e aviso de coleta parcial.
+- [x] **Step 4:** Migrar StatsGrid para `MetricPanel`, mantendo os textos “Nota no Google”, “Comentários analisados” e distinção da satisfação textual.
+- [x] **Step 5:** Reorganizar ReviewFeed/ReviewCard em leitura editorial, manter deduplicação de aspectos e “Ler avaliação completa” somente quando truncado.
+- [x] **Step 6:** Reestilizar gráficos e insights com rótulos textuais, limite mínimo de menções e paleta acessível.
+- [x] **Step 7:** Adicionar entrada escalonada e transição curta ao trocar escopo, sem atrasar conteúdo para movimento reduzido.
+- [x] **Step 8:** Executar todos os testes de dashboard e `npm run build`; esperado: PASS.
+- [x] **Step 9:** Commit: `feat(front): transform dashboard into editorial experience`.
 
 ### Task 5: Lojas, modais e estados operacionais
 
