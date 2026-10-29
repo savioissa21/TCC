@@ -1,12 +1,7 @@
-import { useState } from "react";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import type { useReviews } from "../../hooks/useReviews";
 import { EMPTY_REVIEW_STATS } from "../../services/reviewService";
-import type { EstablishmentSummary } from "../../types";
-import { EstablishmentSelector } from "./EstablishmentSelector";
-import { ExecutiveSummary } from "./ExecutiveSummary";
 import { ReviewFeed } from "./ReviewFeed";
 import { StatsGridSkeleton } from "./StatsGrid";
 
@@ -43,46 +38,4 @@ it("oferece nova tentativa quando o feed falha", () => {
   render(<ReviewFeed feed={feed({ error: "Falha de rede" })} stats={EMPTY_REVIEW_STATS} onAddStore={vi.fn()} />);
   expect(screen.getByRole("alert")).toHaveTextContent("Falha de rede");
   expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeInTheDocument();
-});
-
-it("mantém seletor e leitura executiva no mesmo escopo", async () => {
-  const user = userEvent.setup();
-  const stores: EstablishmentSummary[] = [
-    {
-      id: 1, name: "Loja Centro", mapsUrl: "https://maps.google.com/1",
-      reviewCount: 20, avgRating: 4.5, googleRating: 4.6, googleReviewCount: 50,
-      googleRatingUpdatedAt: null, satisfactionScore: 75, automaticUpdatesEnabled: true,
-      lastMiningAt: null, lastMiningSuccessAt: null, nextMiningAt: null, lastNewReviews: 2,
-      lastMiningStatus: "COMPLETED", lastMiningMessage: "Concluída",
-    },
-    {
-      id: 2, name: "Loja Sul", mapsUrl: "https://maps.google.com/2",
-      reviewCount: 30, avgRating: 4.2, googleRating: 4.4, googleReviewCount: 50,
-      googleRatingUpdatedAt: null, satisfactionScore: 70, automaticUpdatesEnabled: true,
-      lastMiningAt: null, lastMiningSuccessAt: null, nextMiningAt: null, lastNewReviews: 1,
-      lastMiningStatus: "COMPLETED", lastMiningMessage: "Concluída",
-    },
-  ];
-
-  function DecisionSurface() {
-    const [selectedId, setSelectedId] = useState<number | undefined>();
-    const scopedStores = stores.filter((store) => selectedId === undefined || store.id === selectedId);
-    const total = selectedId === 1 ? 20 : selectedId === 2 ? 30 : 50;
-    return (
-      <>
-        <EstablishmentSelector stores={stores} selectedId={selectedId} onChange={setSelectedId} />
-        <ExecutiveSummary stats={{ ...EMPTY_REVIEW_STATS, total }} stores={scopedStores} isLoading={false} />
-      </>
-    );
-  }
-
-  render(<DecisionSurface />);
-  expect(screen.getByRole("combobox", { name: "Estabelecimento" })).toHaveTextContent("Todas as lojas");
-  expect(screen.getByRole("region", { name: "Leitura executiva" })).toHaveTextContent("50 comentários analisados");
-
-  await user.click(screen.getByRole("combobox", { name: "Estabelecimento" }));
-  await user.click(screen.getByRole("option", { name: /Loja Centro/ }));
-
-  expect(screen.getByRole("combobox", { name: "Estabelecimento" })).toHaveTextContent("Loja Centro");
-  expect(screen.getByRole("region", { name: "Leitura executiva" })).toHaveTextContent("20 comentários analisados");
 });

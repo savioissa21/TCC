@@ -1,5 +1,7 @@
 # Seletor editorial e leitura executiva — Implementation Plan
 
+> **Decisão posterior (29/10/2026):** a faixa de leitura executiva foi retirada do produto após avaliação visual. Permanecem o seletor personalizado, seus dados compactos e as validações de acessibilidade e responsividade.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Substituir o seletor nativo do dashboard por uma bandeja acessível e acrescentar um resumo que indique prioridade, base analisada e movimento recente.

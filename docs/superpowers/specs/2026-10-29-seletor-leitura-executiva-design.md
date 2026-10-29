@@ -1,5 +1,7 @@
 # Seletor editorial e leitura executiva do dashboard
 
+> **Decisão posterior (29/10/2026):** a faixa com os cards “Onde agir”, “Base analisada” e “Movimento recente” foi removida após avaliação visual. O seletor editorial personalizado permanece como solução aprovada.
+
 ## Intenção
 
 Substituir o menu nativo de estabelecimento por uma bandeja coerente com o

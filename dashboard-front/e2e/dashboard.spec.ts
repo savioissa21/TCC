@@ -141,7 +141,7 @@ test("filtro de loja mantém avaliações, paginação e indicadores no mesmo es
   await expect(page.getByText(/Avaliação exclusiva 1/)).toBeVisible();
   await expect(page.getByText('"Avaliação exclusiva 2"')).toBeVisible();
   await expect(page.getByRole("button", { name: "Ler avaliação completa" })).toHaveCount(1);
-  await expect(page.getByRole("region", { name: "Leitura executiva" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Leitura executiva" })).toHaveCount(0);
   await storeSelect.click();
   const tray = page.getByRole("listbox", { name: "Estabelecimentos" });
   await expect(tray).toBeVisible();

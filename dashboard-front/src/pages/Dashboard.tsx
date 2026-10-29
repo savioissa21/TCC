@@ -8,7 +8,6 @@ import { type ReviewStats, type EstablishmentSummary } from "../types";
 
 import { DashboardHeader } from "../components/dashboard/DashboardHeader";
 import { EstablishmentSelector } from "../components/dashboard/EstablishmentSelector";
-import { ExecutiveSummary } from "../components/dashboard/ExecutiveSummary";
 import { StatsGrid, StatsGridSkeleton } from "../components/dashboard/StatsGrid";
 import { ReviewFeed } from "../components/dashboard/ReviewFeed";
 import { CreateEstablishmentModal } from "../components/modals/CreateEstablishmentModal";
@@ -217,9 +216,6 @@ export function Dashboard() {
             <strong>{store.name}:</strong> {store.lastMiningMessage}
           </p>
         ))}
-        <motion.div variants={staggerItem} key={`summary-${selectedStore ?? "all"}-${isLoading}`}>
-          <ExecutiveSummary stats={stats} stores={scopedEstablishments} isLoading={isLoading} />
-        </motion.div>
         <motion.div variants={staggerItem} key={`stats-${selectedStore ?? "all"}-${isLoading}`}>
           {isLoading ? <StatsGridSkeleton /> :
             <StatsGrid stats={stats} establishments={scopedEstablishments} />}
