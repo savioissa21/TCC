@@ -42,41 +42,41 @@
 - Produces: `MIN_RELIABLE_ASPECT_MENTIONS = 10`; `buildExecutiveSummary(stats: ReviewStats, stores: EstablishmentSummary[]): ExecutiveSummaryData`; componente `ExecutiveSummary({ stats, stores, isLoading })`.
 - `ExecutiveSummaryData` contém `priority`, `coverage` e `recentMovement`, cada campo já com valores necessários para apresentação sem recalcular no JSX.
 
-- [ ] **Step 1: Escrever testes falhando das funções puras**
+- [x] **Step 1: Escrever testes falhando das funções puras**
 
 Cobrir: menor aspecto com `total >= 10`; ausência de aspecto confiável; percentual de cobertura normal e limitado a 100%; Google total nulo/zero; soma de `lastNewReviews`; data válida mais recente; datas ausentes ou inválidas.
 
-- [ ] **Step 2: Executar o teste das funções**
+- [x] **Step 2: Executar o teste das funções**
 
 Run: `npm test -- src/lib/executiveSummary.test.ts`
 
 Expected: FAIL porque `executiveSummary.ts` ainda não existe.
 
-- [ ] **Step 3: Implementar `buildExecutiveSummary`**
+- [x] **Step 3: Implementar `buildExecutiveSummary`**
 
 Usar somente dados do escopo recebido. Não mutar `stats.aspects` nem `stores`; limitar cobertura a `[0, 100]`; ignorar datas inválidas ao encontrar a atualização mais recente.
 
-- [ ] **Step 4: Executar o teste das funções**
+- [x] **Step 4: Executar o teste das funções**
 
 Run: `npm test -- src/lib/executiveSummary.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 5: Escrever teste falhando de `ExecutiveSummary`**
+- [x] **Step 5: Escrever teste falhando de `ExecutiveSummary`**
 
 Verificar os títulos “Onde agir”, “Base analisada” e “Movimento recente”; prioridade com percentual e número de menções; explicação sobre avaliações sem comentário; estado sem base confiável; skeleton com `role="status"`.
 
-- [ ] **Step 6: Implementar `ExecutiveSummary`**
+- [x] **Step 6: Implementar `ExecutiveSummary`**
 
 Criar três blocos semânticos dentro de uma seção `aria-label="Leitura executiva"`, usando texto e ícone além de cor. Manter a mesma geometria no skeleton.
 
-- [ ] **Step 7: Executar testes da Task 1 e build**
+- [x] **Step 7: Executar testes da Task 1 e build**
 
 Run: `npm test -- src/lib/executiveSummary.test.ts src/components/dashboard/ExecutiveSummary.test.tsx`; depois `npm run build`.
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 `git commit -m "feat(front): add decision-oriented executive summary"`
 
