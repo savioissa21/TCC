@@ -172,13 +172,13 @@
 - Consumes: toda a experiência visual das Tasks 1–5.
 - Produces: frontend pronto para Docker sem regressão funcional.
 
-- [ ] **Step 1:** Ampliar o Playwright para validar ausência de overflow em 320 px, drawer móvel, foco por teclado, estados vazios, `reducedMotion: "reduce"` e seletor de estabelecimento.
-- [ ] **Step 2:** Executar `npm run test:e2e`; esperado: registrar qualquer regressão visual/semântica restante.
-- [ ] **Step 3:** Corrigir somente os problemas encontrados, mantendo contratos e textos usados pelos fluxos full-stack.
-- [ ] **Step 4:** Executar `npm run lint`, `npm test`, `npm run build` e `npm run test:e2e`; esperado: todos PASS.
-- [ ] **Step 5:** Com Docker disponível, executar `docker compose up -d --build` e o smoke test do login até dashboard/lojas; se o daemon continuar indisponível, registrar isso sem afirmar validação Docker.
-- [ ] **Step 6:** Inspecionar manualmente desktop, tablet e 320–390 px, incluindo contraste, foco e movimento reduzido.
-- [ ] **Step 7:** Commit: `test(front): validate responsive editorial redesign`.
+- [x] **Step 1:** Ampliar o Playwright para validar ausência de overflow em 320 px, drawer móvel, foco por teclado, estados vazios, `reducedMotion: "reduce"` e seletor de estabelecimento.
+- [x] **Step 2:** Executar `npm run test:e2e`; esperado: registrar qualquer regressão visual/semântica restante.
+- [x] **Step 3:** Corrigir somente os problemas encontrados, mantendo contratos e textos usados pelos fluxos full-stack.
+- [x] **Step 4:** Executar `npm run lint`, `npm test`, `npm run build` e `npm run test:e2e`; esperado: todos PASS.
+- [x] **Step 5:** Com Docker disponível, executar `docker compose up -d --build` e o smoke test do login até dashboard/lojas; se o daemon continuar indisponível, registrar isso sem afirmar validação Docker.
+- [x] **Step 6:** Inspecionar manualmente desktop, tablet e 320–390 px, incluindo contraste, foco e movimento reduzido.
+- [x] **Step 7:** Commit: `test(front): validate responsive editorial redesign`.
 
 ### Task 7: Documentação e entrega
 
