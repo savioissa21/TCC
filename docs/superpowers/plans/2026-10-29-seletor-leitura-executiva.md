@@ -92,31 +92,31 @@ Expected: PASS.
 - Consumes: `EstablishmentSummary[]`, `selectedId?: number`, `onChange(id?: number): void`.
 - Produces: `EstablishmentSelector`, um `combobox` nomeado “Estabelecimento” com `listbox` e opções para visão consolidada e cada loja.
 
-- [ ] **Step 1: Escrever teste falhando do comportamento básico**
+- [x] **Step 1: Escrever teste falhando do comportamento básico**
 
 Verificar acionador com `role="combobox"`, `aria-expanded`, abertura por clique, opção consolidada, dados compactos de loja, seleção que chama `onChange`, fechamento e marcação `aria-selected`.
 
-- [ ] **Step 2: Escrever testes falhando de teclado e bordas**
+- [x] **Step 2: Escrever testes falhando de teclado e bordas**
 
 Cobrir abertura com `ArrowDown`, navegação por setas, `Home`, `End`, seleção por `Enter`, fechamento por `Escape` com foco devolvido, clique fora e nome longo truncado sem perder `title`.
 
-- [ ] **Step 3: Executar teste do seletor**
+- [x] **Step 3: Executar teste do seletor**
 
 Run: `npm test -- src/components/dashboard/EstablishmentSelector.test.tsx`
 
 Expected: FAIL porque o componente ainda não existe.
 
-- [ ] **Step 4: Implementar `EstablishmentSelector`**
+- [x] **Step 4: Implementar `EstablishmentSelector`**
 
 Usar botão acionador, bandeja posicionada, papéis ARIA e referências para foco. Não adicionar campo de busca nem dependência externa. Mostrar estado, comentários analisados, satisfação e nota Google quando disponível.
 
-- [ ] **Step 5: Executar teste do seletor e build**
+- [x] **Step 5: Executar teste do seletor e build**
 
 Run: `npm test -- src/components/dashboard/EstablishmentSelector.test.tsx`; depois `npm run build`.
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 `git commit -m "feat(front): replace native store select with editorial tray"`
 
