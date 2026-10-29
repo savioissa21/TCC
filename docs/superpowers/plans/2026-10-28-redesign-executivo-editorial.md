@@ -189,6 +189,16 @@
 **Interfaces:**
 - Produces: histórico rastreável do redesign e instruções coerentes com a entrega.
 
-- [ ] **Step 1:** Registrar no plano os comandos executados e qualquer limitação de ambiente remanescente.
-- [ ] **Step 2:** Revisar `git diff --check`, `git status --short` e o diff para garantir que `.env`, artefatos locais e arquivos científicos não relacionados não foram incluídos.
-- [ ] **Step 3:** Commit final apenas se houver documentação adicional: `docs(front): document editorial redesign`.
+- [x] **Step 1:** Registrar no plano os comandos executados e qualquer limitação de ambiente remanescente.
+- [x] **Step 2:** Revisar `git diff --check`, `git status --short` e o diff para garantir que `.env`, artefatos locais e arquivos científicos não relacionados não foram incluídos.
+- [x] **Step 3:** Commit final apenas se houver documentação adicional: `docs(front): document editorial redesign`.
+
+## Registro de validação
+
+- `npm run lint`: aprovado sem erros.
+- `npm test`: 9 arquivos e 18 testes aprovados.
+- `npm run build`: aprovado, com divisão dos pacotes React e Framer Motion e sem alerta de pacote principal excessivo.
+- `npm run test:e2e`: 3 fluxos aprovados, cobrindo navegação móvel, mineração simulada, seleção de loja, paginação, 320 px e movimento reduzido.
+- Docker: imagens reconstruídas; PostgreSQL, API e frontend reportaram estado saudável.
+- Smoke test Docker: cadastro, acesso ao dashboard, logout e novo login aprovados contra Nginx, API e banco reais.
+- O caminho relativo de `ABSA_MODEL_HOST_PATH` foi substituído somente no processo de validação pelo caminho absoluto do mesmo checkpoint local. O arquivo `.env` não foi alterado nem versionado.
