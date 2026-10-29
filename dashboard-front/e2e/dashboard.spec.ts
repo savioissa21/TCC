@@ -145,6 +145,9 @@ test("filtro de loja mantém avaliações, paginação e indicadores no mesmo es
   await storeSelect.click();
   const tray = page.getByRole("listbox", { name: "Estabelecimentos" });
   await expect(tray).toBeVisible();
+  const traySurface = tray.locator("..");
+  await expect.poll(() => traySurface.evaluate((element) => getComputedStyle(element).backgroundColor))
+    .not.toBe("rgba(0, 0, 0, 0)");
   const trayBox = await tray.boundingBox();
   expect(trayBox).not.toBeNull();
   expect((trayBox?.x || 0) + (trayBox?.width || 0)).toBeLessThanOrEqual(320);

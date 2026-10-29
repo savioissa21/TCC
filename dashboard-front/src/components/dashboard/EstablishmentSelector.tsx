@@ -129,7 +129,7 @@ export function EstablishmentSelector({ stores, selectedId, onChange }: Establis
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 z-40 mt-2 w-full min-w-0 overflow-hidden rounded-[1.15rem] border border-evergreen/15 bg-surface/98 p-1.5 shadow-[0_22px_60px_-24px_rgba(15,48,42,0.45)] backdrop-blur-xl sm:min-w-[27rem]">
+        <div className="absolute right-0 z-40 mt-2 w-full min-w-0 overflow-hidden rounded-[1.15rem] border border-evergreen/15 bg-surface p-1.5 shadow-[0_22px_60px_-24px_rgba(15,48,42,0.45)] sm:min-w-[27rem]">
           <div className="px-3 pb-2 pt-2">
             <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.15em] text-evergreen">Escolha o escopo da análise</p>
             <p className="mt-1 text-[0.7rem] text-muted-foreground">Compare o consolidado ou aprofunde uma unidade.</p>
