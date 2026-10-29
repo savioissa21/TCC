@@ -32,7 +32,6 @@ export function EstablishmentSelector({ stores, selectedId, onChange }: Establis
 
   useLayoutEffect(() => {
     if (!isOpen) return;
-    setActiveIndex(selectedIndex);
     optionRefs.current[selectedIndex]?.focus();
   }, [isOpen, selectedIndex]);
 

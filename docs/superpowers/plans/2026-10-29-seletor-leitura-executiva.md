@@ -134,34 +134,34 @@ Expected: PASS.
 - Consumes: `EstablishmentSelector` da Task 2 e `ExecutiveSummary` da Task 1.
 - Produces: dashboard integrado sem `<select>` nativo e com leitura executiva restrita ao escopo escolhido.
 
-- [ ] **Step 1: Atualizar teste do dashboard para o novo contrato**
+- [x] **Step 1: Atualizar teste do dashboard para o novo contrato**
 
 Verificar `combobox` “Estabelecimento”, faixa “Leitura executiva”, escopo consolidado e individual, além do skeleton durante carregamento.
 
-- [ ] **Step 2: Integrar os componentes em `Dashboard.tsx`**
+- [x] **Step 2: Integrar os componentes em `Dashboard.tsx`**
 
 Substituir o `<select>` e `ChevronDown`; centralizar a troca de escopo em uma função que limpa indicadores, atualiza `selectedStore` e dispara a busca. Passar somente as lojas do escopo para `ExecutiveSummary`.
 
-- [ ] **Step 3: Atualizar Playwright**
+- [x] **Step 3: Atualizar Playwright**
 
 Trocar `selectOption` por abertura do `combobox` e clique em `option`. Verificar bandeja e faixa executiva em 320 px, ausência de overflow e seleção consolidada/individual.
 
-- [ ] **Step 4: Executar validação completa do frontend**
+- [x] **Step 4: Executar validação completa do frontend**
 
 Run: `npm run lint`, `npm test`, `npm run build`, `npm run test:e2e`.
 
 Expected: todos com exit code 0; Vitest e Playwright sem falhas.
 
-- [ ] **Step 5: Reconstruir Docker e executar smoke**
+- [x] **Step 5: Reconstruir Docker e executar smoke**
 
 Reutilizar o checkpoint local sem alterar `.env`; verificar PostgreSQL, API e frontend saudáveis e executar `docker-smoke.spec.ts` contra `http://127.0.0.1`.
 
-- [ ] **Step 6: Revisar diff e arquivos versionados**
+- [x] **Step 6: Revisar diff e arquivos versionados**
 
 Run: `git diff --check`, `git status --short` e diff contra `main`.
 
 Expected: nenhuma credencial, checkpoint, relatório Playwright ou arquivo científico fora do escopo.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 `git commit -m "test(front): validate executive decision workflow"`

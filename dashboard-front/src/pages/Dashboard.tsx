@@ -7,11 +7,13 @@ import { establishmentService } from "../services/establishmentService";
 import { type ReviewStats, type EstablishmentSummary } from "../types";
 
 import { DashboardHeader } from "../components/dashboard/DashboardHeader";
+import { EstablishmentSelector } from "../components/dashboard/EstablishmentSelector";
+import { ExecutiveSummary } from "../components/dashboard/ExecutiveSummary";
 import { StatsGrid, StatsGridSkeleton } from "../components/dashboard/StatsGrid";
 import { ReviewFeed } from "../components/dashboard/ReviewFeed";
 import { CreateEstablishmentModal } from "../components/modals/CreateEstablishmentModal";
 import { MiningProgressModal } from "../components/modals/MiningProgressModal";
-import { Building2, ChevronDown } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { pageReveal, staggerContainer, staggerItem } from "../lib/motion";
 import { Surface } from "../components/ui/editorial";
@@ -55,6 +57,9 @@ export function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const selectedEstablishment = establishments.find(
     (store) => store.id === selectedStore,
+  );
+  const scopedEstablishments = establishments.filter(
+    (store) => selectedStore === undefined || store.id === selectedStore,
   );
 
   // Modal de criação
@@ -160,6 +165,14 @@ export function Dashboard() {
     );
   }
 
+  function handleStoreChange(id?: number) {
+    if (id === selectedStore) return;
+    setIsLoading(true);
+    setStats(EMPTY_REVIEW_STATS);
+    setSelectedStore(id);
+    fetchReviews();
+  }
+
   return (
     <>
       <motion.div className="space-y-7 pb-12" initial="hidden" animate="visible" variants={staggerContainer}>
@@ -172,13 +185,13 @@ export function Dashboard() {
         />
         </motion.div>
 
-        <motion.div variants={staggerItem}>
+        <motion.div variants={staggerItem} className="relative z-30">
         <Surface
           as="section"
           aria-label="Escopo dos indicadores"
           className="flex min-w-0 flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"
         >
-          <label htmlFor="dashboard-store" className="flex min-w-0 shrink-0 items-center gap-3 text-sm font-bold text-ink">
+          <div className="flex min-w-0 shrink-0 items-center gap-3 text-sm font-bold text-ink">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-evergreen">
               <Building2 size={16} aria-hidden="true" />
             </span>
@@ -190,20 +203,12 @@ export function Dashboard() {
                   : "Visão consolidada de todas as lojas"}
               </span>
             </span>
-          </label>
-          <div className="relative min-w-0 w-full sm:max-w-md">
-            <select id="dashboard-store" aria-label="Estabelecimento" value={selectedStore ?? "all"} onChange={event => {
-              setIsLoading(true);
-              setStats(EMPTY_REVIEW_STATS);
-              setSelectedStore(event.target.value === "all" ? undefined : Number(event.target.value));
-              fetchReviews();
-            }} className="h-11 w-full min-w-0 appearance-none truncate rounded-xl border border-input bg-paper/55 py-2.5 pl-3 pr-10 text-sm font-bold text-ink outline-none transition duration-300 hover:border-evergreen/40 focus:border-evergreen focus:bg-surface focus:ring-2 focus:ring-evergreen/15">
-              <option value="all">Todas as lojas (visão consolidada)</option>
-              {establishments.map(store => <option key={store.id} value={store.id}>{store.name}</option>)}
-            </select>
-            <ChevronDown aria-hidden="true" size={16}
-              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           </div>
+          <EstablishmentSelector
+            stores={establishments}
+            selectedId={selectedStore}
+            onChange={handleStoreChange}
+          />
         </Surface>
         </motion.div>
         {establishments.filter(store => (selectedStore === undefined || store.id === selectedStore)
@@ -212,9 +217,12 @@ export function Dashboard() {
             <strong>{store.name}:</strong> {store.lastMiningMessage}
           </p>
         ))}
+        <motion.div variants={staggerItem} key={`summary-${selectedStore ?? "all"}-${isLoading}`}>
+          <ExecutiveSummary stats={stats} stores={scopedEstablishments} isLoading={isLoading} />
+        </motion.div>
         <motion.div variants={staggerItem} key={`stats-${selectedStore ?? "all"}-${isLoading}`}>
           {isLoading ? <StatsGridSkeleton /> :
-            <StatsGrid stats={stats} establishments={establishments.filter(store => selectedStore === undefined || store.id === selectedStore)} />}
+            <StatsGrid stats={stats} establishments={scopedEstablishments} />}
         </motion.div>
 
         <motion.div variants={staggerItem} className="grid gap-7 lg:grid-cols-7">
