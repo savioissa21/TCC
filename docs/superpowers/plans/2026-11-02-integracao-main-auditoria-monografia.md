@@ -70,4 +70,4 @@
 - [x] **Step 1: Compilar a fonte LaTeX e revisar diagnósticos**
 - [x] **Step 2: Renderizar e inspecionar visualmente todas as páginas relevantes**
 - [x] **Step 3: Atualizar ZIP/PDF finais e conferir hashes/conteúdo**
-- [ ] **Step 4: Revisar diff, executar verificações finais e enviar `main`**
+- [x] **Step 4: Revisar diff, executar verificações finais e enviar `main`**
