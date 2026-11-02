@@ -6,6 +6,7 @@ describe("contrato de cadastro de loja", () => {
   it("rejeita nome curto e FTP; normaliza Markdown antes de enviar", () => {
     const submit = vi.fn();
     render(<CreateEstablishmentModal isOpen onClose={vi.fn()} onSubmit={submit} isLoading={false} />);
+    expect(screen.getByRole("dialog", { name: "Adicionar Estabelecimento" })).toBeInTheDocument();
     const name = screen.getByLabelText("Nome do Estabelecimento");
     const url = screen.getByLabelText("URL do Google Maps");
     const button = screen.getByRole("button", { name: "Criar e Minerar" });

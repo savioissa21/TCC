@@ -91,7 +91,9 @@ test("login e mineração percorrem o fluxo principal", async ({ page }) => {
 });
 
 test("filtro de loja mantém avaliações, paginação e indicadores no mesmo escopo", async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 800 });
+  test.setTimeout(45_000);
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.addInitScript(({ token }) => {
     localStorage.setItem("@saas-tcc:token", token);
     localStorage.setItem("@saas-tcc:user", JSON.stringify({ id: "u", name: "Gestor", email: "gestor@example.com" }));
@@ -100,6 +102,9 @@ test("filtro de loja mantém avaliações, paginação e indicadores no mesmo es
     name: id === 1 ? "Restaurante com um nome muito comprido para o seletor" : `Loja ${id}`,
     mapsUrl: "https://maps.google.com",
     reviewCount: id === 1 ? 9 : 1, avgRating: id === 1 ? 5 : 1, satisfactionScore: id === 1 ? 100 : 0,
+    googleRating: null, googleReviewCount: null, googleRatingUpdatedAt: null,
+    automaticUpdatesEnabled: true, lastMiningAt: null, lastMiningSuccessAt: null,
+    nextMiningAt: null, lastNewReviews: 0, lastMiningStatus: "COMPLETED",
     lastMiningMessage: id === 1 ? "Coleta parcial: ordenação não confirmada." : "Concluída" }));
   await page.route("**/api/**", async route => {
     const url = new URL(route.request().url());
@@ -131,25 +136,49 @@ test("filtro de loja mantém avaliações, paginação e indicadores no mesmo es
   const storeSelect = page.getByLabel("Estabelecimento", { exact: true });
   const selectBox = await storeSelect.boundingBox();
   expect(selectBox).not.toBeNull();
-  expect((selectBox?.x || 0) + (selectBox?.width || 0)).toBeLessThanOrEqual(360);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  expect((selectBox?.x || 0) + (selectBox?.width || 0)).toBeLessThanOrEqual(320);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   await expect(page.getByText(/Avaliação exclusiva 1/)).toBeVisible();
   await expect(page.getByText('"Avaliação exclusiva 2"')).toBeVisible();
   await expect(page.getByRole("button", { name: "Ler avaliação completa" })).toHaveCount(1);
-  await storeSelect.selectOption("1");
+  await expect(page.getByRole("region", { name: "Leitura executiva" })).toHaveCount(0);
+  await storeSelect.click();
+  const tray = page.getByRole("listbox", { name: "Estabelecimentos" });
+  await expect(tray).toBeVisible();
+  const traySurface = tray.locator("..");
+  await expect.poll(() => traySurface.evaluate((element) => getComputedStyle(element).backgroundColor))
+    .not.toBe("rgba(0, 0, 0, 0)");
+  const trayBox = await tray.boundingBox();
+  expect(trayBox).not.toBeNull();
+  expect((trayBox?.x || 0) + (trayBox?.width || 0)).toBeLessThanOrEqual(320);
+  await tray.getByRole("option", { name: /Restaurante com um nome muito comprido/ }).click();
   await expect(page.getByText("9 avaliações analisadas")).toBeVisible();
   await expect(page.getByText(/Coleta parcial: ordenação/)).toBeVisible();
   await expect(page.getByText('"Avaliação exclusiva 2"')).toHaveCount(0);
   await page.getByRole("button", { name: "Próxima" }).click();
   await expect(page.getByText("Página 2 de 2")).toBeVisible();
-  await storeSelect.selectOption("2");
+  await storeSelect.click();
+  await page.getByRole("option", { name: /Loja 2/ }).click();
   await expect(page.getByText("1 avaliações analisadas")).toBeVisible();
   await expect(page.getByText(/Coleta parcial: ordenação/)).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "Paginação das avaliações" })).toHaveCount(0);
   await expect(page.getByText(/Avaliação exclusiva 1/)).toHaveCount(0);
   await expect(page.getByText('"Avaliação exclusiva 2"')).toBeVisible();
   await expect(page.getByRole("button", { name: "Ler avaliação completa" })).toHaveCount(0);
-  await storeSelect.selectOption("all");
+  await storeSelect.click();
+  await page.getByRole("option", { name: /Todas as lojas/ }).click();
   await expect(page.getByText("10 avaliações analisadas")).toBeVisible();
   await expect(page.getByText(/Avaliação exclusiva 1/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Abrir menu" }).click();
+  await page.getByRole("navigation", { name: "Navegação móvel" }).getByRole("link", { name: "Minhas Lojas" }).click();
+  await expect(page).toHaveURL(/\/minhas-lojas$/);
+  await expect(page.getByText(/2 estabelecimentos monitorados/)).toBeVisible();
+  await page.getByRole("button", { name: "Nova Loja" }).click();
+  const dialog = page.getByRole("dialog", { name: "Adicionar Estabelecimento" });
+  await expect(dialog).toBeVisible();
+  const dialogBox = await dialog.boundingBox();
+  expect(dialogBox).not.toBeNull();
+  expect((dialogBox?.x || 0) + (dialogBox?.width || 0)).toBeLessThanOrEqual(320);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
 });

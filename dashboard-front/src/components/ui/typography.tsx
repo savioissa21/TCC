@@ -13,14 +13,14 @@ export function Typography({ as, variant = "p", className, children, ...props }:
   const Component = as || (variant === "p" || variant === "muted" || variant === "lead" ? "p" : variant);
   
   const styles = {
-    h1: "scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl",
-    h2: "scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0",
-    h3: "scroll-m-20 text-2xl font-semibold tracking-tight",
-    h4: "scroll-m-20 text-xl font-semibold tracking-tight",
-    p: "leading-7 [&:not(:first-child)]:mt-6 text-slate-900 dark:text-slate-100",
-    lead: "text-xl text-slate-700 dark:text-slate-300",
-    muted: "text-sm text-slate-500 dark:text-slate-400",
-    small: "text-sm font-medium leading-none"
+    h1: "scroll-m-20 text-4xl font-extrabold tracking-[-0.05em] text-ink lg:text-5xl",
+    h2: "scroll-m-20 border-b border-border pb-2 text-3xl font-extrabold tracking-[-0.04em] text-ink first:mt-0",
+    h3: "scroll-m-20 text-2xl font-extrabold tracking-[-0.035em] text-ink",
+    h4: "scroll-m-20 text-xl font-bold tracking-[-0.025em] text-ink",
+    p: "leading-7 text-foreground [&:not(:first-child)]:mt-6",
+    lead: "text-xl leading-relaxed text-foreground/75",
+    muted: "text-sm leading-relaxed text-muted-foreground",
+    small: "text-sm font-semibold leading-none text-foreground"
   };
 
   return (

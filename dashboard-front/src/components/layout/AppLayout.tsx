@@ -1,15 +1,15 @@
 import { Outlet } from "react-router-dom";
-import { Sidebar } from "./Sidebar";
 import { MobileNav } from "./MobileNav";
+import { Sidebar } from "./Sidebar";
 
 export function AppLayout() {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(226,232,240,0.72),_transparent_32rem)] bg-slate-50">
+    <div className="app-canvas relative min-h-screen overflow-x-hidden">
       <Sidebar />
       <MobileNav />
 
-      <main className="md:pl-64">
-        <div className="container mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-7 md:px-8 md:py-8">
+      <main id="main-content" className="relative z-10 md:pl-72">
+        <div className="mx-auto w-full max-w-[90rem] px-4 py-5 sm:px-6 sm:py-7 md:px-8 md:py-9 lg:px-10">
           <Outlet />
         </div>
       </main>

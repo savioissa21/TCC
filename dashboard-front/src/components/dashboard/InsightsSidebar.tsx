@@ -10,9 +10,9 @@ interface Props {
 }
 
 const MIN_ASPECT_MENTIONS = 10;
-const SENTIMENT_COLORS = { Positivo: "#22c55e", Negativo: "#ef4444", Neutro: "#94a3b8" };
+const SENTIMENT_COLORS = { Positivo: "#23845e", Negativo: "#b54135", Neutro: "#7b8782" };
 const ASPECT_COLORS: Record<string, string> = {
-  Atendimento: "#6366f1", Comida: "#f59e0b", Ambiente: "#3b82f6", Preço: "#8b5cf6",
+  Atendimento: "#23845e", Comida: "#ba7a2c", Ambiente: "#527d75", Preço: "#8b6b4f",
 };
 
 export function InsightsSidebar({ stats }: Props) {
@@ -32,10 +32,10 @@ export function InsightsSidebar({ stats }: Props) {
     return (
       <section className="min-w-0 space-y-4 lg:col-span-3" aria-labelledby="insights-heading">
         <SectionTitle />
-        <div className="flex min-h-48 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-white p-8 text-center">
-          <div className="mb-3 rounded-xl bg-slate-100 p-3 text-slate-400"><BarChart3 size={22} /></div>
-          <p className="font-semibold text-slate-700">Insights aguardando dados</p>
-          <p className="mt-1 max-w-xs text-sm text-slate-400">Os gráficos aparecem depois da primeira coleta de avaliações.</p>
+        <div className="flex min-h-48 flex-col items-center justify-center rounded-[1.1rem] border border-dashed border-border bg-surface/75 p-8 text-center shadow-editorial">
+          <div className="mb-3 rounded-xl bg-accent p-3 text-evergreen"><BarChart3 size={22} /></div>
+          <p className="font-bold text-ink">Insights aguardando dados</p>
+          <p className="mt-1 max-w-xs text-sm text-muted-foreground">Os gráficos aparecem depois da primeira coleta de avaliações.</p>
         </div>
       </section>
     );
@@ -45,13 +45,13 @@ export function InsightsSidebar({ stats }: Props) {
     <section className="min-w-0 space-y-4 lg:col-span-3" aria-labelledby="insights-heading">
       <SectionTitle />
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <div className="rounded-[1.1rem] border border-border/90 bg-surface/90 p-4 shadow-editorial sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-sm font-bold text-slate-800">Distribuição de sentimento</h3>
-            <p className="mt-0.5 text-xs text-slate-400">{stats.total} avaliações analisadas</p>
+            <h3 className="text-sm font-black text-ink">Distribuição de sentimento</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">{stats.total} avaliações analisadas</p>
           </div>
-          <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-500">Visão geral</span>
+          <span className="rounded-full bg-accent px-2 py-1 text-[10px] font-bold text-evergreen">Visão geral</span>
         </div>
         <div className="h-44">
           <ResponsiveContainer width="100%" height="100%">
@@ -60,73 +60,73 @@ export function InsightsSidebar({ stats }: Props) {
                 paddingAngle={3} dataKey="value">
                 {sentimentData.map(entry => <Cell key={entry.name} fill={entry.color} strokeWidth={0} />)}
               </Pie>
-              <text x="50%" y="46%" textAnchor="middle" className="fill-slate-950 text-xl font-bold">{stats.score}%</text>
-              <text x="50%" y="58%" textAnchor="middle" className="fill-slate-500 text-xs">positivas</text>
+              <text x="50%" y="46%" textAnchor="middle" className="fill-ink text-xl font-bold">{stats.score}%</text>
+              <text x="50%" y="58%" textAnchor="middle" className="fill-muted-foreground text-xs">positivas</text>
               <Tooltip formatter={(value: number | undefined) => [`${value || 0} avaliações`, "Quantidade"]}
-                contentStyle={{ fontSize: 12, borderRadius: 10, border: "1px solid #e2e8f0" }} />
+                contentStyle={{ fontSize: 12, borderRadius: 12, border: "1px solid #dcddd5", background: "#fcfcf8" }} />
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3">
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 border-t border-border/70 pt-3">
           {sentimentData.map(item => (
-            <div key={item.name} className="flex items-center gap-1.5 text-xs text-slate-600">
+            <div key={item.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />
-              {item.name} <strong className="text-slate-900">{item.value}</strong>
+              {item.name} <strong className="text-ink">{item.value}</strong>
             </div>
           ))}
         </div>
       </div>
 
       {stats.aspects.length > 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="rounded-[1.1rem] border border-border/90 bg-surface/90 p-4 shadow-editorial sm:p-5">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-sm font-bold text-slate-800">Satisfação por aspecto</h3>
-              <p className="mt-0.5 text-xs text-slate-400">Percentual de menções positivas</p>
+              <h3 className="text-sm font-black text-ink">Satisfação por aspecto</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">Percentual de menções positivas</p>
             </div>
-            <span title="Quantidade de menções analisadas por aspecto" className="text-slate-400"><Info size={15} /></span>
+            <span title="Quantidade de menções analisadas por aspecto" className="text-muted-foreground"><Info size={15} /></span>
           </div>
           <div style={{ height: Math.max(150, stats.aspects.length * 42) }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats.aspects} layout="vertical" margin={{ left: -8, right: 16 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#ebece5" />
                 <XAxis type="number" domain={[0, 100]} tickFormatter={value => `${value}%`}
-                  tick={{ fontSize: 10, fill: "#94a3b8" }} />
-                <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11, fill: "#475569" }} />
+                  tick={{ fontSize: 10, fill: "#66736d" }} />
+                <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11, fill: "#3c4a45" }} />
                 <Tooltip formatter={(value: number | undefined) => [`${value || 0}%`, "Menções positivas"]}
-                  contentStyle={{ fontSize: 12, borderRadius: 10, border: "1px solid #e2e8f0" }} />
+                  contentStyle={{ fontSize: 12, borderRadius: 12, border: "1px solid #dcddd5", background: "#fcfcf8" }} />
                 <Bar dataKey="score" radius={[0, 5, 5, 0]} maxBarSize={17}>
                   {stats.aspects.map(aspect => (
-                    <Cell key={aspect.name} fill={ASPECT_COLORS[aspect.name] || "#6366f1"}
+                    <Cell key={aspect.name} fill={ASPECT_COLORS[aspect.name] || "#23845e"}
                       opacity={aspect.total < MIN_ASPECT_MENTIONS ? 0.45 : 1} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-3 grid gap-2 border-t border-slate-100 pt-3">
+          <div className="mt-3 grid gap-2 border-t border-border/70 pt-3">
             {stats.aspects.map(aspect => (
               <div key={aspect.name} className="flex items-center justify-between gap-2 text-xs">
-                <span className="font-medium text-slate-600">{aspect.name}</span>
-                <span className="text-slate-500">
+                <span className="font-bold text-foreground/75">{aspect.name}</span>
+                <span className="text-muted-foreground">
                   {aspect.total} {aspect.total === 1 ? "menção" : "menções"}
                   {aspect.total < MIN_ASPECT_MENTIONS && (
-                    <span className="ml-1.5 rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-700">amostra pequena</span>
+                    <span className="ml-1.5 rounded-full bg-amber-50 px-2 py-0.5 font-bold text-amber-800">amostra pequena</span>
                   )}
                 </span>
               </div>
             ))}
           </div>
           {limitedAspects.length > 0 && (
-            <p className="mt-3 flex gap-2 rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
+            <p className="mt-3 flex gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
               <Info size={14} className="mt-0.5 shrink-0" /> Aspectos com menos de {MIN_ASPECT_MENTIONS} menções são exibidos, mas não entram nos destaques.
             </p>
           )}
         </div>
       ) : (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-          <p className="text-sm font-semibold text-slate-700">Nenhum aspecto identificado</p>
-          <p className="mt-1 text-xs text-slate-400">As avaliações gerais existem, mas ainda não há menções aos aspectos monitorados.</p>
+        <div className="rounded-[1.1rem] border border-border bg-surface/85 p-6 text-center shadow-editorial">
+          <p className="text-sm font-bold text-ink">Nenhum aspecto identificado</p>
+          <p className="mt-1 text-xs text-muted-foreground">As avaliações gerais existem, mas ainda não há menções aos aspectos monitorados.</p>
         </div>
       )}
 
@@ -143,8 +143,9 @@ export function InsightsSidebar({ stats }: Props) {
 function SectionTitle() {
   return (
     <div>
-      <h2 id="insights-heading" className="text-lg font-bold tracking-tight text-slate-900">Insights da IA</h2>
-      <p className="text-xs text-slate-400">Tendências calculadas sobre o conjunto selecionado</p>
+      <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.18em] text-evergreen">Leitura estratégica</p>
+      <h2 id="insights-heading" className="mt-1.5 text-xl font-black tracking-[-0.035em] text-ink">Insights da IA</h2>
+      <p className="mt-1 text-xs text-muted-foreground">Tendências calculadas sobre o conjunto selecionado</p>
     </div>
   );
 }
@@ -156,10 +157,10 @@ function InsightList({ title, icon, items, tone }: {
   tone: "green" | "red";
 }) {
   const style = tone === "green"
-    ? "border-green-100 bg-green-50 text-green-800"
-    : "border-red-100 bg-red-50 text-red-800";
+    ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+    : "border-red-200 bg-red-50 text-red-900";
   return (
-    <div className={`rounded-2xl border p-4 ${style}`}>
+    <div className={`rounded-[1.1rem] border p-4 shadow-editorial ${style}`}>
       <p className="mb-3 flex items-center gap-1.5 text-sm font-bold">{icon} {title}</p>
       <div className="space-y-2">
         {items.map(item => (
@@ -176,8 +177,8 @@ function InsightList({ title, icon, items, tone }: {
 export function InsightsSidebarSkeleton() {
   return (
     <div role="status" aria-label="Carregando insights" className="min-w-0 space-y-4 lg:col-span-3">
-      <div className="h-8 w-36 animate-pulse rounded bg-slate-200" />
-      <div className="h-64 animate-pulse rounded-2xl border border-slate-200 bg-white" />
+      <div className="h-8 w-36 animate-pulse rounded bg-ink/10" />
+      <div className="h-64 animate-pulse rounded-[1.1rem] border border-border bg-surface/75" />
       <span className="sr-only">Carregando insights...</span>
     </div>
   );

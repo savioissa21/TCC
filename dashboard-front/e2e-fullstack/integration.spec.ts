@@ -51,7 +51,7 @@ test("cadastro, login, coleta, deduplicação, filtros, isolamento e exclusão",
   const latest = await page.request.get(`/api/establishments/${establishment.id}/latest-job`, { headers: authorization });
   expect((await latest.json()).jobId).toBe(jobId);
   expect((await waitJob(page, jobId, "COMPLETED")).reviewsImported).toBe(12);
-  await page.getByRole("button", { name: "Recarregar status das lojas" }).click();
+  await page.getByRole("button", { name: "Atualizar status" }).click();
   await expect(page.getByText("Concluída", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Semanal ativa" }).click();
   await expect(page.getByRole("button", { name: "Pausada", exact: true })).toBeVisible();
@@ -108,7 +108,7 @@ test("coleta parcial e falha externa ficam distintas e visíveis após reload", 
   await expect(page.getByText("Falhou", { exact: true })).toBeVisible();
   await expect(page.getByText(/^Coleta parcial:/)).toBeVisible();
   await expect(page.getByText("Não foi possível concluir a mineração. Tente novamente em alguns minutos.")).toBeVisible();
-  for (const width of [360, 768, 1024, 1440]) {
+  for (const width of [320, 360, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   }
