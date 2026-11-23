@@ -16,6 +16,7 @@ from absa_model_validation import (
 )
 from aspect_analysis import analyze_aspects_with
 from bertimbau_absa import AspectSentimentAnalyzer
+from overall_sentiment import classify_overall_sentiment
 
 
 INPUT_FILE = "reviews.json"
@@ -63,7 +64,7 @@ def process_reviews() -> int:
             if not text:
                 continue
 
-            overall_result = overall_analyzer(text, truncation=True)[0]
+            overall_result = classify_overall_sentiment(text, overall_analyzer)
             label = overall_result.get("label")
             if label not in SENTIMENT_MAP:
                 raise RuntimeError(f"BERTweet retornou uma classe desconhecida: {label}")

@@ -16,6 +16,7 @@ from absa_model_validation import (
     require_absa_model,
 )
 from bertimbau_absa import AspectSentimentAnalyzer
+from overall_sentiment import classify_overall_sentiment
 
 TARGET_URL = sys.argv[1] if len(sys.argv) >= 2 else None
 OUTPUT_FILE = os.getenv('MINING_OUTPUT_FILE', 'dados_temp.json')
@@ -148,9 +149,10 @@ def process_reviews(collected_reviews):
             rating = review["rating"]
             date = review["date"]
 
-            # Respect the tokenizer's token limit (characters are not tokens).
-            # Keep the complete text for storage and aspect extraction.
-            overall = get_sentiment_pipeline()(original_text, truncation=True)[0]
+            # Comentários acima do limite de tokens do BERTweet são divididos em
+            # partes e as probabilidades são combinadas, em vez de cortar o final.
+            # O texto completo continua sendo usado no armazenamento e nos aspectos.
+            overall = classify_overall_sentiment(original_text, get_sentiment_pipeline())
             sentiment_map = {'POS': 'Positivo', 'NEG': 'Negativo', 'NEU': 'Neutro'}
             overall_sentiment = sentiment_map.get(overall['label'], 'Neutro')
             sentiment_score = round(overall['score'], 4)
