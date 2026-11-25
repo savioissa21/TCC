@@ -233,12 +233,16 @@ async def collect_reviews(page, target, *, expected=None, wait_ms=1400, max_roun
             let panel = review.parentElement;
             while (panel) {
                 if (/auto|scroll/.test(getComputedStyle(panel).overflowY) && panel.scrollHeight > panel.clientHeight + 5) {
+                    const before = panel.scrollTop;
                     panel.scrollBy(0, Math.max(200, panel.clientHeight * 0.8));
                     // Listas virtualizadas podem substituir os cartões sem
-                    // alterar a posição efetiva do painel. O evento explícito
-                    // garante que o carregador da lista receba uma nova
-                    // solicitação mesmo nesse caso.
-                    panel.dispatchEvent(new Event('scroll', {bubbles: true}));
+                    // alterar a posição efetiva do painel. Só nesse caso o
+                    // evento explícito é necessário; se a rolagem andou, o
+                    // navegador já dispara o evento e um segundo disparo faria
+                    // a lista carregar dois lotes e pular avaliações.
+                    if (panel.scrollTop === before) {
+                        panel.dispatchEvent(new Event('scroll', {bubbles: true}));
+                    }
                     return true;
                 }
                 panel = panel.parentElement;
