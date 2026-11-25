@@ -84,5 +84,49 @@ class AspectExtractorTest(unittest.TestCase):
                 self.assertIn("Comida", aspect_names(text))
 
 
+    def test_other_restaurant_types_are_covered(self):
+        cases = {
+            "O sushi estava fresco e o temaki bem servido.": ["Comida"],
+            "A picanha veio no ponto certo e o churrasco estava ótimo.": ["Comida"],
+            "Hambúrguer suculento e batata frita crocante.": ["Comida"],
+            "O açaí é muito bom.": ["Comida"],
+            "Café quentinho e pão de queijo delicioso.": ["Comida"],
+            "Fomos muito bem atendidos.": ["Atendimento"],
+            "Pessoal simpático e prestativo.": ["Atendimento"],
+            "Estacionamento pequeno e o ar condicionado não funcionava.": ["Ambiente"],
+            "Banheiro sujo.": ["Ambiente"],
+            "Paguei 120 reais por pessoa.": ["Preço"],
+            "Cobraram couvert sem avisar.": ["Preço"],
+            "Ótimo custo-benefício.": ["Preço"],
+        }
+        for text, expected in cases.items():
+            with self.subTest(text=text):
+                self.assertEqual(aspect_names(text), expected)
+
+    def test_slang_and_generic_words_do_not_create_aspects(self):
+        cases = {
+            "O cara do caixa foi grosso.": ["Atendimento"],
+            "O lugar é massa, recomendo.": [],
+            "Dou muito valor a um bom atendimento.": ["Atendimento"],
+            "A borda grossa estava perfeita.": ["Comida"],
+            "Deixei o carro limpo na rua.": [],
+            "A falta de educação do público é absurda.": [],
+            "O garçom não teve educação.": ["Atendimento"],
+        }
+        for text, expected in cases.items():
+            with self.subTest(text=text):
+                self.assertEqual(aspect_names(text), expected)
+
+    def test_ambiguous_price_and_food_words_with_context(self):
+        self.assertEqual(aspect_names("A pizza é cara."), ["Comida", "Preço"])
+        self.assertEqual(aspect_names("A massa estava crua."), ["Comida"])
+        self.assertEqual(aspect_names("Valor justo pelo que oferecem."), ["Preço"])
+        self.assertEqual(aspect_names("O pedido veio errado."), ["Atendimento"])
+
+    def test_nonexperience_covers_new_products(self):
+        self.assertEqual(extract_aspect_candidates("Não provei o sushi."), [])
+        candidates = extract_aspect_candidates("Não experimentei a picanha, mas o atendimento foi ótimo.")
+        self.assertEqual([c["name"] for c in candidates], ["Atendimento"])
+
 if __name__ == "__main__":
     unittest.main()
