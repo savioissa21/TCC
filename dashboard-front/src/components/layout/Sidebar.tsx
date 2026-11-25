@@ -53,7 +53,7 @@ export function Sidebar() {
                     <Icon size={16} aria-hidden="true" />
                   </span>
                   <span className="flex-1">{label}</span>
-                  <span className={cn("text-[0.58rem] tracking-widest", isActive ? "text-ink/45" : "text-white/20")}>{index}</span>
+                  <span aria-hidden="true" className={cn("text-[0.58rem] tracking-widest", isActive ? "text-ink/45" : "text-white/20")}>{index}</span>
                 </>
               )}
             </NavLink>

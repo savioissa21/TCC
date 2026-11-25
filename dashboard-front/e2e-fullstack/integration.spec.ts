@@ -71,7 +71,7 @@ test("cadastro, login, coleta, deduplicação, filtros, isolamento e exclusão",
   await page.getByRole("button", { name: /^Negativo/ }).click();
   await expect(page.getByText("4 resultados")).toBeVisible();
   await page.getByRole("button", { name: /^Todos/ }).click();
-  await page.getByPlaceholder("Buscar por autor ou texto...").fill("Cliente fictício 00");
+  await page.getByPlaceholder("Buscar por autor ou trecho da avaliação...").fill("Cliente fictício 00");
   await expect(page.getByText("1 resultados")).toBeVisible();
 
   const other = await page.request.post("/api/auth/register", {
