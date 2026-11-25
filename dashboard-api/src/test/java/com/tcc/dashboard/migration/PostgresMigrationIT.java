@@ -39,7 +39,8 @@ class PostgresMigrationIT {
         flyway("3").migrate();
         seed("  Owner@EXAMPLE.test  ");
         jdbc.update("INSERT INTO establishment(name,maps_url,owner_id) SELECT 'Legada','https://maps.app.goo.gl/old',id FROM users");
-        assertEquals(1, flyway(null).migrate().migrationsExecuted);
+        // V4 e V5 são aplicadas sobre um banco que estava na V3.
+        assertEquals(2, flyway(null).migrate().migrationsExecuted);
         assertEquals("owner@example.test", jdbc.queryForObject("SELECT email FROM users", String.class));
         String url = "https://www.google.com/maps/place/" + "a".repeat(1900);
         jdbc.update("UPDATE establishment SET maps_url=?", url);
@@ -48,7 +49,7 @@ class PostgresMigrationIT {
         flyway(null).validate();
     }
     @Test void canonicalEmailConstraintAndUniquenessHold() {
-        assertEquals(4, flyway(null).migrate().migrationsExecuted);
+        assertEquals(5, flyway(null).migrate().migrationsExecuted);
         seed("owner@example.test");
         assertThrows(DataIntegrityViolationException.class, () -> seed("owner@example.test"));
         assertThrows(DataIntegrityViolationException.class, () -> seed("OWNER@example.test"));
